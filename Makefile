@@ -1,4 +1,4 @@
-.PHONY: pack init up down dev logs ps test lint migrate smoke admin new-client validate-client backup verify-backup restore upgrade doctor loadtest
+.PHONY: demo-seed pack init up down dev logs ps test lint migrate smoke admin new-client validate-client backup verify-backup restore upgrade doctor loadtest
 
 COMPOSE = docker compose
 COMPOSE_DEV = docker compose -f docker-compose.yml -f docker-compose.dev.yml
@@ -58,6 +58,12 @@ smoke:
 # Birinchi Ta'sischi: make admin [LOGIN=admin] [NAME="To'liq ism"]
 admin:
 	$(COMPOSE) exec api python -m app.cli create-admin $(or $(LOGIN),admin) "$(or $(NAME),Administrator)"
+
+# NAMOYISH: barcha ish ma'lumotini O'CHIRIB, namunaviy ma'lumot bilan to'ldiradi (Ta'sischi hisobi qoladi).
+# make demo-seed CONFIRM=yes
+demo-seed:
+	@test "$(CONFIRM)" = "yes" || { echo "Bu buyruq BARCHA ish ma'lumotini o'chiradi. Tasdiqlash: make demo-seed CONFIRM=yes"; exit 1; }
+	$(COMPOSE) exec -e ALLOW_DEMO_SEED=1 api python -m app.cli seed-demo-all
 
 # Yangi mijoz: make new-client NAME=acme BRAND="Acme HR" [ARGS="--domain hr.acme.uz --env"]
 new-client:

@@ -130,6 +130,11 @@ def main() -> int:
     if args and args[0] == "seed-demo-schedule":
         print(asyncio.run(seed_demo_schedule()))
         return 0
+    if args and args[0] == "seed-demo-all":
+        from app.demoseed import seed_demo_all
+
+        asyncio.run(seed_demo_all())
+        return 0
     if args and args[0] == "seed-demo-org":
         print(asyncio.run(seed_demo_org()))
         return 0
