@@ -1,0 +1,42 @@
+groups:
+  - name: vaksina
+    rules:
+      - alert: ApiDown
+        expr: up{job="vaksina-api"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: "API javob bermayapti"}
+      - alert: DbDown
+        expr: vaksina_db_up == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: "Baza ulanishi yo'q"}
+      - alert: RedisDown
+        expr: vaksina_redis_up == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: "Redis ulanishi yo'q"}
+      - alert: WorkerStale
+        expr: vaksina_worker_heartbeat_age_seconds > 120 or vaksina_worker_heartbeat_age_seconds < 0
+        for: 3m
+        labels: {severity: critical}
+        annotations: {summary: "Worker yurak urishi yo'q: jarima, eslatma, hisobotlar ishlamayapti"}
+      - alert: QueueBacklog
+        expr: vaksina_queue_depth > 500
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: "Vazifalar navbati to'planib qoldi"}
+      - alert: High5xxRate
+        expr: sum(rate(vaksina_http_requests_total{status="5xx"}[5m])) / sum(rate(vaksina_http_requests_total[5m])) > 0.02
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: "5xx xatolar ulushi 2% dan oshdi"}
+      - alert: SlowApi
+        expr: histogram_quantile(0.95, sum(rate(vaksina_http_request_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: "API p95 kechikishi 1 soniyadan oshdi"}
+      - alert: RateLimitSpike
+        expr: increase(vaksina_rate_limited_total[10m]) > 100
+        labels: {severity: warning}
+        annotations: {summary: "Ko'p 429: hujum yoki noto'g'ri mijoz"}

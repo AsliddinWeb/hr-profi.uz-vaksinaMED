@@ -1,0 +1,51 @@
+# `make dev`: kod o'zgarsa avtomatik yangilanadi (uvicorn --reload, vite HMR).
+# Gateway lokalda ham 6788 da, brauzerda http://localhost:6788
+
+services:
+  gateway:
+    environment:
+      FRONTEND_UPSTREAM: frontend:5173
+
+  frontend:
+    build:
+      context: .
+      dockerfile: core/frontend/Dockerfile
+      target: dev
+      args:
+        CLIENT_NAME: ${CLIENT_NAME}
+    environment:
+      CLIENT_NAME: ${CLIENT_NAME}
+    volumes:
+      - ./core/frontend:/app/core/frontend
+      - /app/core/frontend/node_modules
+      - ./clients:/app/clients
+
+  api:
+    build:
+      context: ./core/backend
+      target: dev
+    environment:
+      ENV: development
+    volumes:
+      - ./core/backend:/srv
+      - ./clients/${CLIENT_NAME}:/clients/${CLIENT_NAME}:ro
+
+  worker:
+    build:
+      context: ./core/backend
+      target: dev
+    environment:
+      ENV: development
+    volumes:
+      - ./core/backend:/srv
+      - ./clients/${CLIENT_NAME}:/clients/${CLIENT_NAME}:ro
+
+  bot:
+    build:
+      context: ./core/backend
+      target: dev
+    environment:
+      ENV: development
+    volumes:
+      - ./core/backend:/srv
+      - ./clients/${CLIENT_NAME}:/clients/${CLIENT_NAME}:ro

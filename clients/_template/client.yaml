@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=../client.schema.json
+# Mijoz sozlamalari: __NAME__. Tekshirish: make validate-client CLIENT=__NAME__
+name: __NAME__
+
+brand:
+  name: "__BRAND__"
+  tagline: Kadrlar va filiallarni boshqarish tizimi
+  primary: "#0b5ed7"
+  accent: "#3ecf8e"
+  # logo: logo.svg   # clients/__NAME__/frontend_ext/public/logo.svg
+
+# Core modullarini yoqish/o'chirish (to'liq ro'yxat: core/backend/app/modules.py).
+# Yozilmagan modul YOQILGAN hisoblanadi.
+modules:
+  # logistics: false
+  # warehouse: false
+  # calls: false
+  # ai: false
+
+# Core o'qiydigan sozlamalar (timezone, map). Qolgan kalitlarni faqat o'zingizning extension kodingiz o'qiydi.
+settings:
+  timezone: Asia/Tashkent
+  # map:
+  #   tiles: "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+  #   attribution: "© OpenStreetMap"

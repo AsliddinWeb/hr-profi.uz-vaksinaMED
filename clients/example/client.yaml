@@ -1,0 +1,17 @@
+# Mijoz sozlamalari. Core standartlari bilan birlashtiriladi.
+name: example
+
+brand:
+  name: HR-Profi
+  tagline: Kadrlar va filiallarni boshqarish tizimi
+  primary: "#0b5ed7"
+  accent: "#3ecf8e"
+
+# Core modullarini yoqish/o'chirish (ro'yxat: core/backend/app/modules.py)
+modules:
+  logistics: true
+  calls: true
+
+# Mijozga xos qoidalar (extension kodi o'qiydi)
+settings:
+  timezone: Asia/Tashkent

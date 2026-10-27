@@ -1,0 +1,182 @@
+# Production-ga yaqin konfiguratsiya. Lokal ishlab chiqish: `make dev` (docker-compose.dev.yml qo'shiladi).
+# Tashqariga faqat gateway chiqadi (GATEWAY_BIND:GATEWAY_PORT, standart 127.0.0.1:6788).
+
+name: vaksinahr
+
+x-backend: &backend
+  build:
+    context: ./core/backend
+    target: prod
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    REDIS_URL: redis://redis:6379/0
+    CLIENT_DIR: /clients/${CLIENT_NAME}
+    WEB_CONCURRENCY: ${WEB_CONCURRENCY:-3}  # uvicorn worker jarayonlari (api); worker/bot buni e'tiborsiz qoldiradi
+  volumes:
+    - ./clients/${CLIENT_NAME}:/clients/${CLIENT_NAME}:ro
+  restart: unless-stopped
+
+services:
+  gateway:
+    image: nginx:1.27-alpine
+    environment:
+      FRONTEND_UPSTREAM: frontend:80
+      NGINX_ENVSUBST_FILTER: FRONTEND_
+    volumes:
+      - ./deploy/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+    ports:
+      - "${GATEWAY_BIND:-127.0.0.1}:${GATEWAY_PORT:-6788}:80"
+    depends_on:
+      - frontend
+      - api
+      - livekit
+    restart: unless-stopped
+    networks: [internal]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: core/frontend/Dockerfile
+      target: prod
+      args:
+        CLIENT_NAME: ${CLIENT_NAME}
+    restart: unless-stopped
+    networks: [internal]
+
+  api:
+    <<: *backend
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      minio: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/api/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [internal]
+
+  worker:
+    <<: *backend
+    command: ["arq", "app.worker.WorkerSettings"]
+    depends_on:
+      api: {condition: service_healthy}
+    networks: [internal]
+
+  # Telegram bot (long polling): hisobni ulash buyruqlari. Token bo'sh bo'lsa hech narsa qilmay kutadi.
+  bot:
+    <<: *backend
+    command: ["python", "-m", "app.bot"]
+    depends_on:
+      api: {condition: service_healthy}
+    networks: [internal]
+
+  # Qo'ng'iroq (F25): audio/video/ekran ulashish. Signalizatsiya gateway /livekit/ orqali, media 7881/tcp va 7882/udp to'g'ridan-to'g'ri.
+  # Productionda LIVEKIT_NODE_IP = serverning ochiq IP si (aks holda NAT ortidagi mijozlar ulana olmaydi).
+  livekit:
+    image: livekit/livekit-server:v1.8.0
+    environment:
+      LIVEKIT_CONFIG: |
+        port: 7880
+        log_level: info
+        rtc:
+          tcp_port: ${LIVEKIT_TCP_PORT:-7881}
+          udp_port: ${LIVEKIT_UDP_PORT:-7882}
+          use_external_ip: false
+          node_ip: ${LIVEKIT_NODE_IP:-127.0.0.1}
+        keys:
+          ${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}
+        webhook:
+          api_key: ${LIVEKIT_API_KEY}
+          urls:
+            - http://api:8000/api/v1/calls/webhook
+    ports:
+      - "${LIVEKIT_TCP_PORT:-7881}:${LIVEKIT_TCP_PORT:-7881}"
+      - "${LIVEKIT_UDP_PORT:-7882}:${LIVEKIT_UDP_PORT:-7882}/udp"
+    restart: unless-stopped
+    networks: [internal]
+
+  # Monitoring (ixtiyoriy): `docker compose --profile monitoring up -d`. Prometheus http://127.0.0.1:9090, Grafana http://127.0.0.1:3000 (faqat SSH tunnel orqali)
+  prometheus:
+    profiles: ["monitoring"]
+    image: prom/prometheus:v2.54.1
+    volumes:
+      - ./deploy/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - promdata:/prometheus
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=30d"]
+    ports:
+      - "127.0.0.1:9090:9090"
+    restart: unless-stopped
+    networks: [internal]
+
+  grafana:
+    profiles: ["monitoring"]
+    image: grafana/grafana:11.2.0
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-change-me-now}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./deploy/monitoring/grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml:ro
+      - grafanadata:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    restart: unless-stopped
+    networks: [internal]
+
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks: [internal]
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks: [internal]
+
+  minio:
+    image: minio/minio:latest
+    command: ["server", "/data"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks: [internal]
+
+networks:
+  internal:
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:
+  promdata:
+  grafanadata:

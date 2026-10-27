@@ -1,0 +1,35 @@
+# Sirlar: hech qachon repozitoriyga tushmasin
+.env
+.env.*
+!.env.example
+clients/*/.env
+*.pem
+*.key
+
+# Zaxira va chiqarish artefaktlari
+backups/
+dist/
+*.tar.gz
+*.sha256
+*.sql
+*.enc
+
+# Frontend
+node_modules/
+core/frontend/dist/
+*.tsbuildinfo
+coverage/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.venv/
+
+# Katta yordamchi fayllar va muharrir/OS chiqindilari
+screenshots/
+*.log
+.DS_Store
+.idea/
+.vscode/

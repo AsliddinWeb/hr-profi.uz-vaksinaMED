@@ -1,0 +1,98 @@
+/* Design tokenlar. Neytral palitra, bitta urg'u (yashil, faqat ijobiy/diagramma), asosiy amal rangi — "siyoh" (qora/oq).
+   Mijoz brendi (client.yaml brand.primary) standart qora bo'lmasa, `--brand*` orqali runtime'da qo'llanadi (features/meta/useMeta.ts). */
+:root {
+  --brand: #0b5ed7;
+  --brand-fg: #ffffff;
+  --brand-dark: #6aa5ff;
+  --brand-dark-fg: #07162e;
+  --primary: var(--brand);
+  --primary-fg: var(--brand-fg);
+  --accent: #3ecf8e;
+
+  --bg: #eef2f8;
+  --surface: #ffffff;
+  --surface-2: #f4f7fb;
+  --surface-3: #e6edf7;
+  --border: #e3e9f2;
+  --border-strong: #cfd8e6;
+  --text: #101828;
+  --muted: #667085;
+
+  --success: #1f9d61;
+  --warning: #b9770f;
+  --danger: #d2433d;
+  --info: #3a6bc9;
+
+  /* Tugma/belgi ranglari: har amal turi o'z rangida */
+  /* Bo'lim palitrasi: har modul guruhi o'z rangida (ikonka, sarlavha, kartalar) */
+  --c-blue: #0b5ed7;
+  --c-violet: #7a4fd6;
+  --c-teal: #0f9aa8;
+  --c-amber: #d9820b;
+  --c-rose: #d6407a;
+  --c-green: #1f9d61;
+  --c-indigo: #4a55d6;
+  --c-orange: #e0561f;
+  --c-slate: #5b6b85;
+  --violet: #7a4fd6;
+  --teal: #0f9aa8;
+  --amber: #d9820b;
+
+  /* Grafiklar: o'z vaqtida / kech / kelmagan (rangdan tashqari holat matn va tooltipda ham beriladi) */
+  --chart-ok: #3ecf8e;
+  --chart-late: #e5a93d;
+  --chart-absent: #e5625b;
+  --chart-muted: #bdbdb6;
+
+  /* Eski "tint" kartalar endi tekis sirt (gradient yo'q) */
+  --tint-rose: var(--surface);
+  --tint-lilac: var(--surface);
+  --tint-mint: var(--surface);
+  --tint-sand: var(--surface);
+
+  --seg-bg: #e8eef8;
+  --seg-on: #ffffff;
+  --radius-card: 16px;
+  --radius-control: 10px;
+  --shadow-card: 0 0 0 1px rgb(20 20 18 / 0.035), 0 1px 2px rgb(20 20 18 / 0.03);
+  --shadow-pop: 0 0 0 1px rgb(20 20 18 / 0.06), 0 12px 32px rgb(20 20 18 / 0.12);
+  --ring: color-mix(in oklab, var(--primary) 35%, transparent);
+}
+
+:root[data-theme='dark'] {
+  --primary: var(--brand-dark);
+  --primary-fg: var(--brand-dark-fg);
+  --bg: #0e1420;
+  --surface: #161e2e;
+  --surface-2: #1d2638;
+  --surface-3: #27324a;
+  --border: #263148;
+  --border-strong: #34415c;
+  --text: #f1f1ef;
+  --muted: #93a0b8;
+
+  --success: #4cc38a;
+  --warning: #e0a94a;
+  --danger: #ef7770;
+  --info: #7ea6f0;
+  --c-blue: #6aa5ff;
+  --c-violet: #a68bf0;
+  --c-teal: #4cc4d0;
+  --c-amber: #f0ad4a;
+  --c-rose: #f27aa6;
+  --c-green: #4cc38a;
+  --c-indigo: #8d97f5;
+  --c-orange: #f58a5b;
+  --c-slate: #9aa8c2;
+  --violet: #a68bf0;
+  --teal: #4cc4d0;
+  --amber: #f0ad4a;
+  --chart-ok: #4cc38a;
+  --chart-late: #f0b74d;
+  --chart-absent: #f0716a;
+  --chart-muted: #5a5a56;
+  --seg-bg: #1f293d;
+  --seg-on: #2e3a55;
+  --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.04);
+  --shadow-pop: 0 0 0 1px rgb(255 255 255 / 0.08), 0 16px 40px rgb(0 0 0 / 0.5);
+}

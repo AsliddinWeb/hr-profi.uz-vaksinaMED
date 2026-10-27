@@ -1,0 +1,20 @@
+# KOSHI: namunaviy mijoz sozlamasi (PRO tarif, 50 foydalanuvchi).
+# Tarif modullarni belgilaydi (core/backend/app/plans.py); `modules` bilan tarifdagi modulni o'chirish mumkin,
+# tarifga kirmaganini yoqib bo'lmaydi. `plan` bo'lmasa cheklov yo'q.
+name: koshi
+
+brand:
+  name: KOSHI
+  tagline: Butun biznes. Bitta platforma.
+  primary: "#4f46e5"
+  accent: "#22d3ee"
+
+plan: pro
+
+license:
+  seats: 50
+  valid_until: 2027-12-31
+  holder: Namuna mijoz
+
+settings:
+  timezone: Asia/Tashkent
