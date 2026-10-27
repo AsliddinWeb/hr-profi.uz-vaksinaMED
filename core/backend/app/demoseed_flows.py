@@ -16,8 +16,7 @@ async def flows(sd) -> None:  # noqa: C901
     hrd, hrm = sd.login_of("Aliyeva"), sd.login_of("Rustamova")
     koord, mudir1, mudir2 = sd.login_of("Yusupov"), sd.login_of("Ergashev"), sd.login_of("Nazarova")
     f1, f2, f3 = sd.login_of("Soliyeva"), sd.login_of("Tursunov"), sd.login_of("Umarova")
-    ayti, logist, drv, ombor, resep = sd.login_of("Orifov"), sd.login_of("Normatova"), sd.login_of("Xolmatov"), sd.login_of("Mirzayev"), sd.login_of("Jo'rayeva")
-    dire = sd.login_of("Karimov")
+    ayti, logist, resep = sd.login_of("Orifov"), sd.login_of("Normatova"), sd.login_of("Jo'rayeva")
 
     users = {u["login"]: u for u in _items(await sd.call(A, "GET", "/api/v1/users?limit=200", label="users"))}
     uid = lambda login: users[login]["id"]  # noqa: E731
@@ -128,7 +127,7 @@ async def flows(sd) -> None:  # noqa: C901
     await sd.call(hrm, "POST", "/api/v1/canteen/menus", json={"menu_date": str(today), "dishes": [{"name": "Mastava", "kind": "soup"}, {"name": "Palov", "kind": "main"}, {"name": "Achchiq-chuchuk", "kind": "salad"}, {"name": "Kompot", "kind": "drink"}]}, label="menyu")
     veh = await sd.call(logist, "POST", "/api/v1/logistics/vehicles", json={"plate": "01 A 777 AA", "name": "Damas (yetkazib berish)", "kind": "van", "fuel_type": "gas", "tank_l": 40, "odometer_km": 85000}, label="mashina")
     if veh:
-        trip = await sd.call(logist, "POST", "/api/v1/logistics/trips", json={"vehicle_id": veh["id"], "driver_id": eid["Xolmatov"], "purpose": "Filiallarga dori yetkazish", "origin": "Markaziy ombor", "destination": "Yunusobod-15"}, label="reys")
+        await sd.call(logist, "POST", "/api/v1/logistics/trips", json={"vehicle_id": veh["id"], "driver_id": eid["Xolmatov"], "purpose": "Filiallarga dori yetkazish", "origin": "Markaziy ombor", "destination": "Yunusobod-15"}, label="reys")
         await sd.call(logist, "POST", "/api/v1/logistics/fuel", json={"vehicle_id": veh["id"], "liters": 30, "price_per_liter": 5800, "odometer_km": 85120, "station": "Metan shoxobchasi"}, label="yoqilg'i")
     await sd.call(A, "POST", "/api/v1/warehouse", json={"name": "Markaziy ombor", "min_on_duty": 1, "max_shift_hours": 12}, label="ombor")
     await sd.call(resep, "POST", "/api/v1/reception", json={"visitor_name": "Qodirov Anvar", "company": "Pharm-Trade", "purpose": "meeting", "note": "Shartnoma muhokamasi", "host_id": eid["Karimov"], "expected_at": now.isoformat()}, label="mehmon")

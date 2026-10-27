@@ -133,7 +133,6 @@ class Seeder:
         print("  ", await seed_demo_org(), "|", await seed_demo_schedule())
         await self.call("demo_seeder", "POST", "/api/v1/schedule/holidays/seed", json={"year": date.today().year, "yearly": True}, label="bayramlar")
         d = await self.call("demo_seeder", "GET", "/api/v1/org/departments")
-        pos = await self.call("demo_seeder", "GET", "/api/v1/org/positions")
         br = await self.call("demo_seeder", "GET", "/api/v1/branches")
         dl = d if isinstance(d, list) else (d or {}).get("items", [])
         self.ids["dept"] = {x["name"]: x["id"] for x in dl}
