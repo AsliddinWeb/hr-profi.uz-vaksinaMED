@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, X } from 'lucide-react'
+import { Check, FileDown, X } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
@@ -45,7 +45,22 @@ export function RequestDetailPage() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
-      <PageHeader title={r.employee.full_name} subtitle={period(r)} backTo={r.can_decide ? '/answers/inbox' : '/answers'} backLabel={t('answers.back')} />
+      <PageHeader
+        title={r.employee.full_name}
+        subtitle={period(r)}
+        backTo={r.can_decide ? '/answers/inbox' : '/answers'}
+        backLabel={t('answers.back')}
+        actions={
+          r.status === 'approved' && (
+            <a href={`/api/v1/answers/requests/${r.id}/statement?lang=${i18n.language === 'ru' ? 'ru' : 'uz'}`} download>
+              <Button variant="outline">
+                <FileDown className="size-4" />
+                {t('answers.statement')}
+              </Button>
+            </a>
+          )
+        }
+      />
 
       <Card className="flex flex-col gap-3 p-6">
         <div className="flex flex-wrap items-center gap-2">

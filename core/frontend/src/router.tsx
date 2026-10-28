@@ -23,6 +23,7 @@ import { FacePunchPage } from './features/face/FacePunchPage'
 import { MyFacePage } from './features/face/MyFacePage'
 import { CalendarPage } from './features/answers/CalendarPage'
 import { InboxPage } from './features/answers/InboxPage'
+import { LeaveVerifyPage } from './features/answers/LeaveVerifyPage'
 import { AnswersStatusPage } from './features/answers/StatusPage'
 import { MyRequestsPage } from './features/answers/MyRequestsPage'
 import { RequestDetailPage } from './features/answers/RequestDetailPage'
@@ -231,6 +232,7 @@ export function createRouter() {
     { path: '/login', element: <LoginPage /> },
     // Ochiq: QR orqali hujjatni tekshirish (kirish shart emas)
     { path: '/verify', element: <VerifyPage /> },
+    { path: '/verify/leave/:code', element: <LeaveVerifyPage /> },
     { path: '/verify/:code', element: <VerifyPage /> },
     { path: '/apply/:code', element: <PublicApplyPage /> },
     {

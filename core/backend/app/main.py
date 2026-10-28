@@ -182,6 +182,7 @@ def create_app() -> FastAPI:
     ):  # fmt: skip
         app.include_router(module.router, prefix="/api")
     app.include_router(letters.public_router, prefix="/api")
+    app.include_router(answers.public_router, prefix="/api")
     app.include_router(onboarding.kadr_router, prefix="/api")
     app.include_router(integrations.ext_router, prefix="/api")
     app.include_router(retention.off_router, prefix="/api")

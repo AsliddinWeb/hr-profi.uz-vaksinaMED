@@ -372,6 +372,41 @@ async def deliver_report_telegram(ctx: dict, run_id: int, user_id: int) -> str:
         return "sent"
 
 
+async def deliver_statement_telegram(ctx: dict, request_id: int) -> str:
+    """Tasdiqlangan javob bildirgisini (PDF) xodimning Telegram chatiga yuboradi."""
+    from app.config import get_settings
+    from app.extensions import load_client_config
+    from app.models.answers import LeaveRequest
+    from app.models.employees import Employee
+    from app.services import leave_statement as stmt
+
+    client: TelegramClient | None = ctx.get("telegram")
+    if client is None:
+        return "disabled"
+    async with SessionLocal() as session:
+        req = await session.get(LeaveRequest, request_id)
+        emp = await session.get(Employee, req.employee_id) if req else None
+        user = await session.get(User, emp.user_id) if emp and emp.user_id else None
+        if not req or req.status != "approved" or not req.statement_code or not user or not user.is_active or not user.telegram_chat_id or not user.telegram_notify:
+            return "skipped"
+        settings = get_settings()
+        company = load_client_config(settings.client_dir).brand.get("name") or "HR-Profi"
+        url = f"{settings.public_url.rstrip('/')}/verify/leave/{req.statement_code}" if settings.public_url else req.statement_code
+        pdf = await stmt.build_pdf(session, req, emp, url, company, user.locale)
+        caption = ("✅ Javob olish tasdiqlandi. Bildirgi biriktirildi." if user.locale != "ru" else "✅ Отсутствие одобрено. Уведомление во вложении.") + f"\n{req.statement_no}"
+        try:
+            await client.send_document(user.telegram_chat_id, f"{req.statement_no}.pdf", pdf, caption)
+        except TelegramError as exc:
+            if exc.chat_unreachable:
+                await unlink_user(session, user)
+                await session.commit()
+                return "unlinked"
+            if exc.retry_after:
+                raise Retry(defer=exc.retry_after) from exc
+            raise Retry(defer=ctx.get("job_try", 1) * 15) from exc
+        return "sent"
+
+
 async def deliver_candidate_telegram(ctx: dict, chat_id: int, text: str) -> str:
     """Nomzodga (botga yozgan) Telegram xabari: suhbatga taklif, job offer."""
     client: TelegramClient | None = ctx.get("telegram")
@@ -496,7 +531,7 @@ async def shutdown(ctx: dict) -> None:
 
 
 _registry = WorkerRegistry(
-    functions=[ping, deliver_telegram, cleanup_notifications, purge_face_templates, escalate_leave_requests, scan_penalties, release_penalty_blocks, task_deadlines, need_deadlines, fire_reminders, logistics_expiry, warehouse_watch, mobile_watch, desk_watch, calls_watch, report_scheduler, deliver_report_telegram, coord_report_job, explanation_deadlines, deliver_candidate_telegram, attestation_job, retention_scan_job, rotation_job, control_digest_job],
+    functions=[ping, deliver_telegram, cleanup_notifications, purge_face_templates, escalate_leave_requests, scan_penalties, release_penalty_blocks, task_deadlines, need_deadlines, fire_reminders, logistics_expiry, warehouse_watch, mobile_watch, desk_watch, calls_watch, report_scheduler, deliver_report_telegram, deliver_statement_telegram, coord_report_job, explanation_deadlines, deliver_candidate_telegram, attestation_job, retention_scan_job, rotation_job, control_digest_job],
     cron_jobs=[
         cron(heartbeat, second={0, 30}),
         cron(cleanup_notifications, hour={3}, minute={15}),

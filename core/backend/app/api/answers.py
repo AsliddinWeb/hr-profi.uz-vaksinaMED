@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.attendance import _base_url
 from app.db import get_session
 from app.deps import AuthContext, error, get_auth
 from app.models.answers import LeaveEvent, LeaveRequest
@@ -20,11 +21,13 @@ from app.services import answers as svc
 from app.services import answers_report as rep
 from app.services import answers_report_export as rexp
 from app.services import attendance as att
-from app.services.audit import audit
+from app.services import leave_statement as stmt
+from app.services.audit import audit, client_ip
 from app.services.notifications import deliver
 from app.timeutil import local_date, now, tz
 
 router = APIRouter(prefix="/v1/answers", tags=["answers"])
+public_router = APIRouter(prefix="/v1/public", tags=["public"])
 
 
 def require_any(*perms: str):
@@ -187,10 +190,13 @@ async def decision(
     if not svc.can_view(auth, req, emp):
         raise error(404, "not_found")
     notes = await svc.decide(db, req, emp, auth, body.action, body.note, now())
+    issued = await stmt.ensure(db, req, emp, now()) if req.status == "approved" else False
     await audit(db, request, f"answers.{req.status}", actor=auth.user, entity="leave_request", entity_id=req.id,
                 data={"employee_id": emp.id, "period": svc.period_text(req), "level": req.decided_level}, note=req.decision_note)  # fmt: skip
     await db.commit()
     await deliver(request.app, notes)
+    if issued and emp.user_id:  # bildirgi xodimning Telegramiga PDF sifatida yuboriladi (ulangan bo'lsa)
+        await request.app.state.queue.enqueue("deliver_statement_telegram", req.id)
     return svc.request_out(req, emp)
 
 
@@ -307,3 +313,35 @@ async def report_export(
     generated = datetime.now(tz()).strftime("%d.%m.%Y %H:%M")
     content = await asyncio.to_thread(rexp.build_pdf, shown, summary, lang, ", ".join(p for p in parts if p), generated, len(items) >= rep.MAX_ROWS)
     return Response(content, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="javob-holat-{month}.pdf"'})
+
+
+@router.get("/requests/{request_id}/statement")
+async def statement(request_id: int, request: Request, lang: str = Query(default="uz", pattern="^(uz|ru)$"), db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
+    """Elektron bildirgi (PDF): faqat tasdiqlangan so'rov uchun; xodimning o'zi, koordinator va HR ko'radi."""
+    req, emp = await _load(db, request_id, auth)
+    if req.status != "approved":
+        raise error(409, "not_approved")
+    if await stmt.ensure(db, req, emp, now()):
+        await db.commit()
+    cfg = getattr(request.app.state, "client_config", None)
+    company = (cfg.brand.get("name") if cfg else None) or "HR-Profi"
+    content = await stmt.build_pdf(db, req, emp, f"{_base_url(request)}/verify/leave/{req.statement_code}", company, lang)
+    await audit(db, request, "answers.statement", actor=auth.user, entity="leave_request", entity_id=req.id)
+    await db.commit()
+    return Response(content, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{req.statement_no}.pdf"'})
+
+
+@public_router.get("/leave/{code}")
+async def verify_statement(code: str, request: Request, hash: str | None = Query(default=None, max_length=64), db: AsyncSession = Depends(get_session)):
+    """QR orqali bildirgini tekshirish: sabab ko'rsatilmaydi, faqat mavjudligi, holati va yaxlitligi."""
+    redis = request.app.state.redis
+    rk = f"rl:verify:{client_ip(request)}"
+    n = await redis.incr(rk)
+    if n == 1:
+        await redis.expire(rk, 60)
+    if n > 60:
+        raise error(429, "too_many_attempts", retry_after=max(await redis.ttl(rk), 1))
+    req = await db.scalar(select(LeaveRequest).where(LeaveRequest.statement_code == code[:40]))
+    if not req:
+        raise error(404, "not_found")
+    return stmt.public_view(req, await _emp(db, req.employee_id), hash)

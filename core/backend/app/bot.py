@@ -8,6 +8,7 @@ import asyncio
 import json
 import logging
 import re
+import uuid
 
 from redis.asyncio import Redis
 from sqlalchemy import select
@@ -22,15 +23,88 @@ from app.services import recruit_sources as rsrc
 from app.services import telegram_link as link
 from app.services.notifications import notify, serialize
 from app.telegram import TelegramClient, TelegramError, esc
-from app.timeutil import now
+from app.timeutil import local_date, now
 
 log = logging.getLogger("vaksina.bot")
+
+LEAVE_TEXTS = {
+    "uz": {
+        "denied": "Bu buyruq faqat HR va koordinatorlar uchun.", "head": "📊 <b>Javob olish</b> — oxirgi {days} kun va kelgusi {ahead} kun",
+        "totals": "Jami filial: <b>{total}</b> · javob olinganlar bor: <b>{with_leave}</b> filial · <b>{requests}</b> ta so'rov", "empty": "Bu davrda so'rovlar yo'q.",
+        "today": "bugun", "ago": "{n} kun oldin", "ahead": "{n} kundan keyin", "ongoing": "hozir davom etmoqda", "cont": "(davomi)",
+        "st": {"approved": "✅", "pending_coordinator": "⏳", "pending_hr": "⏳"}, "hourly": "soatlik",
+        "no_statements": "Tasdiqlangan javob bildirgilari yo'q.", "not_linked": "Bu Telegram hisobga ulanmagan.", "no_employee": "Sizga xodim kartochkasi biriktirilmagan.",
+        "doc": "Javob olish bildirgisi {no}",
+    },
+    "ru": {
+        "denied": "Эта команда только для HR и координаторов.", "head": "📊 <b>Отсутствия</b> — последние {days} дн. и ближайшие {ahead} дн.",
+        "totals": "Всего филиалов: <b>{total}</b> · с отсутствиями: <b>{with_leave}</b> · заявок: <b>{requests}</b>", "empty": "За этот период заявок нет.",
+        "today": "сегодня", "ago": "{n} дн. назад", "ahead": "через {n} дн.", "ongoing": "сейчас отсутствует", "cont": "(продолжение)",
+        "st": {"approved": "✅", "pending_coordinator": "⏳", "pending_hr": "⏳"}, "hourly": "почасовая",
+        "no_statements": "Одобренных уведомлений нет.", "not_linked": "Этот Telegram не подключён.", "no_employee": "За вами не закреплена карточка сотрудника.",
+        "doc": "Уведомление об отсутствии {no}",
+    },
+}
+LIMIT = 3800
+
+
+def overview_messages(data: dict, lang: str, days: int, ahead: int) -> list[str]:
+    """Filial bo'yicha ro'yxat: Telegram xabar chegarasidan oshmasligi uchun bir necha xabarga bo'linadi."""
+    c = LEAVE_TEXTS.get(lang, LEAVE_TEXTS["uz"])
+    head = f"{c['head'].format(days=days, ahead=ahead)}\n{c['totals'].format(total=data['total_branches'], with_leave=data['with_leave'], requests=data['requests'])}"
+    if not data["branches"]:
+        return [f"{head}\n\n{c['empty']}"]
+    blocks = []
+    for b in data["branches"]:
+        lines = [f"📍 <b>{esc(b['name'])}</b> ({len(b['items'])})"]
+        for it in b["items"]:
+            n = it["days_ago"]
+            when = c["ongoing"] if it["ongoing"] else (c["today"] if n == 0 else (c["ago"].format(n=n) if n > 0 else c["ahead"].format(n=-n)))
+            span = it["start_date"].strftime("%d.%m") + (f"–{it['end_date']:%d.%m}" if it["end_date"] != it["start_date"] else "")
+            if it["kind"] == "hourly" and it["start_time"]:
+                span += f" {it['start_time']}–{it['end_time']}"
+            lines.append(f"{c['st'].get(it['status'], '•')} {esc(it['employee'])} — {when} ({span})")
+        blocks.append("\n".join(lines))
+    out, cur = [], head
+    for blk in blocks:
+        if len(cur) + len(blk) + 2 > LIMIT and cur != head:
+            out.append(cur)
+            cur = f"{c['cont']}"
+        cur += "\n\n" + blk
+    out.append(cur)
+    return out
+
+
+async def _send_statements(user, session, client, chat_id: int) -> None:
+    """/bildirgi: xodimning oxirgi tasdiqlangan javob bildirgilarini PDF sifatida yuboradi."""
+    from app.extensions import load_client_config
+    from app.models.answers import LeaveRequest
+    from app.models.employees import Employee
+    from app.services import leave_statement as stmt
+
+    c = LEAVE_TEXTS.get(user.locale, LEAVE_TEXTS["uz"])
+    emp = await session.scalar(select(Employee).where(Employee.user_id == user.id))
+    if not emp:
+        await client.send_message(chat_id, c["no_employee"])
+        return
+    reqs = list((await session.scalars(select(LeaveRequest).where(LeaveRequest.employee_id == emp.id, LeaveRequest.status == "approved").order_by(LeaveRequest.start_date.desc()).limit(3))).all())
+    if not reqs:
+        await client.send_message(chat_id, c["no_statements"])
+        return
+    settings = get_settings()
+    company = load_client_config(settings.client_dir).brand.get("name") or "HR-Profi"
+    for r in reqs:
+        if await stmt.ensure(session, r, emp, now()):
+            await session.commit()
+        url = f"{settings.public_url.rstrip('/')}/verify/leave/{r.statement_code}" if settings.public_url else str(r.statement_code)
+        pdf = await stmt.build_pdf(session, r, emp, url, company, user.locale)
+        await client.send_document(chat_id, f"{r.statement_no}.pdf", pdf, c["doc"].format(no=r.statement_no))
 
 CODE_RE = re.compile(r"^[A-Za-z0-9_-]{8,32}$")
 
 TEXTS = {
     "uz": {
-        "help": "Bu bot HR-Profi bildirishnomalarini yuboradi.\n\nUlash: tizimda Profil → Telegram bo'limidan havolani oching.\n/status — holat\n/stop — bildirishnomalarni o'chirish",
+        "help": "Bu bot HR-Profi bildirishnomalarini yuboradi.\n\nUlash: tizimda Profil → Telegram bo'limidan havolani oching.\n/status — holat\n/stop — bildirishnomalarni o'chirish\n/javob — javob olish hisoboti (HR, koordinator)\n/bildirgi — o'z bildirgilarim",
         "linked": "✅ Hisob ulandi: <b>{name}</b>. Endi bildirishnomalar shu yerga keladi.",
         "bad_code": "❌ Kod noto'g'ri yoki muddati o'tgan. Tizimda yangi havola oling.",
         "not_linked": "Bu Telegram hisobga ulanmagan. Tizimda Profil → Telegram orqali ulang.",
@@ -41,7 +115,7 @@ TEXTS = {
         "private_only": "Botni faqat shaxsiy chatda ishlating.",
     },
     "ru": {
-        "help": "Этот бот отправляет уведомления HR-Profi.\n\nПодключение: в системе откройте Профиль → Telegram и перейдите по ссылке.\n/status — состояние\n/stop — отключить уведомления",
+        "help": "Этот бот отправляет уведомления HR-Profi.\n\nПодключение: в системе откройте Профиль → Telegram и перейдите по ссылке.\n/status — состояние\n/stop — отключить уведомления\n/javob — отчёт по отсутствиям (HR, координатор)\n/bildirgi — мои уведомления",
         "linked": "✅ Аккаунт подключён: <b>{name}</b>. Теперь уведомления будут приходить сюда.",
         "bad_code": "❌ Код неверный или истёк. Получите новую ссылку в системе.",
         "not_linked": "Этот Telegram не подключён. Подключите через Профиль → Telegram в системе.",
@@ -202,6 +276,31 @@ async def handle_update(
             await session.commit()
             await reply(_t(user.locale, "stopped"))
             await publish(redis, [user.id], "telegram", {"changed": True})
+            return
+
+        if command in ("/javob", "/bildirgi"):
+            if not user:
+                await reply(_bilingual("not_linked"))
+                return
+            c = LEAVE_TEXTS.get(user.locale, LEAVE_TEXTS["uz"])
+            if command == "/bildirgi":
+                try:
+                    await _send_statements(user, session, client, chat_id)
+                except TelegramError:
+                    log.warning("Bildirgi yuborilmadi (chat %s)", chat_id)
+                return
+            from app.deps import AuthContext
+            from app.services import answers as ans
+            from app.services import answers_report as rep
+
+            auth = AuthContext(user, uuid.uuid4(), frozenset(user.role.permission_keys))
+            if not any(ans.has(auth, p) for p in ("answers.read", "answers.manage", "answers.decide")):
+                await reply(c["denied"])
+                return
+            days = int(arg) if arg.isdigit() and 1 <= int(arg) <= 90 else 30
+            data = await rep.bot_overview(session, auth, local_date(now()), days=days, ahead=14)
+            for text in overview_messages(data, user.locale, days, 14):
+                await reply(text)
             return
 
         if command == "/status":

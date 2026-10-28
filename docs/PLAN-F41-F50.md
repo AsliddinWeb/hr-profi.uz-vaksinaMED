@@ -30,7 +30,7 @@ Eslatma: Abet skrinshoti (9.jpg) uchun matn yo'q. Ko'rinib turgani: baholash oyn
 - Excel va **matnli PDF** (kartochka: filial, smena, koordinator, izoh, tarix; sahifalash, filtr bo'yicha, oy/filial/koordinator).
 - Mijoz PDF idagi 8 soatlik «koordinator javob bermadi → HR ga o'tdi» qoidasi hisobotda ko'rinsin.
 
-### F43. Bot: javob hisoboti va elektron bildirgi (o'rta)
+### F43. Bot: javob hisoboti va elektron bildirgi (o'rta) — TAYYOR 2026-10-28
 - Bot buyrug'i (HR/koordinator/mudir): jami filial soni → filial bo'yicha ro'yxat: xodim, necha kun oldin javob olgan, hozirgi holat.
 - Tasdiqlangan har javobga **elektron bildirgi** (PDF, raqam, QR, `/verify` orqali tekshiriladi); xodimga botda yuboriladi.
 - Bog'liq: F42 ma'lumotlari.

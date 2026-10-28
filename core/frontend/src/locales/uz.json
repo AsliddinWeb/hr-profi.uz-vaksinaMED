@@ -1655,6 +1655,16 @@
     "calendar": {
       "title": "So'rovlar kalendari",
       "subtitle": "Kim qaysi kuni ruxsat bilan yo'q bo'ladi"
+    },
+    "statement": "Bildirgi (PDF)",
+    "verify": {
+      "title": "Javob olish bildirgisini tekshirish",
+      "valid": "Bildirgi haqiqiy",
+      "invalid": "Bildirgi yaroqsiz",
+      "notApproved": "So'rov tasdiqlanmagan yoki bekor qilingan.",
+      "period": "Sana / vaqt",
+      "decided": "Tasdiqlagan",
+      "subtitle": "QR kod yoki kod orqali bildirgi haqiqiyligini tekshiring"
     }
   },
   "letters": {

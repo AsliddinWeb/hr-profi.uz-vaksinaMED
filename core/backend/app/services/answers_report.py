@@ -130,3 +130,32 @@ def filter_status(items: list[dict[str, Any]], status: str | None) -> list[dict[
 
 def local_dt(moment: datetime | None) -> datetime | None:
     return moment.astimezone(tz()) if moment else None
+
+
+async def bot_overview(db: AsyncSession, auth: AuthContext, today: date, days: int = 30, ahead: int = 14) -> dict[str, Any]:
+    """Bot uchun: jami filial soni va filial bo'yicha (tasdiqlangan/kutilayotgan) so'rovlar, necha kun oldin/keyin ekani bilan."""
+    stmt = (
+        select(LeaveRequest, Employee)
+        .join(Employee, Employee.id == LeaveRequest.employee_id)
+        .where(LeaveRequest.status.in_(("approved", *svc.PENDING)), LeaveRequest.end_date >= today - timedelta(days=days), LeaveRequest.start_date <= today + timedelta(days=ahead))
+        .order_by(LeaveRequest.start_date.desc())
+        .limit(MAX_ROWS)
+    )
+    clause = svc.visible_clause(auth, Employee.user_id)
+    if clause is not None:
+        stmt = stmt.where(clause)
+    rows = (await db.execute(stmt)).all()
+    all_branches = list((await db.scalars(select(Branch).where(Branch.is_active.is_(True)).order_by(Branch.number, Branch.name))).all())
+    see_all = svc.has(auth, "answers.read") or svc.has(auth, "answers.manage")
+    mine = all_branches if see_all else [b for b in all_branches if b.coordinator_user_id == auth.user.id]
+    by_branch = {b.id: b for b in all_branches}
+    groups: dict[int | None, list[dict[str, Any]]] = defaultdict(list)
+    for r, e in rows:
+        delta = (today - r.start_date).days
+        groups[e.branch_id].append({
+            "employee": e.full_name, "status": r.status, "kind": r.kind, "start_date": r.start_date, "end_date": r.end_date,
+            "start_time": r.start_time.strftime("%H:%M") if r.start_time else None, "end_time": r.end_time.strftime("%H:%M") if r.end_time else None,
+            "ongoing": r.start_date <= today <= r.end_date, "days_ago": delta,
+        })  # fmt: skip
+    branches = [{"name": (by_branch[k].name if k in by_branch else "—"), "items": v} for k, v in sorted(groups.items(), key=lambda kv: (by_branch[kv[0]].number or 0) if kv[0] in by_branch else 10**9)]
+    return {"total_branches": len(mine), "with_leave": len(groups), "requests": len(rows), "branches": branches}

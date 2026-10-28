@@ -36,6 +36,11 @@ class LeaveRequest(Base, TimestampMixin):
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     decided_level: Mapped[str | None] = mapped_column(String(12))  # coordinator | hr
     decision_note: Mapped[str | None] = mapped_column(Text)
+    # Elektron bildirgi (tasdiqlangach beriladi): raqam, ochiq tekshiruv kodi (QR) va yaxlitlik xeshi
+    statement_no: Mapped[str | None] = mapped_column(String(20), unique=True)
+    statement_code: Mapped[str | None] = mapped_column(String(32), unique=True)
+    statement_hash: Mapped[str | None] = mapped_column(String(64))
+    statement_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class LeaveEvent(Base):
