@@ -2,6 +2,11 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com), versiyalash: SemVer (major — buzuvchi o'zgarish).
 
+## [Chiqmagan]
+
+- F47: HR PROFI brendi — logotip (och fon uchun navy, to'q mavzu uchun oq `logo-dark.png`), belgi, favicon, PWA ikonlari, og-image, `theme-color`. Yangi `BrandLogo` komponenti (mijoz logosi bo'lsa avvalgi oq «plashka» saqlanadi).
+- `make demo-seed CONFIRM=yes`: barcha bo'limlar uchun namunaviy ma'lumot (avval ish ma'lumotini o'chiradi).
+
 ## [1.1.0] — HR jarayonlari, KOSHI tariflari, integratsiyalar (F32–F40)
 
 Migratsiyalar: `0029`–`0036` (api ishga tushganda o'zi qo'llanadi). Batafsil: [docs/F32-F40-XULOSA.md](docs/F32-F40-XULOSA.md).

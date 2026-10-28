@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 
+import { BrandLogo } from '../../components/layout/BrandLogo'
 import { TeamArt } from '../../components/illustrations'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
@@ -74,7 +75,7 @@ export function LoginPage() {
       <div className="grid place-items-center bg-bg px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <img src={meta?.brand.logo ?? '/logo.png'} alt={meta?.brand.name ?? 'HR-Profi'} className="mx-auto h-14 w-auto max-w-full object-contain dark:rounded-xl dark:bg-white dark:px-3 dark:py-1.5 lg:hidden" />
+          <BrandLogo src={meta?.brand.logo} alt={meta?.brand.name ?? 'HR-Profi'} className="mx-auto h-14 w-auto max-w-full lg:hidden" />
           <h1 className="sr-only">{meta?.brand.name ?? 'HR-Profi'}</h1>
           <p className="mt-1 text-sm text-muted lg:hidden">{meta?.brand.tagline}</p>
         </div>

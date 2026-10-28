@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 
+import { BrandLogo } from './BrandLogo'
 import { getExtensionNavItems, type NavItem } from '../../extensions/registry'
 import { useInboxCount } from '../../features/answers/useInboxCount'
 import { useCan } from '../../features/auth/useAuth'
@@ -137,7 +138,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
       >
         <div className={cn('flex items-center gap-2 px-1.5 pb-4 pt-1.5', compact ? 'lg:flex-col lg:px-0' : 'justify-between')}>
           <Link to="/" onClick={onClose} className="flex min-w-0 items-center" aria-label={meta?.brand.name ?? 'HR-Profi'}>
-            {compact ? <img src="/logo-mark.png" alt={meta?.brand.name ?? 'HR-Profi'} className="h-8 w-auto dark:rounded-md dark:bg-white dark:p-0.5" /> : <img src={meta?.brand.logo ?? '/logo.png'} alt={meta?.brand.name ?? 'HR-Profi'} className="h-9 w-auto max-w-full object-contain dark:rounded-lg dark:bg-white dark:px-2 dark:py-1" />}
+            {compact ? <img src="/logo-mark.png" alt={meta?.brand.name ?? 'HR-Profi'} className="h-8 w-auto dark:rounded-md dark:bg-white dark:p-0.5" /> : <BrandLogo src={meta?.brand.logo} alt={meta?.brand.name ?? 'HR-Profi'} className="h-9 w-auto max-w-full" />}
           </Link>
           <button className="hidden size-7 cursor-pointer place-items-center rounded-md text-muted transition-colors hover:bg-surface-2 hover:text-text lg:grid" onClick={toggleRail} aria-label={compact ? 'Expand' : 'Collapse'} title={compact ? 'Expand' : 'Collapse'}>
             {compact ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
