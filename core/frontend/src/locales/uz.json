@@ -106,7 +106,9 @@
     "back": "Orqaga",
     "confirm": "Tasdiqlash",
     "add": "Qo'shish",
-    "view": "Ko'rish"
+    "view": "Ko'rish",
+    "yes": "Ha",
+    "no": "Yo'q"
   },
   "errors": {
     "unknown": "Kutilmagan xato. Qayta urinib ko'ring",
@@ -1630,7 +1632,14 @@
       "note": "Izoh",
       "noteRequired": "«Boshqa» uchun izoh majburiy",
       "submit": "Yuborish",
-      "sent": "So'rov yuborildi"
+      "sent": "So'rov yuborildi",
+      "rulesTitle": "Javob olish tartibi",
+      "rules": {
+        "1": "So'rovni yuboring: kunlik yoki soatlik, sabab bilan (o'tgan 7 kunga ham mumkin).",
+        "2": "Filial koordinatori so'rovni ko'rib chiqadi: tasdiqlaydi yoki sabab bilan rad etadi.",
+        "3": "Koordinator belgilangan muddatda javob bermasa, so'rov avtomatik HR ga o'tadi.",
+        "4": "Tasdiqlangach elektron bildirgi (PDF, QR kod bilan) tayyor bo'ladi va Telegramingizga yuboriladi."
+      }
     },
     "decision": {
       "title": "Qaror",
@@ -4691,6 +4700,66 @@
       "approved": "tasdiqladi",
       "rejected": "rad etdi",
       "cancelled": "So'rov bekor qilindi"
+    }
+  },
+  "duty": {
+    "title": "Lavozim va bo'lim chek-listlari",
+    "subtitle": "Har bir bo'lim va lavozim uchun kunlik/haftalik ish chek-listi: xodim to'ldiradi, koordinator va HR nazorat qiladi",
+    "add": "Yangi chek-list",
+    "edit": "Chek-listni tahrirlash",
+    "empty": "Hali chek-list yo'q",
+    "inactive": "nofaol",
+    "main": "Asosiy",
+    "name": "Nomi",
+    "description": "Tavsif",
+    "scopeLabel": "Kimga biriktiriladi",
+    "scope": {
+      "department": "Bo'lim",
+      "position": "Lavozim"
+    },
+    "scopeHintDept": "Bo'limdagi barcha xodimlar bu chek-listni to'ldiradi.",
+    "scopeHintPos": "Faqat shu lavozimdagi xodimlar to'ldiradi.",
+    "frequency": "Davriyligi",
+    "freq": {
+      "daily": "Kunlik",
+      "weekly": "Haftalik"
+    },
+    "deadline": "Muddat (shu vaqtgacha)",
+    "until": "{{time}} gacha",
+    "points": "{{n}} ta band",
+    "activeLabel": "Faol",
+    "items": "Bandlar",
+    "itemsHint": "Har bir band «ha/yo'q» yoki 1–5 ball bo'lishi mumkin. Majburiy bandlar javobsiz topshirilmaydi.",
+    "itemText": "Band matni",
+    "delete": "Chek-listni o'chirish",
+    "deleteHint": "Natijalari bor chek-listni o'chirib bo'lmaydi: uni nofaol qiling.",
+    "late": "kechikib",
+    "deptSection": "Ish chek-listlari",
+    "deptSectionHint": "Bo'lim va uning lavozimlari uchun xodimlar to'ldiradigan chek-listlar.",
+    "none": "Chek-list yo'q",
+    "status": {
+      "done": "Bajarildi",
+      "open": "Jarayonda",
+      "overdue": "Kechikkan"
+    },
+    "my": {
+      "title": "Mening chek-listim",
+      "subtitle": "Lavozimingiz va bo'limingiz bo'yicha joriy kun/hafta vazifalari",
+      "none": "Bugun sizga biriktirilgan chek-list yo'q.",
+      "noEmployee": "Sizga xodim kartochkasi biriktirilmagan.",
+      "due": "Muddat: {{when}}",
+      "note": "Izoh (ixtiyoriy)",
+      "submit": "Topshirish",
+      "saved": "Chek-list topshirildi",
+      "doneAt": "Topshirilgan: {{when}}"
+    },
+    "control": {
+      "title": "Chek-list nazorati",
+      "subtitle": "Kim chek-listni bajargan, kim bajarmagan (o'z filiallaringiz yoki hammasi)",
+      "date": "Sana",
+      "expected": "Kutilgan",
+      "byDept": "Bo'limlar bo'yicha bajarilish",
+      "rate": "Bajarilish: {{n}}%"
     }
   }
 }

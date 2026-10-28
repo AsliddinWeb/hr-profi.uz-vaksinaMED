@@ -189,6 +189,7 @@ import { TransferPage } from './features/employees/TransferPage'
 import { DepartmentFormPage } from './features/org/DepartmentFormPage'
 import { DepartmentsPage } from './features/org/DepartmentsPage'
 import { OrgChartPage } from './features/org/OrgChartPage'
+import { DutyControlPage, DutyFormPage, DutyTemplatesPage, MyDutyPage } from './features/duty/DutyPages'
 import { RotationDetailPage, RotationFormPage, RotationsPage } from './features/rotations/RotationPages'
 import { BroadcastPage } from './features/notifications/BroadcastPage'
 import { NotificationsPage } from './features/notifications/NotificationsPage'
@@ -445,6 +446,11 @@ export function createRouter() {
             { path: 'checklists', element: <RequirePerm any={['checklists.own', 'checklists.read', 'checklists.manage']}><CheckListPage /></RequirePerm> },
             { path: 'checklists/new', element: <RequirePerm any={['checklists.own', 'checklists.manage']}><CheckNewPage /></RequirePerm> },
             { path: 'checklists/report', element: <RequirePerm any={['checklists.own', 'checklists.read', 'checklists.manage']}><CheckReportPage /></RequirePerm> },
+            { path: 'checklists/my', element: <RequirePerm perm="duty.own"><MyDutyPage /></RequirePerm> },
+            { path: 'checklists/control', element: <RequirePerm any={['duty.control', 'duty.read', 'duty.manage']}><DutyControlPage /></RequirePerm> },
+            { path: 'checklists/duty', element: <RequirePerm any={['duty.read', 'duty.manage']}><DutyTemplatesPage /></RequirePerm> },
+            { path: 'checklists/duty/new', element: <RequirePerm perm="duty.manage"><DutyFormPage /></RequirePerm> },
+            { path: 'checklists/duty/:id/edit', element: <RequirePerm any={['duty.read', 'duty.manage']}><DutyFormPage /></RequirePerm> },
             { path: 'checklists/templates', element: <RequirePerm any={['checklists.own', 'checklists.read', 'checklists.manage']}><CheckTemplatesPage /></RequirePerm> },
             { path: 'checklists/templates/new', element: <RequirePerm perm="checklists.manage"><CheckTemplateFormPage /></RequirePerm> },
             { path: 'checklists/templates/:id/edit', element: <RequirePerm perm="checklists.manage"><CheckTemplateFormPage /></RequirePerm> },

@@ -35,7 +35,7 @@ Eslatma: Abet skrinshoti (9.jpg) uchun matn yo'q. Ko'rinib turgani: baholash oyn
 - Tasdiqlangan har javobga **elektron bildirgi** (PDF, raqam, QR, `/verify` orqali tekshiriladi); xodimga botda yuboriladi.
 - Bog'liq: F42 ma'lumotlari.
 
-### F44. Bo'lim va lavozim chek-listlari (o'rta)
+### F44. Bo'lim va lavozim chek-listlari (o'rta) — TAYYOR 2026-10-28
 - Chek-list shabloni bo'limga yoki lavozimga biriktiriladi (kunlik/haftalik, punktlar: ha/yo'q, ball, foto).
 - Bo'lim va lavozim kartochkasida ko'rinadi; xodimning panelida «Mening chek-listim»; bajarilish nazorati (koordinator/HR), kechikish bildirishnomasi.
 - «Javob olish tartibi» qadamlari so'rov formasida qoida sifatida ko'rsatiladi.

@@ -142,3 +142,8 @@ register_permission("complaints.manage", "Shikoyatlarni ko'rib chiqish va javob 
 register_permission("rotations.read", "Rotatsiyalarni ko'rish (barchasi)", "Просмотр ротаций")
 register_permission("rotations.request", "Rotatsiya so'rash (o'z filiali xodimi uchun)", "Запрос ротации (сотрудник своего филиала)")
 register_permission("rotations.manage", "Rotatsiyani yaratish va tasdiqlash (HR)", "Создание и утверждение ротаций (HR)")
+register_permission("duty.own", "O'z ish chek-listini to'ldirish (lavozim/bo'lim bo'yicha)", "Заполнение своего рабочего чек-листа")
+register_permission("duty.read", "Ish chek-listlari va nazoratni ko'rish (hammasi)", "Просмотр рабочих чек-листов и контроля")
+register_permission("duty.control", "Ish chek-listi bajarilishini nazorat qilish (o'z filiallari)", "Контроль выполнения рабочих чек-листов (свои филиалы)")
+register_permission("duty.manage", "Ish chek-list shablonlarini yaratish va tahrirlash (HR)", "Создание и редактирование рабочих чек-листов (HR)")
+

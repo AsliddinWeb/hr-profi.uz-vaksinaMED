@@ -1,3 +1,4 @@
+import { DeptDutySection } from '../duty/DeptDutySection'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
@@ -174,6 +175,7 @@ function DepartmentForm({ dept, all }: { dept: DepartmentRow | null; all: Depart
       </form>
 
       {dept && <PositionsSection deptId={dept.id} canManage={manage} />}
+      {dept && <DeptDutySection deptId={dept.id} />}
 
       {dept && manage && (
         <FormSection title={t('org.dangerZone')} description={t('org.deleteHint')} danger>

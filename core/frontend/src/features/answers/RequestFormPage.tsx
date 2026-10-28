@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
+import { Card } from '../../components/ui/Card'
 import { FormFooter, FormSection } from '../../components/ui/Form'
 import { Field, Input, Select } from '../../components/ui/Input'
 import { useToast } from '../../components/ui/toastContext'
@@ -51,6 +52,14 @@ export function RequestFormPage() {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
       <PageHeader title={t('answers.new')} subtitle={t('answers.form.subtitle')} backTo="/answers" backLabel={t('answers.my.title')} />
+      <Card className="flex flex-col gap-2 p-5">
+        <h2 className="font-semibold">{t('answers.form.rulesTitle')}</h2>
+        <ol className="list-decimal pl-5 text-sm text-muted">
+          {[1, 2, 3, 4].map((n) => (
+            <li key={n}>{t(`answers.form.rules.${n}`)}</li>
+          ))}
+        </ol>
+      </Card>
       <form onSubmit={submit} className="flex flex-col gap-6">
         <FormSection title={t('answers.form.kind')}>
           <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label={t('answers.form.kind')}>

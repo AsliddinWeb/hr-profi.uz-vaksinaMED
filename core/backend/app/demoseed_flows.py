@@ -157,3 +157,19 @@ async def flows(sd) -> None:  # noqa: C901
     print("15. Rotatsiya")
     await sd.call(hrd, "POST", "/api/v1/rotations", json={"employee_id": eid["Saidov"], "to_branch_id": br[16], "start_date": str(today), "end_date": str(today + timedelta(days=7)), "reason": "1-gor bolnitsada smena yetishmayapti"}, label="rotatsiya (faol)")
     await sd.call(mudir2, "POST", "/api/v1/rotations", json={"employee_id": eid["Hamidov"], "to_branch_id": br[36], "start_date": str(today + timedelta(days=3)), "end_date": str(today + timedelta(days=10)), "reason": "Yakkasaroy filialida ta'mirlash"}, label="rotatsiya (so'rov)")
+
+    # 16. Ish chek-listlari (lavozim va bo'lim bo'yicha) va ularning bajarilishi
+    print("16. Chek-listlar")
+    dept_pharm = sd.ids["dept"]["Dorixona tarmog'i"]
+    farm = await sd.call(hrd, "POST", "/api/v1/duty/templates", json={"name": "Farmasevt kunlik chek-listi", "scope": "position", "position_id": farm_pos, "frequency": "daily", "deadline_time": "20:00", "items": [
+        {"text": "Kassa va javonlar tozalandi", "kind": "yesno"}, {"text": "Dori yaroqlilik muddatlari tekshirildi", "kind": "yesno"},
+        {"text": "Narx yorliqlari to'g'ri joylashtirildi", "kind": "yesno"}, {"text": "Mijozlarga xizmat sifati (o'zini baholash)", "kind": "score"}]}, label="chek-list (lavozim)")
+    await sd.call(hrd, "POST", "/api/v1/duty/templates", json={"name": "Mudir kunlik chek-listi", "scope": "position", "position_id": sd.ids["pos"][("Mudir", "Dorixona tarmog'i")], "frequency": "daily", "deadline_time": "21:00", "items": [
+        {"text": "Smena boshida xodimlar formada va o'z joyida", "kind": "yesno"}, {"text": "Savdo hisoboti yuborildi", "kind": "yesno"}, {"text": "Kassa qoldig'i hisobga mos", "kind": "yesno"}]}, label="chek-list (mudir)")
+    await sd.call(hrd, "POST", "/api/v1/duty/templates", json={"name": "Dorixona haftalik tartib chek-listi", "scope": "department", "department_id": dept_pharm, "frequency": "weekly", "deadline_time": "20:00", "items": [
+        {"text": "Haftalik inventarizatsiya o'tkazildi", "kind": "yesno"}, {"text": "Sanitariya holati (1–5)", "kind": "score"}]}, label="chek-list (bo'lim)")
+    if farm:
+        ids = [i["id"] for i in farm["items"]]
+        for who, vals in ((f1, [True, True, True, 5]), (f2, [True, True, False, 4]), (sai, [True, False, True, 3])):
+            await sd.call(who, "PUT", f"/api/v1/duty/my/{farm['id']}", json={"answers": dict(zip(ids, vals, strict=True)), "note": "Kun yakunida topshirildi"}, label="chek-list topshirish")
+

@@ -274,6 +274,14 @@ _ROTATION_EXTRA = {
     "koordinator": ("rotations.request",),
     "mudir": ("rotations.request",),
 }
+_DUTY_EXTRA = {
+    "hr_direktor": ("duty.*",),
+    "hr_menejer": ("duty.manage", "duty.read", "duty.control"),
+    "direktor": ("duty.read",),
+    "hr_auditor": ("duty.read",),
+    "koordinator": ("duty.control",),
+    "mudir": ("duty.control",),
+}
 _GROWTH_EXTRA = {
     "hr_direktor": ("attestation.*", "performance.*", "career.*"),
     "hr_menejer": ("attestation.read", "attestation.manage", "performance.read", "performance.own", "career.read", "career.propose"),
@@ -284,7 +292,7 @@ _GROWTH_EXTRA = {
 SYSTEM_ROLES = tuple(
     RoleDef(
         r.key, r.uz, r.ru,
-        tuple(dict.fromkeys((*r.permissions, *_PHARMACY_EXTRA.get(r.key, ()), *_GROWTH_EXTRA.get(r.key, ()), *_RETENTION_EXTRA.get(r.key, ()), *_ROTATION_EXTRA.get(r.key, ()), *_EXT_EXTRA.get(r.key, ()), *_NEEDS_EXTRA.get(r.key, ()), *_CHECKLIST_EXTRA.get(r.key, ()), *_RECRUIT_EXTRA.get(r.key, ()), *_INTERN_EXTRA.get(r.key, ()), *_PAYROLL_EXTRA.get(r.key, ()), *_CANTEEN_EXTRA.get(r.key, ()), *_LOGISTICS_EXTRA.get(r.key, ()), *_WAREHOUSE_EXTRA.get(r.key, ()), *_MOBILE_EXTRA.get(r.key, ()), *_DESK_EXTRA.get(r.key, ()), *(() if r.key == SUPERUSER_ROLE else ("attestation.own", "complaints.own", "needs.own", "payroll.own", "canteen.own", "mobile.own", "reception.own", "helpdesk.own", "calls.own", "ai.use"))))),
+        tuple(dict.fromkeys((*r.permissions, *_PHARMACY_EXTRA.get(r.key, ()), *_GROWTH_EXTRA.get(r.key, ()), *_RETENTION_EXTRA.get(r.key, ()), *_ROTATION_EXTRA.get(r.key, ()), *_DUTY_EXTRA.get(r.key, ()), *_EXT_EXTRA.get(r.key, ()), *_NEEDS_EXTRA.get(r.key, ()), *_CHECKLIST_EXTRA.get(r.key, ()), *_RECRUIT_EXTRA.get(r.key, ()), *_INTERN_EXTRA.get(r.key, ()), *_PAYROLL_EXTRA.get(r.key, ()), *_CANTEEN_EXTRA.get(r.key, ()), *_LOGISTICS_EXTRA.get(r.key, ()), *_WAREHOUSE_EXTRA.get(r.key, ()), *_MOBILE_EXTRA.get(r.key, ()), *_DESK_EXTRA.get(r.key, ()), *(() if r.key == SUPERUSER_ROLE else ("attestation.own", "duty.own", "complaints.own", "needs.own", "payroll.own", "canteen.own", "mobile.own", "reception.own", "helpdesk.own", "calls.own", "ai.use"))))),
     )
     for r in SYSTEM_ROLES
 )

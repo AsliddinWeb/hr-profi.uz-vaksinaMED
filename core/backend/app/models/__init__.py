@@ -6,6 +6,7 @@ from app.models.auth import AuditLog, Role, RolePermission, User, UserSession
 from app.models.calls import Call, CallParticipant
 from app.models.canteen import CanteenDish, CanteenMenu, CanteenRating, CanteenSettings
 from app.models.checklists import ChecklistFile, ChecklistTemplate, ChecklistVisit
+from app.models.duty import DutyChecklist, DutyRun
 from app.models.employees import Employee, EmployeeDocument, EmployeeEvent
 from app.models.face import FaceAttempt, FaceConsent, FaceTemplate
 from app.models.growth import Attestation, CareerLevel, HrSetting, Promotion
@@ -58,6 +59,8 @@ __all__ = [
     "BranchDailyMetric",
     "ApiKey",
     "RetentionMeeting",
+    "DutyChecklist",
+    "DutyRun",
     "RetentionCase",
     "Rotation",
     "Offboarding",
