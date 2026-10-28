@@ -118,3 +118,5 @@ Har fazaning oxirida: ishlaydigan funksiya + testlar + docker-compose da ishga t
 - Har o'zgarish (davomat tuzatish, jarima, oylik) audit logga yoziladi.
 - Shaxsiy ma'lumot va biometrika: shifrlash, rozilik, saqlash muddati, kirish jurnali.
 - Testlar: pytest (API), Playwright (asosiy oqimlar), hisob-kitoblar uchun alohida unit testlar.
+
+> F41–F50 (2026-10-28 mijoz talablari): [docs/PLAN-F41-F50.md](docs/PLAN-F41-F50.md)
