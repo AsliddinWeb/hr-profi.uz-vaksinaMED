@@ -1,10 +1,12 @@
 """Javob olish: ruxsat so'rovlari (kunlik/soatlik), koordinator -> HR, kalendar, tarix."""
 
+import asyncio
 import calendar
-from datetime import date, time
+from datetime import date, datetime, time
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request
+from fastapi.responses import Response
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,10 +17,12 @@ from app.models.answers import LeaveEvent, LeaveRequest
 from app.models.auth import User
 from app.models.employees import Employee
 from app.services import answers as svc
+from app.services import answers_report as rep
+from app.services import answers_report_export as rexp
 from app.services import attendance as att
 from app.services.audit import audit
 from app.services.notifications import deliver
-from app.timeutil import local_date, now
+from app.timeutil import local_date, now, tz
 
 router = APIRouter(prefix="/v1/answers", tags=["answers"])
 
@@ -253,3 +257,53 @@ async def calendar_view(
             for r, e in rows
         ],
     }  # fmt: skip
+
+
+async def _report(db: AsyncSession, auth: AuthContext, month: str, branch_id: int | None, q: str | None):
+    if not any(svc.has(auth, p) for p in ("answers.read", "answers.manage", "answers.decide")):
+        raise error(403, "forbidden")
+    items = await rep.collect(db, auth, month, branch_id=branch_id, q=q)
+    return items, rep.summarize(items, month)
+
+
+@router.get("/report")
+async def report(
+    month: str = Query(pattern=r"^\d{4}-(0[1-9]|1[0-2])$"),
+    status: str | None = Query(default=None, pattern="^(all|pending|pending_coordinator|pending_hr|approved|rejected|cancelled)$"),
+    branch_id: int | None = None,
+    q: str | None = None,
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_session),
+    auth: AuthContext = Depends(get_auth),
+) -> dict[str, Any]:
+    """Javob olish holati: KPI, kunlik kalendar, xodimlar reytingi va (sahifalangan) so'rovlar kartochkalari."""
+    items, summary = await _report(db, auth, month, branch_id, q)
+    shown = rep.filter_status(items, status)
+    return {**summary, "total": len(shown), "page": page, "size": size, "items": shown[(page - 1) * size : page * size]}
+
+
+@router.get("/report/export")
+async def report_export(
+    request: Request,
+    month: str = Query(pattern=r"^\d{4}-(0[1-9]|1[0-2])$"),
+    format: str = Query(default="pdf", pattern="^(pdf|xlsx)$"),
+    lang: str = Query(default="uz", pattern="^(uz|ru)$"),
+    status: str | None = Query(default=None, pattern="^(all|pending|pending_coordinator|pending_hr|approved|rejected|cancelled)$"),
+    branch_id: int | None = None,
+    q: str | None = None,
+    db: AsyncSession = Depends(get_session),
+    auth: AuthContext = Depends(get_auth),
+):
+    items, summary = await _report(db, auth, month, branch_id, q)
+    shown = rep.filter_status(items, status)
+    await audit(db, request, "answers.export", actor=auth.user, entity="leave_request", data={"month": month, "format": format, "rows": len(shown)})
+    await db.commit()
+    if format == "xlsx":
+        content = await asyncio.to_thread(rexp.build_xlsx, shown, summary, lang)
+        return Response(content, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f'attachment; filename="javob-holat-{month}.xlsx"'})
+    t = rexp.L["ru" if lang == "ru" else "uz"]
+    parts = [t["status_low"].get(status, "") if status and status not in ("all", "pending") else "", q or ""]
+    generated = datetime.now(tz()).strftime("%d.%m.%Y %H:%M")
+    content = await asyncio.to_thread(rexp.build_pdf, shown, summary, lang, ", ".join(p for p in parts if p), generated, len(items) >= rep.MAX_ROWS)
+    return Response(content, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="javob-holat-{month}.pdf"'})

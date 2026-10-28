@@ -23,6 +23,7 @@ import { FacePunchPage } from './features/face/FacePunchPage'
 import { MyFacePage } from './features/face/MyFacePage'
 import { CalendarPage } from './features/answers/CalendarPage'
 import { InboxPage } from './features/answers/InboxPage'
+import { AnswersStatusPage } from './features/answers/StatusPage'
 import { MyRequestsPage } from './features/answers/MyRequestsPage'
 import { RequestDetailPage } from './features/answers/RequestDetailPage'
 import { RequestFormPage } from './features/answers/RequestFormPage'
@@ -300,6 +301,7 @@ export function createRouter() {
             { path: 'answers/new', element: <RequirePerm perm="answers.request"><RequestFormPage /></RequirePerm> },
             { path: 'answers/inbox', element: <RequirePerm any={['answers.decide', 'answers.read']}><InboxPage /></RequirePerm> },
             { path: 'answers/calendar', element: <RequirePerm any={['answers.request', 'answers.read']}><CalendarPage /></RequirePerm> },
+            { path: 'answers/holat', element: <RequirePerm any={['answers.read', 'answers.decide']}><AnswersStatusPage /></RequirePerm> },
             { path: 'answers/:id', element: <RequirePerm any={['answers.request', 'answers.decide', 'answers.read']}><RequestDetailPage /></RequirePerm> },
             { path: 'letters', element: <RequirePerm any={['letters.own', 'letters.issue', 'letters.read', 'letters.manage']}><LettersPage /></RequirePerm> },
             { path: 'letters/new', element: <RequirePerm any={['letters.issue', 'letters.manage']}><IssueFormPage /></RequirePerm> },

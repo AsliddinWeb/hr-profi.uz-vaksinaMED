@@ -4629,5 +4629,58 @@
       "rejected": "Rad etilgan",
       "cancelled": "Bekor qilingan"
     }
+  },
+  "answersReport": {
+    "title": "Javob olish holati",
+    "subtitle": "Barcha so'rovlarni kuzatish: koordinator va HR kutayotganlari, tasdiqlangan va rad etilganlar. Excel yoki PDF yuklab olish mumkin.",
+    "monthLine": "{{total}} ta so'rov · {{people}} kishi",
+    "people": "Shu oyda kim necha marta javob olgan",
+    "times": "{{n}} marta",
+    "dayKind": "kunlik",
+    "hourlyKind": "soatlik",
+    "search": "Xodim ismi bo'yicha qidirish…",
+    "branch": "Filial",
+    "allBranches": "Barcha filiallar",
+    "shift": "Smena",
+    "coordinator": "Koordinator",
+    "where": "Filial / smena / koordinator",
+    "note": "Izoh",
+    "history": "Tarix (kim / qachon)",
+    "awaitingHr": "HR yakuniy ruxsati kutilmoqda",
+    "awaitingCoord": "Koordinator qarori kutilmoqda",
+    "more": "Yana {{n}} ta ko'rsatish",
+    "dayUnit": "kun",
+    "hourUnit": "soat",
+    "minUnit": "daqiqa",
+    "kpi": {
+      "all": "Jami",
+      "pending_coordinator": "Koordinatorda",
+      "pending_hr": "HR kutmoqda",
+      "approved": "Tasdiqlangan",
+      "rejected": "Rad etilgan",
+      "cancelled": "Bekor qilingan"
+    },
+    "kind": {
+      "day": "Kunlik",
+      "hourly": "Soatlik"
+    },
+    "reason": {
+      "sick": "Kasallik",
+      "family": "Oilaviy",
+      "personal": "Shaxsiy",
+      "business": "Xizmat",
+      "other": "Boshqa"
+    },
+    "level": {
+      "coordinator": "Koordinator",
+      "hr": "HR"
+    },
+    "ev": {
+      "submitted": "So'rov yuborildi",
+      "escalated": "Koordinator javob bermadi — HR ga o'tdi",
+      "approved": "tasdiqladi",
+      "rejected": "rad etdi",
+      "cancelled": "So'rov bekor qilindi"
+    }
   }
 }

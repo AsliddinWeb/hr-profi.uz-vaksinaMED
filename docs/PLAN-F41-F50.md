@@ -25,7 +25,7 @@ Eslatma: Abet skrinshoti (9.jpg) uchun matn yo'q. Ko'rinib turgani: baholash oyn
 - **Rotatsiya**: xodimni filialdan filialga vaqtincha (sana dan–gacha, sabab) yoki doimiy o'tkazish; HR tasdiqlaydi; muddat tugasa avtomatik qaytadi; davomat/grafik/geofence o'sha davrda yangi filialga bog'lanadi; tarix xodim kartochkasida; bildirishnoma (xodim, ikki filial mudiri, koordinator).
 - Qabul mezoni: rotatsiyadagi xodim yangi filialda Face ID/QR bilan belgilanadi va eski filial hisobotida «rotatsiyada» deb ko'rinadi.
 
-### F42. «Javob olish holati» hisoboti (o'rta)
+### F42. «Javob olish holati» hisoboti (o'rta) — TAYYOR 2026-10-28
 - Sahifa: KPI (jami, koordinatorda, HR da, tasdiqlangan, rad, bekor), oy kalendari (kunlik soni), «shu oyda kim necha marta» ro'yxati, qidiruv, holat chiplari.
 - Excel va **matnli PDF** (kartochka: filial, smena, koordinator, izoh, tarix; sahifalash, filtr bo'yicha, oy/filial/koordinator).
 - Mijoz PDF idagi 8 soatlik «koordinator javob bermadi → HR ga o'tdi» qoidasi hisobotda ko'rinsin.

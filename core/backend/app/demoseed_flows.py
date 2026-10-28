@@ -43,6 +43,18 @@ async def flows(sd) -> None:  # noqa: C901
     # 5. Ta'til/javob so'rovi
     print("5. So'rovlar, topshiriqlar, eslatmalar")
     await sd.call(f3, "POST", "/api/v1/answers/requests", json={"kind": "day", "reason_type": "family", "start_date": str(today + timedelta(days=3)), "end_date": str(today + timedelta(days=4)), "reason": "Oilaviy tadbir"}, label="so'rov")
+    # javob olish: turli holatdagi so'rovlar (hisobot sahifasi uchun)
+    sai, qod = sd.login_of("Saidov"), sd.login_of("Qodirova")
+    for who, body, action, note in [
+        (f1, {"kind": "day", "reason_type": "family", "start_date": str(today + timedelta(days=1)), "end_date": str(today + timedelta(days=2)), "reason": "Oilaviy tadbir"}, "approve", None),
+        (f2, {"kind": "hourly", "reason_type": "sick", "start_date": str(today + timedelta(days=1)), "start_time": "14:00", "end_time": "16:30"}, "approve", None),
+        (sai, {"kind": "day", "reason_type": "personal", "start_date": str(today + timedelta(days=2)), "end_date": str(today + timedelta(days=2)), "reason": "Hujjat rasmiylashtirish"}, "reject", "Shu kuni xodim yetishmaydi"),
+        (qod, {"kind": "day", "reason_type": "sick", "start_date": str(today - timedelta(days=2)), "end_date": str(today - timedelta(days=1)), "reason": "Shamollash"}, "approve", None),
+        (f3, {"kind": "hourly", "reason_type": "business", "start_date": str(today + timedelta(days=6)), "start_time": "09:00", "end_time": "11:00"}, None, None),
+    ]:
+        r = await sd.call(who, "POST", "/api/v1/answers/requests", json=body, label="so'rov")
+        if r and action:
+            await sd.call(koord, "POST", f"/api/v1/answers/requests/{r['id']}/decision", json={"action": action, "note": note}, label="so'rov qarori")
     # topshiriqlar
     for title, who, pr, days in [("Filial 16 invertarizatsiyasi", mudir1, "high", 3), ("Yangi xodimlar uchun forma buyurtmasi", hrm, "normal", 7), ("Dori muddatini tekshirish", f1, "high", 2), ("Oylik hisobotni topshirish", mudir2, "normal", 5)]:
         await sd.call(hrd, "POST", "/api/v1/tasks", json={"title": title, "description": "Namunaviy topshiriq", "priority": pr, "due_at": (now + timedelta(days=days)).isoformat(), "assignee_id": uid(who)}, label="topshiriq")
