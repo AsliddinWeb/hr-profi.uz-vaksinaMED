@@ -187,6 +187,7 @@ import { TransferPage } from './features/employees/TransferPage'
 import { DepartmentFormPage } from './features/org/DepartmentFormPage'
 import { DepartmentsPage } from './features/org/DepartmentsPage'
 import { OrgChartPage } from './features/org/OrgChartPage'
+import { RotationDetailPage, RotationFormPage, RotationsPage } from './features/rotations/RotationPages'
 import { BroadcastPage } from './features/notifications/BroadcastPage'
 import { NotificationsPage } from './features/notifications/NotificationsPage'
 import { ProfilePage } from './features/profile/ProfilePage'
@@ -505,6 +506,9 @@ export function createRouter() {
             { path: 'org/departments', element: <RequirePerm perm="org.read"><DepartmentsPage /></RequirePerm> },
             { path: 'org/departments/new', element: <RequirePerm perm="org.manage"><DepartmentFormPage /></RequirePerm> },
             { path: 'org/departments/:id/edit', element: <RequirePerm perm="org.read"><DepartmentFormPage /></RequirePerm> },
+            { path: 'org/rotations', element: <RequirePerm any={['rotations.read', 'rotations.request', 'rotations.manage']}><RotationsPage /></RequirePerm> },
+            { path: 'org/rotations/new', element: <RequirePerm any={['rotations.request', 'rotations.manage']}><RotationFormPage /></RequirePerm> },
+            { path: 'org/rotations/:id', element: <RequirePerm any={['rotations.read', 'rotations.request', 'rotations.manage']}><RotationDetailPage /></RequirePerm> },
             { path: 'branches', element: <RequirePerm perm="branches.read"><BranchesPage /></RequirePerm> },
             { path: 'branches/new', element: <RequirePerm perm="branches.manage"><BranchFormPage /></RequirePerm> },
             { path: 'branches/import', element: <RequirePerm perm="branches.manage"><BranchImportPage /></RequirePerm> },

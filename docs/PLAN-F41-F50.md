@@ -20,7 +20,7 @@ Eslatma: Abet skrinshoti (9.jpg) uchun matn yo'q. Ko'rinib turgani: baholash oyn
 
 ## Fazalar
 
-### F41. Tashkiliy tuzilma yagona bo'lim + rotatsiya (kichik–o'rta)
+### F41. Tashkiliy tuzilma yagona bo'lim + rotatsiya (kichik–o'rta) — TAYYOR 2026-10-28
 - Menyu: `Tashkiliy tuzilma` bitta punkt; ichida bosilganda ochiladigan 3 bo'lim: Daraxt, Bo'limlar va lavozimlar, Filiallar (eski URL lar saqlanadi, redirect).
 - **Rotatsiya**: xodimni filialdan filialga vaqtincha (sana dan–gacha, sabab) yoki doimiy o'tkazish; HR tasdiqlaydi; muddat tugasa avtomatik qaytadi; davomat/grafik/geofence o'sha davrda yangi filialga bog'lanadi; tarix xodim kartochkasida; bildirishnoma (xodim, ikki filial mudiri, koordinator).
 - Qabul mezoni: rotatsiyadagi xodim yangi filialda Face ID/QR bilan belgilanadi va eski filial hisobotida «rotatsiyada» deb ko'rinadi.

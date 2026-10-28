@@ -16,7 +16,7 @@ export interface NavItem {
   /** Shu ruxsatlardan kamida bittasi bo'lsa ko'rinadi */
   anyPermission?: string[]
   /** Yon paneldagi bo'lim sarlavhasi (bir xil `group` ketma-ket joylashadi) */
-  group?: 'main' | 'people' | 'schedule' | 'attendance' | 'requests' | 'tasks' | 'needs' | 'checklists' | 'recruit' | 'internship' | 'payroll' | 'canteen' | 'logistics' | 'warehouse' | 'mobile' | 'reception' | 'helpdesk' | 'calls' | 'ai' | 'reports' | 'migration' | 'pharmacy' | 'admin' | 'system'
+  group?: 'main' | 'people' | 'org' | 'schedule' | 'attendance' | 'requests' | 'tasks' | 'needs' | 'checklists' | 'recruit' | 'internship' | 'payroll' | 'canteen' | 'logistics' | 'warehouse' | 'mobile' | 'reception' | 'helpdesk' | 'calls' | 'ai' | 'reports' | 'migration' | 'pharmacy' | 'admin' | 'system'
 }
 
 /** Mijoz extension shu API orqali core'ga ulanadi. */

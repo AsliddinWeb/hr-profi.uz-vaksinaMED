@@ -64,7 +64,7 @@ FEATURES: tuple[Feature, ...] = (
 # /api/v1/<birinchi bo'lak> -> modul kaliti (backend darajasida o'chirilgan modulni yopish uchun)
 PREFIX_MODULE: dict[str, str] = {
     "attendance": "attendance", "attendance-issues": "attendance", "coord-report": "attendance", "face": "face_id", "answers": "answers", "letters": "discipline", "penalties": "discipline",
-    "tasks": "tasks", "reminders": "reminders", "employees": "employees", "org": "org", "branches": "org", "recruit": "recruit", "internship": "internship", "kadr": "internship",
+    "tasks": "tasks", "reminders": "reminders", "employees": "employees", "org": "org", "branches": "org", "rotations": "org", "recruit": "recruit", "internship": "internship", "kadr": "internship",
     "attestation": "internship", "growth": "internship", "retention": "internship", "offboarding": "internship", "control": "internship", "payroll": "payroll", "canteen": "canteen",
     "pharmacy": "pharmacy", "checklists": "checklists", "needs": "needs", "logistics": "logistics", "warehouse": "warehouse", "mobile": "mobile_tracking", "reception": "reception",
     "helpdesk": "it_desk", "calls": "calls", "ai": "ai", "migration": "migration", "reports": "reports", "integrations": "migration", "complaints": "employees",

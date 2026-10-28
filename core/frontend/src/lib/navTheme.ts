@@ -9,6 +9,7 @@ export type GroupKey = NonNullable<NavItem['group']>
 const COLORS: Record<GroupKey, string> = {
   main: 'blue',
   people: 'blue',
+  org: 'indigo',
   schedule: 'violet',
   attendance: 'teal',
   requests: 'amber',

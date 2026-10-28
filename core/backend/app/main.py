@@ -59,6 +59,7 @@ from app.api import (
     reports,
     retention,
     roles,
+    rotations,
     schedule,
     schedule_config,
     tasks,
@@ -177,7 +178,7 @@ def create_app() -> FastAPI:
     for module in (
         health, metrics, meta, auth, users, roles, audit, notifications, telegram, org, branches,
         employee_io, employee_bulk, employees, employee_files,
-        schedule_config, schedule, attendance, attendance_issues, attestation, growth, integrations, complaints, coord_report, face, answers, letters, penalties, tasks, reminders, pharmacy, needs, checklists, recruit, recruit_pipeline, recruit_sources, retention, internship, onboarding, plan, payroll, canteen, logistics, warehouse, mobile, reception, helpdesk, calls, ai, reports, migration,
+        schedule_config, schedule, attendance, attendance_issues, attestation, growth, integrations, complaints, coord_report, face, answers, letters, penalties, tasks, reminders, pharmacy, needs, checklists, recruit, recruit_pipeline, recruit_sources, retention, rotations, internship, onboarding, plan, payroll, canteen, logistics, warehouse, mobile, reception, helpdesk, calls, ai, reports, migration,
     ):  # fmt: skip
         app.include_router(module.router, prefix="/api")
     app.include_router(letters.public_router, prefix="/api")

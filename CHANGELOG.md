@@ -5,6 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com), versiyalash: SemVer (maj
 ## [Chiqmagan]
 
 - F47: HR PROFI brendi — logotip (och fon uchun navy, to'q mavzu uchun oq `logo-dark.png`), belgi, favicon, PWA ikonlari, og-image, `theme-color`. Yangi `BrandLogo` komponenti (mijoz logosi bo'lsa avvalgi oq «plashka» saqlanadi).
+- F41: yagona **Tashkiliy tuzilma** menyu guruhi (Daraxt, Bo'limlar va lavozimlar, Filiallar, Rotatsiya) va **rotatsiya** — xodimni filialdan filialga vaqtincha o'tkazish (`/org/rotations`): HR darhol tasdiqlaydi, mudir/koordinator o'z filiali xodimi uchun so'raydi; boshlanish sanasida xodim filiali almashadi (davomat, grafik, geofence shunga bog'lanadi), muddati o'tgach avtomatik qaytadi. Migratsiya `0037`, ruxsatlar `rotations.read|request|manage`, worker vazifasi `rotation_job` (10 daqiqada bir).
 - `make demo-seed CONFIRM=yes`: barcha bo'limlar uchun namunaviy ma'lumot (avval ish ma'lumotini o'chiradi).
 
 ## [1.1.0] — HR jarayonlari, KOSHI tariflari, integratsiyalar (F32–F40)

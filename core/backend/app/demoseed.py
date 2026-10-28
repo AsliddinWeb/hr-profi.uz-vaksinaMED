@@ -100,7 +100,7 @@ class Seeder:
     async def wipe(self) -> None:
         async with SessionLocal() as s:
             names = [r[0] for r in await s.execute(text("SELECT tablename FROM pg_tables WHERE schemaname='public'"))]
-            drop = [n for n in names if n not in KEEP]
+            drop = [n for n in names if n not in KEEP and not n.startswith("alembic_version")]
             await s.execute(text("TRUNCATE " + ", ".join(f'"{n}"' for n in drop) + " RESTART IDENTITY"))
             sup = await s.scalar(select(Role.id).where(Role.key == "tasischi"))
             await s.execute(text("DELETE FROM users WHERE role_id <> :r OR login = 'demo_seeder'"), {"r": sup})

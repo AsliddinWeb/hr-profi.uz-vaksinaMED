@@ -58,7 +58,8 @@
       "calls": "Qo'ng'iroqlar",
       "ai": "AI yordamchi",
       "reports": "Hisobotlar",
-      "migration": "Migratsiya"
+      "migration": "Migratsiya",
+      "org": "Tashkiliy tuzilma"
     }
   },
   "theme": {
@@ -776,7 +777,9 @@
       "transfer": "O'tkazildi",
       "dismissed": "Bo'shatildi",
       "reinstated": "Qayta tiklandi",
-      "merged": "Dublikat birlashtirildi"
+      "merged": "Dublikat birlashtirildi",
+      "rotation_start": "Rotatsiya boshlandi",
+      "rotation_end": "Rotatsiya tugadi"
     },
     "fromImport": "importdan",
     "addDocument": "Hujjat qo'shish",
@@ -908,7 +911,8 @@
     "tenureYears": "{{y}} yil",
     "tenureMonths": "{{m}} oy",
     "tenure": "Ish staji",
-    "tenureNew": "1 oydan kam"
+    "tenureNew": "1 oydan kam",
+    "rotation": "Rotatsiya"
   },
   "schedule": {
     "title": "Ish grafigi",
@@ -4585,6 +4589,45 @@
       "taken": "Ko'rib chiqishga olindi",
       "resolved": "Hal qilindi",
       "rejected": "Rad etildi"
+    }
+  },
+  "rotation": {
+    "title": "Rotatsiya",
+    "subtitle": "Xodimni filialdan filialga vaqtincha o'tkazish: muddat tugagach u o'z filialiga avtomatik qaytadi",
+    "add": "Yangi rotatsiya",
+    "created": "Rotatsiya yaratildi",
+    "requested": "So'rov HR ga yuborildi",
+    "hintHr": "HR tasdig'i shart emas: rotatsiya darhol tasdiqlanadi va boshlanish sanasida kuchga kiradi.",
+    "hintLead": "Faqat o'z filialingiz xodimi uchun so'rov yuborasiz. HR tasdiqlagach rotatsiya kuchga kiradi.",
+    "who": "Xodim",
+    "where": "Qayerga va qachon",
+    "toBranch": "Qabul qiluvchi filial",
+    "start": "Boshlanish",
+    "end": "Tugash (shu kun ham ishlaydi)",
+    "reason": "Sabab",
+    "period": "Muddat",
+    "requestedBy": "So'ragan",
+    "decidedBy": "Qaror qildi",
+    "decisionNote": "Izoh",
+    "startedAt": "Boshlangan",
+    "finishedAt": "Tugagan",
+    "approve": "Tasdiqlash",
+    "reject": "Rad etish",
+    "cancel": "Bekor qilish",
+    "endNow": "Hozir tugatish (xodim qaytadi)",
+    "filter": {
+      "open": "Faol va kutilayotgan",
+      "pending": "Tasdiq kutmoqda",
+      "active": "Faol",
+      "completed": "Tugagan"
+    },
+    "status": {
+      "pending": "Tasdiq kutmoqda",
+      "approved": "Tasdiqlangan",
+      "active": "Faol",
+      "completed": "Tugagan",
+      "rejected": "Rad etilgan",
+      "cancelled": "Bekor qilingan"
     }
   }
 }

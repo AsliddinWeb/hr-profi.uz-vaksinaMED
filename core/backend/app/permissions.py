@@ -139,3 +139,6 @@ register_permission("integrations.read", "Integratsiyalar: API kalitlari va savd
 register_permission("integrations.manage", "API kalitlarini yaratish/bekor qilish, filial reyestrini solishtirish", "Создание/отзыв ключей API, сверка реестра филиалов")
 register_permission("complaints.own", "Shikoyat/murojaat yuborish va o'zinikini ko'rish", "Подача жалоб/обращений и просмотр своих")
 register_permission("complaints.manage", "Shikoyatlarni ko'rib chiqish va javob berish (HR)", "Рассмотрение жалоб и ответ (HR)")
+register_permission("rotations.read", "Rotatsiyalarni ko'rish (barchasi)", "Просмотр ротаций")
+register_permission("rotations.request", "Rotatsiya so'rash (o'z filiali xodimi uchun)", "Запрос ротации (сотрудник своего филиала)")
+register_permission("rotations.manage", "Rotatsiyani yaratish va tasdiqlash (HR)", "Создание и утверждение ротаций (HR)")

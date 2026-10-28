@@ -140,3 +140,8 @@ async def flows(sd) -> None:  # noqa: C901
     await sd.call(hrd, "POST", "/api/v1/notifications/broadcast", json={"title": "Yangi tizimga xush kelibsiz", "body": "Bugundan davomat va topshiriqlar HR-Profi orqali yuritiladi", "everyone": True}, label="e'lon")
     await sd.call(hrd, "POST", "/api/v1/reports/schedules", json={"name": "Haftalik davomat", "report_type": "attendance", "frequency": "weekly", "weekday": 0, "recipient_ids": [uid(hrd)]}, label="hisobot jadvali")
     await sd.call(A, "POST", "/api/v1/integrations/keys", json={"name": "Dori tizimi (demo)", "scopes": ["branches:read"]}, label="API kalit")
+
+    # 15. Rotatsiya: HR faol rotatsiya yaratdi, mudir so'rov yubordi (HR tasdig'ini kutmoqda)
+    print("15. Rotatsiya")
+    await sd.call(hrd, "POST", "/api/v1/rotations", json={"employee_id": eid["Saidov"], "to_branch_id": br[16], "start_date": str(today), "end_date": str(today + timedelta(days=7)), "reason": "1-gor bolnitsada smena yetishmayapti"}, label="rotatsiya (faol)")
+    await sd.call(mudir2, "POST", "/api/v1/rotations", json={"employee_id": eid["Hamidov"], "to_branch_id": br[36], "start_date": str(today + timedelta(days=3)), "end_date": str(today + timedelta(days=10)), "reason": "Yakkasaroy filialida ta'mirlash"}, label="rotatsiya (so'rov)")

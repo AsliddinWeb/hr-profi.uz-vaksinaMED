@@ -9,9 +9,10 @@ import type { NavItem } from './extensions/registry'
 export const coreNav: NavItem[] = [
   { id: 'home', group: 'main', label: { uz: 'Bosh sahifa', ru: 'Главная' }, to: '/', icon: LayoutDashboard },
   { id: 'employees', group: 'people', label: { uz: 'Xodimlar', ru: 'Сотрудники' }, to: '/employees', icon: Contact, permission: 'employees.read', module: 'employees' },
-  { id: 'org', group: 'people', label: { uz: 'Tashkiliy tuzilma', ru: 'Оргструктура' }, to: '/org', icon: Network, permission: 'org.read', module: 'org' },
-  { id: 'departments', group: 'people', label: { uz: "Bo'limlar va lavozimlar", ru: 'Отделы и должности' }, to: '/org/departments', icon: Building2, permission: 'org.read', module: 'org' },
-  { id: 'branches', group: 'people', label: { uz: 'Filiallar', ru: 'Филиалы' }, to: '/branches', icon: Store, permission: 'branches.read', module: 'pharmacy' },
+  { id: 'org', group: 'org', label: { uz: 'Tashkiliy tuzilma', ru: 'Оргструктура' }, to: '/org', icon: Network, permission: 'org.read', module: 'org' },
+  { id: 'departments', group: 'org', label: { uz: "Bo'limlar va lavozimlar", ru: 'Отделы и должности' }, to: '/org/departments', icon: Building2, permission: 'org.read', module: 'org' },
+  { id: 'branches', group: 'org', label: { uz: 'Filiallar', ru: 'Филиалы' }, to: '/branches', icon: Store, permission: 'branches.read', module: 'pharmacy' },
+  { id: 'rotations', group: 'org', label: { uz: 'Rotatsiya', ru: 'Ротация' }, to: '/org/rotations', icon: Repeat, anyPermission: ['rotations.read', 'rotations.request', 'rotations.manage'], module: 'org' },
   { id: 'schedule', group: 'schedule', label: { uz: 'Ish grafigi', ru: 'График работы' }, to: '/schedule', icon: CalendarDays, permission: 'schedule.read', module: 'attendance' },
   { id: 'shifts', group: 'schedule', label: { uz: 'Smena turlari', ru: 'Виды смен' }, to: '/schedule/shifts', icon: Clock, permission: 'schedule.read', module: 'attendance' },
   { id: 'work-groups', group: 'schedule', label: { uz: 'Ish guruhlari', ru: 'Рабочие группы' }, to: '/schedule/groups', icon: Layers, permission: 'schedule.read', module: 'attendance' },

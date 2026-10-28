@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowRightLeft, CalendarDays, Download, ExternalLink, FileText, KeyRound, Pencil, Plus, RotateCcw, Trash2, UserMinus } from 'lucide-react'
+import { ArrowRightLeft, CalendarDays, Download, ExternalLink, FileText, KeyRound, Pencil, Plus, Repeat, RotateCcw, Trash2, UserMinus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 
@@ -50,6 +50,14 @@ export function EmployeeCardPage() {
           <Button variant="violet">
             <ArrowRightLeft />
             {t('employees.transfer')}
+          </Button>
+        </Link>
+      )}
+      {(can('rotations.manage') || can('rotations.request')) && e.status === 'active' && e.branch && (
+        <Link to={`/org/rotations/new?employee=${e.id}`}>
+          <Button variant="violet">
+            <Repeat />
+            {t('employees.rotation')}
           </Button>
         </Link>
       )}
