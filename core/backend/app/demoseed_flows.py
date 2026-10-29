@@ -246,3 +246,44 @@ async def flows(sd) -> None:  # noqa: C901
                           "mode": "offline", "place": "Yunusobod-15 filiali, mudir xonasi", "map_url": "https://maps.google.com/?q=41.3702,69.2918", "contact_phone": "+998901234501"}, label="suhbat taklifi")
     await sd.call(hrm, "POST", "/api/v1/recruit/calls", json={"outcome": "callback", "phone": "+998931110009", "vacancy_id": vac["id"] if vac else None, "note": "Ertaga qayta qo'ng'iroq qilish kerak", "callback_date": str(today)}, label="qayta qo'ng'iroq")
 
+    # 21. Rekruting 2: suhbat bahosi, test banki va test, fon tekshiruvi, yakuniy xulosa, offerga javob
+    print("21. Baholash")
+    if vac:
+        apps = _items(await sd.call(hrm, "GET", f"/api/v1/recruit/applications?vacancy_id={vac['id']}&size=50", label="arizalar"))
+        main_app = next((a for a in apps if a["candidate"]["full_name"].startswith("Karimova")), None)
+        bank = await sd.call(hrm, "POST", "/api/v1/recruit/tests", json={"name": "Farmatsevtik bilim testi", "kind": "position", "position_id": farm_pos, "time_limit_min": 15, "pass_score": 60, "questions": [
+            {"text": "Retsept bilan beriladigan dorini retseptsiz sotish mumkinmi?", "options": ["Ha", "Yo'q"], "correct": [1]},
+            {"text": "Dori yaroqlilik muddatini qachon tekshiramiz?", "options": ["Qabul qilganda", "Sotishdan oldin", "Faqat inventarizatsiyada"], "correct": [0, 1]},
+            {"text": "Antibiotiklar qanday saqlanadi?", "options": ["Ko'rsatma bo'yicha harorat va namlikda", "Quyoshda", "Istalgan joyda"], "correct": [0]},
+            {"text": "Mijoz allergiyasi haqida aytsa, nima qilasiz?", "options": ["E'tibor bermayman", "Tarkibni tekshirib, mos analog tavsiya qilaman"], "correct": [1]}]}, label="test banki")
+        await sd.call(hrm, "POST", "/api/v1/recruit/tests", json={"name": "Mantiqiy fikrlash (IQ)", "kind": "iq", "time_limit_min": 10, "pass_score": 50, "questions": [
+            {"text": "2, 4, 8, 16, ...? Keyingi son?", "options": ["24", "32", "30"], "correct": [1]}, {"text": "Bir soatda 6 ta mijozga xizmat ko'rsatilsa, 3 soatda nechta?", "options": ["12", "18", "9"], "correct": [1]}]}, label="IQ test")
+        if main_app:
+            aid = main_app["id"]
+            await sd.call(mudir1, "PUT", f"/api/v1/recruit/applications/{aid}/scorecard", json={"scores": {"kassa": 5, "farmatsevt": 4, "dori": 4, "muloqot": 5, "mas'uliyat": 4}, "notes": "Mijoz bilan muloqoti yaxshi"}, label="suhbat bahosi (mudir)")
+            await sd.call(hrm, "PUT", f"/api/v1/recruit/applications/{aid}/scorecard", json={"scores": {"kassa": 4, "farmatsevt": 4, "muloqot": 5}}, label="suhbat bahosi (HR)")
+            if bank:
+                tst = await sd.call(hrm, "POST", f"/api/v1/recruit/applications/{aid}/tests", json={"bank_id": bank["id"]}, label="test berish")
+                if tst:
+                    token = tst["url"].rsplit("/", 1)[1]
+                    anon = sd._mk()
+                    st = (await anon.post(f"/api/v1/public/test/{token}/start")).json()
+                    answers = {q["id"]: ([1] if i == 0 else [0, 1] if i == 1 else [0] if i == 2 else [1]) for i, q in enumerate(st["questions"])}
+                    await anon.post(f"/api/v1/public/test/{token}/submit", json={"answers": answers})
+                    await anon.aclose()
+            bgc = await sd.call(hrm, "POST", f"/api/v1/recruit/applications/{aid}/background-check", label="fon tekshiruvi")
+            if bgc:
+                anon = sd._mk()
+                await anon.post(f"/api/v1/public/consent/{bgc['consent_url'].rsplit('/', 1)[1]}/agree")
+                await anon.aclose()
+                await sd.call(hrm, "PUT", f"/api/v1/recruit/applications/{aid}/background-check/items", json={"items": [{"key": "reference", "result": "positive", "note": "Oldingi ish joyi ijobiy tavsiya berdi"}, {"key": "documents", "result": "positive"}, {"key": "social", "result": "unknown"}]}, label="fon bandlari")
+                await sd.call(hrm, "POST", f"/api/v1/recruit/applications/{aid}/background-check/finish", json={"decision": "passed", "note": "Salbiy holat aniqlanmadi"}, label="fon qarori")
+            await sd.call(hrm, "POST", f"/api/v1/recruit/applications/{aid}/conclusion/draft", label="xulosa loyihasi")
+            await sd.call(hrd, "POST", f"/api/v1/recruit/applications/{aid}/conclusion/approve", label="xulosa tasdig'i")
+            await sd.call(hrd, "POST", f"/api/v1/recruit/applications/{aid}/offer/decide", json={"action": "approve", "note": "Maqul"}, label="offer tasdig'i")
+            lk = await sd.call(hrm, "POST", f"/api/v1/recruit/applications/{aid}/offer/link", label="offer havolasi")
+            if lk:
+                anon = sd._mk()
+                await anon.post(f"/api/v1/public/offer/{lk['url'].rsplit('/', 1)[1]}/respond", json={"answer": "accepted"})
+                await anon.aclose()
+

@@ -152,4 +152,6 @@ register_permission("staffdocs.apply", "O'z arizasini yozish va o'z hujjatlarini
 register_permission("staffdocs.read", "Barcha xodim arizalari va buyruqlarini ko'rish", "Просмотр всех заявлений и приказов")
 register_permission("staffdocs.manage", "Arizalarni ko'rib chiqish va buyruq tayyorlash (HR)", "Рассмотрение заявлений и подготовка приказов (HR)")
 register_permission("staffdocs.sign", "Buyruqni elektron imzolash (HR direktor)", "Электронная подпись приказов (HR-директор)")
+register_permission("recruit.interview", "Suhbat kartochkasida nomzodni kompetensiya bo'yicha baholash", "Оценка кандидата по компетенциям на собеседовании")
+register_permission("recruit.background", "Nomzod fon tekshiruvini o'tkazish (xavfsizlik xizmati)", "Проведение фоновой проверки кандидата (служба безопасности)")
 

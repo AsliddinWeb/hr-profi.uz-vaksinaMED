@@ -238,8 +238,10 @@ _INTERN_EXTRA = {
 }
 _RECRUIT_EXTRA = {
     "hr_direktor": ("recruit.*",),
-    "hr_menejer": ("recruit.read", "recruit.manage"),
-    "direktor": ("recruit.read",),
+    "hr_menejer": ("recruit.read", "recruit.manage", "recruit.interview", "recruit.background"),
+    "direktor": ("recruit.read", "recruit.interview"),
+    "koordinator": ("recruit.interview",),
+    "mudir": ("recruit.interview",),
 }
 _CHECKLIST_EXTRA = {
     "hr_direktor": ("checklists.*",),

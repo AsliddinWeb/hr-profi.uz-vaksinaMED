@@ -1,3 +1,4 @@
+import { OfferExtras } from './EvalParts'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Send, Sparkles } from 'lucide-react'
 import { useState } from 'react'
@@ -29,6 +30,8 @@ export function PipelinePanel({ a }: { a: ApplicationDetail }) {
   const level = pickedLevel && a.stages_unlocked.includes(pickedLevel as never) ? pickedLevel : (a.stages_unlocked.at(-1) ?? '')
   const [salary, setSalary] = useState(String(a.offer?.salary ?? ''))
   const [start, setStart] = useState(a.offer?.start ?? '')
+  const [schedule, setSchedule] = useState(a.offer?.schedule ?? '')
+  const [probation, setProbation] = useState(String(a.offer?.probation_days ?? 7))
   const [decision, setDecision] = useState('')
   const [when, setWhen] = useState('')
   const [place, setPlace] = useState('')
@@ -160,6 +163,7 @@ export function PipelinePanel({ a }: { a: ApplicationDetail }) {
             {a.offer.sent_at && <span className="text-muted"> · {t('pipeline.sent')}</span>}
           </p>
         )}
+        <OfferExtras a={a as never} />
         {a.can.manage && open && a.experience_level && (
           <div className="grid gap-3 sm:grid-cols-3">
             <Select value={level} onChange={(e) => setLevel(e.target.value)} aria-label={t('pipeline.levelLabel')}>
@@ -171,11 +175,13 @@ export function PipelinePanel({ a }: { a: ApplicationDetail }) {
             </Select>
             <Input type="number" min={0} value={salary} onChange={(e) => setSalary(e.target.value)} placeholder={t('pipeline.salary')} aria-label={t('pipeline.salary')} />
             <Input type="date" value={start} onChange={(e) => setStart(e.target.value)} aria-label={t('pipeline.startDate')} />
+            <Input value={schedule} onChange={(e) => setSchedule(e.target.value)} placeholder={t('recruitEval.offer.schedule')} aria-label={t('recruitEval.offer.schedule')} maxLength={200} className="sm:col-span-2" />
+            <Input type="number" min={0} max={180} value={probation} onChange={(e) => setProbation(e.target.value)} placeholder={t('recruitEval.offer.probationLabel')} aria-label={t('recruitEval.offer.probationLabel')} />
           </div>
         )}
         <div className="flex flex-wrap gap-2">
           {a.can.manage && open && a.experience_level && (
-            <Button disabled={act.isPending || !level || !salary} onClick={() => run('offer', { level, salary: Number(salary), start_date: start || null })}>
+            <Button disabled={act.isPending || !level || !salary} onClick={() => run('offer', { level, salary: Number(salary), start_date: start || null, schedule: schedule || null, probation_days: probation === '' ? null : Number(probation) })}>
               {a.offer ? t('pipeline.offerAgain') : t('pipeline.offerMake')}
             </Button>
           )}

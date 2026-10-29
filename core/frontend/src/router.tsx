@@ -27,6 +27,10 @@ import { LeaveVerifyPage } from './features/answers/LeaveVerifyPage'
 import { InvitePage } from './features/public/InvitePage'
 import { CandidateProfilePage } from './features/public/ProfilePage'
 import { FunnelPage, RecruiterTodayPage } from './features/recruit/TodayFunnelPages'
+import { ScorecardPage, TestBankFormPage, TestBankPage } from './features/recruit/TestBankPages'
+import { BackgroundConsentPage } from './features/public/ConsentPage'
+import { OfferPage } from './features/public/OfferPage'
+import { TestPage } from './features/public/TestPage'
 import { AnswersStatusPage } from './features/answers/StatusPage'
 import { MyRequestsPage } from './features/answers/MyRequestsPage'
 import { RequestDetailPage } from './features/answers/RequestDetailPage'
@@ -242,6 +246,9 @@ export function createRouter() {
     { path: '/verify', element: <VerifyPage /> },
     { path: '/profile/:token', element: <CandidateProfilePage /> },
     { path: '/invite/:token', element: <InvitePage /> },
+    { path: '/test/:token', element: <TestPage /> },
+    { path: '/consent/:token', element: <BackgroundConsentPage /> },
+    { path: '/offer/:token', element: <OfferPage /> },
     { path: '/verify/leave/:code', element: <LeaveVerifyPage /> },
     { path: '/verify/doc/:code', element: <StaffVerifyPage /> },
     { path: '/verify/:code', element: <VerifyPage /> },
@@ -439,6 +446,10 @@ export function createRouter() {
             { path: 'recruit/vacancies', element: <RequirePerm perm="recruit.read"><VacanciesPage /></RequirePerm> },
             { path: 'recruit/vacancies/new', element: <RequirePerm perm="recruit.manage"><VacancyFormPage /></RequirePerm> },
             { path: 'recruit/vacancies/:id/promo', element: <RequirePerm any={['recruit.read', 'recruit.manage']}><PromoPage /></RequirePerm> },
+            { path: 'recruit/tests', element: <RequirePerm any={['recruit.read', 'recruit.manage']}><TestBankPage /></RequirePerm> },
+            { path: 'recruit/tests/new', element: <RequirePerm perm="recruit.manage"><TestBankFormPage /></RequirePerm> },
+            { path: 'recruit/tests/:id/edit', element: <RequirePerm perm="recruit.manage"><TestBankFormPage /></RequirePerm> },
+            { path: 'recruit/applications/:id/scorecard', element: <RequirePerm any={['recruit.manage', 'recruit.interview']}><ScorecardPage /></RequirePerm> },
             { path: 'recruit/today', element: <RequirePerm any={['recruit.read', 'recruit.manage']}><RecruiterTodayPage /></RequirePerm> },
             { path: 'recruit/funnel', element: <RequirePerm any={['recruit.read', 'recruit.manage']}><FunnelPage /></RequirePerm> },
             { path: 'recruit/recruiter', element: <RequirePerm any={['recruit.read', 'recruit.manage']}><RecruiterPage /></RequirePerm> },

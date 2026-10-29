@@ -11,6 +11,7 @@ const TABS = [
   { to: '/recruit/funnel', key: 'funnel' },
   { to: '/recruit/sources', key: 'sources' },
   { to: '/recruit/requirements', key: 'requirements' },
+  { to: '/recruit/tests', key: 'tests' },
   { to: '/recruit/summary', key: 'summary' },
 ]
 

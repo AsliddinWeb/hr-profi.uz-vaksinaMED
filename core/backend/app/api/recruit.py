@@ -451,7 +451,8 @@ def _app_out(a: Application, cands: dict[int, Candidate], vac: dict[int, Vacancy
         "employee_id": a.employee_id, "hired_at": a.hired_at,
         "experience_level": a.experience_level, "stages_unlocked": psvc.STAGES_BY_LEVEL.get(a.experience_level or "", []), "hard_skill": a.hard_skill, "soft_skill": a.soft_skill,
         "interview_notes": a.interview_notes, "interviewed_at": a.interviewed_at, "bg_status": a.bg_status, "bg_note": a.bg_note, "ai_scan": a.ai_scan, "ai_scan_at": a.ai_scan_at,
-        "offer": {"status": a.offer_status, "level": a.offer_level, "salary": a.offer_salary, "start": a.offer_start, "note": a.offer_note, "decision_note": a.offer_decision_note, "sent_at": a.offer_sent_at} if a.offer_status else None,
+        "offer": {"status": a.offer_status, "level": a.offer_level, "salary": a.offer_salary, "start": a.offer_start, "note": a.offer_note, "decision_note": a.offer_decision_note, "sent_at": a.offer_sent_at, "schedule": a.offer_schedule, "probation_days": a.offer_probation_days, "response": a.offer_response, "response_at": a.offer_response_at, "decline_reason": a.offer_decline_reason, "has_link": bool(a.offer_token)} if a.offer_status else None,
+        "conclusion": a.conclusion,
         "has_telegram": bool(c and c.telegram_chat_id),
     }  # fmt: skip
 

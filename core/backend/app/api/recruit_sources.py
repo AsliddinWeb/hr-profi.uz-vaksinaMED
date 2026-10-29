@@ -44,6 +44,7 @@ class CardIn(BaseModel):
     education: str | None = Field(default=None, max_length=200)
     min_experience: int | None = Field(default=None, ge=0, le=50)
     exclusions: list[str] = Field(default_factory=list, max_length=30)
+    questions: list[str] = Field(default_factory=list, max_length=30)
 
 
 class RequirementIn(BaseModel):

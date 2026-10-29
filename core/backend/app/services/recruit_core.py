@@ -51,7 +51,9 @@ def clean_card(raw: dict[str, Any] | None) -> dict[str, Any]:
         return list(dict.fromkeys(str(x).strip()[:80] for x in (raw.get(key) or []) if str(x).strip()))[:cap]
 
     exp = raw.get("min_experience")
+    qs = list(dict.fromkeys(str(x).strip()[:300] for x in (raw.get("questions") or []) if str(x).strip()))[:30]
     return {
+        "questions": qs,
         "duties": (str(raw.get("duties") or "").strip()[:3000]) or None, "hard_skills": lst("hard_skills"), "soft_skills": lst("soft_skills"), "languages": lst("languages", 10),
         "education": (str(raw.get("education") or "").strip()[:200]) or None, "min_experience": int(exp) if isinstance(exp, int | float) and 0 <= exp <= 50 else None, "exclusions": lst("exclusions"),
     }  # fmt: skip

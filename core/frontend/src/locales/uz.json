@@ -2639,7 +2639,8 @@
       "requirements": "Lavozim talablari",
       "recruiter": "Rekruter",
       "today": "Bugun",
-      "funnel": "Voronka"
+      "funnel": "Voronka",
+      "tests": "Testlar"
     },
     "stage": {
       "new": "Yangi",
@@ -5118,6 +5119,151 @@
         "cancelled": "Bu taklif bekor qilingan."
       },
       "error": "Xatolik yuz berdi. Qayta urinib ko'ring."
+    }
+  },
+  "recruitEval": {
+    "score": {
+      "title": "Intervyu kartochkasi",
+      "pageHint": "Nomzodni kompetensiyalar bo'yicha 1–5 baholang",
+      "questions": "Intervyu savollari",
+      "group": {
+        "hard": "kasbiy",
+        "soft": "shaxsiy"
+      },
+      "notes": "Izoh (ixtiyoriy)",
+      "saved": "Baho saqlandi",
+      "overall": "Umumiy o'rtacha: {{v}} / 5 ({{n}} suhbatdosh)"
+    },
+    "tests": {
+      "title": "Testlar",
+      "pick": "Test tanlang",
+      "assign": "Test berish",
+      "copy": "Havolani nusxalash",
+      "copied": "Test havolasi nusxalandi",
+      "sentTelegram": "Test nomzodning Telegramiga yuborildi",
+      "none": "Hali test berilmagan",
+      "min": "daqiqa",
+      "kind": {
+        "iq": "IQ test",
+        "logic": "Mantiqiy test",
+        "position": "Lavozim bo'yicha bilim"
+      },
+      "status": {
+        "assigned": "Berilgan",
+        "started": "Boshlangan",
+        "submitted": "Topshirgan",
+        "expired": "Muddati o'tdi"
+      }
+    },
+    "bg": {
+      "title": "Fon tekshiruvi",
+      "hint": "Avval nomzoddan elektron rozilik olinadi, keyin bandlar bo'yicha tekshiriladi.",
+      "start": "Rozilik havolasini yuborish",
+      "resend": "Havolani qayta yuborish",
+      "waitingConsent": "Nomzod roziligi kutilmoqda.",
+      "sentTelegram": "Rozilik havolasi Telegramga yuborildi",
+      "copied": "Rozilik havolasi nusxalandi",
+      "consentAt": "Nomzod roziligi: {{when}}",
+      "note": "Izoh",
+      "conclusionNote": "Xulosa izohi (rad etish uchun shart)",
+      "passed": "O'tdi",
+      "failed": "O'tmadi",
+      "status": {
+        "consent_pending": "Rozilik kutilmoqda",
+        "in_progress": "Tekshirilmoqda",
+        "done": "Tugagan"
+      },
+      "decision": {
+        "passed": "O'tdi",
+        "failed": "O'tmadi"
+      },
+      "result": {
+        "positive": "Ijobiy",
+        "negative": "Salbiy",
+        "unknown": "Aniqlanmadi"
+      },
+      "items": {
+        "reference": "Oldingi ish joyidan tavsiya",
+        "documents": "Ma'lumot va hujjatlar haqiqiyligi",
+        "social": "Ijtimoiy tarmoqlar",
+        "other": "Boshqa talablar"
+      }
+    },
+    "conclusion": {
+      "title": "Yakuniy xulosa",
+      "hint": "Intervyu, test, moslik va fon tekshiruvidan xulosa loyihasini yarating. Rekruter tahrirlaydi, HR rahbariyati tasdiqlaydi.",
+      "generate": "Loyihani yaratish",
+      "regenerate": "Qayta yaratish",
+      "approve": "Tasdiqlash",
+      "recLabel": "Tavsiya",
+      "rec": {
+        "hire": "Ishga olish",
+        "reserve": "Zaxira",
+        "reject": "Olmaslik"
+      },
+      "approvedBy": "Tasdiqlagan: {{who}} · {{when}}"
+    },
+    "offer": {
+      "schedule": "Ish grafigi",
+      "probationLabel": "Sinov muddati (kun)",
+      "probation": "sinov {{n}} kun",
+      "link": "Nomzod havolasi",
+      "copied": "Offer havolasi nusxalandi",
+      "level": "Daraja",
+      "start": "Ishga chiqish",
+      "response": {
+        "accepted": "Nomzod offerni qabul qildi",
+        "declined": "Nomzod offerni rad etdi"
+      }
+    },
+    "bank": {
+      "subtitle": "IQ, mantiq va lavozim bo'yicha test banki: nomzodga havola orqali topshiriladi, natija avtomatik hisoblanadi",
+      "add": "Yangi test",
+      "edit": "Testni tahrirlash",
+      "main": "Asosiy",
+      "name": "Nomi",
+      "kind": "Turi",
+      "limit": "Vaqt (daqiqa)",
+      "passLabel": "O'tish bali (%)",
+      "position": "Lavozim",
+      "questions": "{{n}} savol",
+      "pass": "o'tish {{n}}%",
+      "questionsTitle": "Savollar",
+      "questionsHint": "To'g'ri javob(lar)ni belgilang: bir nechta belgilansa, nomzod hammasini topishi kerak.",
+      "qText": "Savol matni",
+      "option": "Variant {{n}}",
+      "correct": "To'g'ri javob",
+      "addOption": "Variant qo'shish",
+      "addQuestion": "Savol qo'shish",
+      "deleteHint": "Natijalari bor testni o'chirib bo'lmaydi: uni nofaol qiling."
+    },
+    "card": {
+      "questions": "Intervyu savollari",
+      "questionsHint": "Har qatorga bitta savol: suhbat kartochkasida ko'rinadi"
+    },
+    "public": {
+      "intro": "{{n}} ta savol, {{m}} daqiqa.",
+      "rules": "Boshlagach vaqt ketadi. Vaqt tugagach yuborilmagan test hisobga olinmaydi.",
+      "start": "Boshlash",
+      "answered": "Javob berildi: {{a}} / {{n}}",
+      "multi": "Bir nechta javobni belgilashingiz mumkin",
+      "submit": "Yuborish",
+      "done": "Test topshirildi. Natija HR ga yuborildi. Rahmat!",
+      "expired": "Test muddati tugadi.",
+      "consentTitle": "Fon tekshiruviga rozilik",
+      "consentText": "{{name}}, siz nomzod sifatida quyidagi bandlar bo'yicha ma'lumotlaringiz tekshirilishiga rozilik bildirasiz.",
+      "agree": "Roziman",
+      "consentDone": "Rozilik qabul qilindi. Rahmat!",
+      "offerTitle": "Job offer",
+      "accept": "Qabul qilaman",
+      "decline": "Rad etaman",
+      "declineConfirm": "Rad etishni tasdiqlash",
+      "reasonHint": "Iltimos, rad etish sababini yozing.",
+      "reason": "Sabab",
+      "answeredOffer": {
+        "accepted": "Siz offerni qabul qildingiz. HR siz bilan bog'lanadi.",
+        "declined": "Siz offerni rad etdingiz."
+      }
     }
   }
 }

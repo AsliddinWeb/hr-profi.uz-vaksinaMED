@@ -62,7 +62,7 @@ TZ 4.1–4.5, 8.1–8.2 bo'yicha yetishmaydigani:
 - **Taklif**: moslik bali chegarasida avtomatik yuborish (oylik, grafik, manzil, xarita), bo'sh vaqt tanlash, 1 kun va 2 soat oldin eslatma, «Kelaman/Kela olmayman», video havola.
 - Rekruter kunlik chek-listi va zayavka voronkasi (har «yo'q» uchun majburiy sabab).
 
-### F49. Rekruting 2: intervyu, test, fon tekshiruvi, offer (katta)
+### F49. Rekruting 2: intervyu, test, fon tekshiruvi, offer (katta) — TAYYOR 2026-10-29
 TZ 4.6–4.8: kompetensiya bo'yicha 1–5 baho kartochkasi; test banki (IQ, mantiq, lavozim) havola orqali, vaqt cheklovi, o'tish bali; nomzod roziligi bilan fon tekshiruvi (bandlar, natija, izoh); AI yakuniy xulosa loyihasi (jinsi/yoshi/millati/dini hisobga olinmaydi); offer tasdig'i va nomzodga havola, rad etish sababi; elektron imzo (2-bosqich uchun interfeys).
 
 ### F50. Rekruting 3: integratsiyalar va KPI (katta, tashqi hisoblarga bog'liq)

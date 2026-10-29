@@ -113,6 +113,13 @@ class Application(Base, TimestampMixin):
     offer_decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     offer_decision_note: Mapped[str | None] = mapped_column(Text)
     offer_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    offer_schedule: Mapped[str | None] = mapped_column(String(200))  # ish grafigi (offer shabloni)
+    offer_probation_days: Mapped[int | None] = mapped_column(Integer)  # sinov muddati (kun)
+    offer_token: Mapped[str | None] = mapped_column(String(24), unique=True)  # nomzodga offer havolasi
+    offer_response: Mapped[str | None] = mapped_column(String(10))  # accepted | declined
+    offer_response_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    offer_decline_reason: Mapped[str | None] = mapped_column(String(300))
+    conclusion: Mapped[dict | None] = mapped_column(JSONB)  # yakuniy xulosa: qoralama, tahrir, tasdiq
 
 
 class ApplicationEvent(Base):
@@ -255,5 +262,75 @@ class InterviewInvite(Base, TimestampMixin):
     replied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     reminded_day: Mapped[bool] = mapped_column(Boolean, default=False)
     reminded_2h: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+
+
+class InterviewScore(Base, TimestampMixin):
+    """Suhbatdosh bahosi: har bir kompetensiyaga 1-5 (`scores`: {kalit: ball}) va izoh."""
+
+    __tablename__ = "interview_scores"
+    __table_args__ = (UniqueConstraint("application_id", "interviewer_id", name="uq_interview_score"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id", ondelete="CASCADE"), index=True)
+    interviewer_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    scores: Mapped[dict] = mapped_column(JSONB, default=dict)
+    notes: Mapped[str | None] = mapped_column(Text)
+
+
+class TestBank(Base, TimestampMixin):
+    """Test banki (IQ, mantiq, lavozim bo'yicha bilim). `questions`: [{id, text, options[], correct[indeks]}]."""
+
+    __tablename__ = "test_banks"
+    __test__ = False  # pytest bu sinfni test deb yig'masin
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(160))
+    kind: Mapped[str] = mapped_column(String(10))  # iq | logic | position
+    position_id: Mapped[int | None] = mapped_column(ForeignKey("positions.id", ondelete="SET NULL"))
+    time_limit_min: Mapped[int] = mapped_column(Integer, default=20)
+    pass_score: Mapped[int] = mapped_column(Integer, default=60)
+    questions: Mapped[list] = mapped_column(JSONB, default=list)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+
+
+class CandidateTest(Base, TimestampMixin):
+    """Nomzodga berilgan test: havola orqali topshiriladi, vaqt cheklovi bor, natija avtomatik hisoblanadi."""
+
+    __tablename__ = "candidate_tests"
+    __test__ = False
+    __table_args__ = (Index("ix_candidate_tests_app", "application_id"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id", ondelete="CASCADE"))
+    bank_id: Mapped[int] = mapped_column(ForeignKey("test_banks.id", ondelete="RESTRICT"))
+    token: Mapped[str] = mapped_column(String(24), unique=True)
+    status: Mapped[str] = mapped_column(String(10), default="assigned")  # assigned | started | submitted | expired
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deadline_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    answers: Mapped[dict] = mapped_column(JSONB, default=dict)
+    score_pct: Mapped[int | None] = mapped_column(Integer)
+    passed: Mapped[bool | None] = mapped_column(Boolean)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+
+
+class BackgroundCheck(Base, TimestampMixin):
+    """Fon tekshiruvi: avval nomzod roziligi (havola), keyin bandlar (tavsiya, hujjatlar, ijtimoiy tarmoq...) va qaror."""
+
+    __tablename__ = "background_checks"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id", ondelete="CASCADE"), unique=True)
+    consent_token: Mapped[str] = mapped_column(String(24), unique=True)
+    consent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    consent_ip: Mapped[str | None] = mapped_column(String(64))
+    items: Mapped[list] = mapped_column(JSONB, default=list)  # [{key, result: positive|negative|unknown|None, note}]
+    status: Mapped[str] = mapped_column(String(16), default="consent_pending")  # consent_pending | in_progress | done
+    decision: Mapped[str | None] = mapped_column(String(8))  # passed | failed
+    decision_note: Mapped[str | None] = mapped_column(Text)
+    checked_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
 

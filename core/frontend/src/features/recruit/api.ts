@@ -87,8 +87,9 @@ export interface Application {
   bg_note: string | null
   ai_scan: { score: number | null; summary: string; strengths: string[]; risks: string[]; questions: string[]; recommendation: 'advance' | 'hold' | 'reject'; model: string } | null
   ai_scan_at: string | null
-  offer: { status: 'pending_hrd' | 'approved' | 'rejected'; level: string | null; salary: number | null; start: string | null; note: string | null; decision_note: string | null; sent_at: string | null } | null
+  offer: { status: 'pending_hrd' | 'approved' | 'rejected'; level: string | null; salary: number | null; start: string | null; note: string | null; decision_note: string | null; sent_at: string | null; schedule?: string | null; probation_days?: number | null; response?: 'accepted' | 'declined' | null; response_at?: string | null; decline_reason?: string | null; has_link?: boolean } | null
   has_telegram: boolean
+  conclusion?: Conclusion | null
   reject_code: string | null
   match_score: number | null
   match_detail: { parts: { key: string; weight: number; ratio: number; hit?: string[]; miss?: string[]; have?: number | null; need?: number }[]; excluded: string[] } | null
@@ -144,6 +145,7 @@ export interface Invitation {
 }
 
 export interface CardProfile {
+  questions?: string[]
   duties: string | null
   hard_skills: string[]
   soft_skills: string[]
@@ -151,4 +153,47 @@ export interface CardProfile {
   education: string | null
   min_experience: number | null
   exclusions: string[]
+}
+
+export interface Conclusion {
+  draft: string
+  text: string | null
+  recommendation: 'hire' | 'reserve' | 'reject'
+  score: number | null
+  status: 'draft' | 'approved'
+  approved_by_name?: string
+  approved_at?: string
+  generated_at: string
+}
+
+export interface TestBankRow {
+  id: number
+  name: string
+  kind: 'iq' | 'logic' | 'position'
+  position_id: number | null
+  time_limit_min: number
+  pass_score: number
+  is_active: boolean
+  question_count: number
+  questions: { id: string; text: string; options: string[]; correct: number[] }[] | null
+}
+
+export interface CandTest {
+  id: number
+  bank: { id: number; name: string | null; kind: string | null; pass_score: number | null; time_limit_min: number | null }
+  status: 'assigned' | 'started' | 'submitted' | 'expired'
+  score_pct: number | null
+  passed: boolean | null
+  url: string | null
+  submitted_at: string | null
+}
+
+export interface BgCheck {
+  id: number
+  status: 'consent_pending' | 'in_progress' | 'done'
+  consent_at: string | null
+  items: { key: string; result: 'positive' | 'negative' | 'unknown' | null; note: string | null }[]
+  decision: 'passed' | 'failed' | null
+  decision_note: string | null
+  consent_url: string | null
 }

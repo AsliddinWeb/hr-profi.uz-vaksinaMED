@@ -16,6 +16,7 @@ import { NotFound } from '../../pages/NotFound'
 import { fromLocalInput, toLocalInput } from '../attendance/api'
 import { errorText } from '../auth/errorText'
 import { InvitationPanel, MatchCard } from './CoreParts'
+import { BackgroundPanel, ConclusionPanel, ScorecardPanel, TestsPanel } from './EvalParts'
 import { PipelinePanel } from './PipelinePanel'
 import { MOVABLE, REJECT_CODES, STAGES, type ApplicationDetail, type Stage } from './api'
 
@@ -97,6 +98,10 @@ export function ApplicationDetailPage() {
       <PipelinePanel a={a} />
 
       <MatchCard a={a} />
+      {a.can.manage && <ScorecardPanel appId={a.id} />}
+      {a.can.manage && <TestsPanel appId={a.id} open={open} />}
+      <BackgroundPanel appId={a.id} />
+      {a.can.manage && <ConclusionPanel a={a} />}
       {a.can.manage && <InvitationPanel appId={a.id} open={open} />}
       {a.can.manage && open && (
         <Card className="flex flex-col gap-6 p-6">

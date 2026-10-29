@@ -1,5 +1,6 @@
 """Rekruting oqimi: suhbat natijasi, fon tekshiruv, AI skaner, job offer (HRD tasdig'i), taklif va qo'ng'iroqlar hisoboti."""
 
+import secrets
 from datetime import date, datetime, timedelta
 from typing import Any
 
@@ -8,6 +9,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.attendance import _base_url
 from app.api.recruit import Manage, Read, _application, _out_many
 from app.db import get_session
 from app.deps import AuthContext, error, get_auth
@@ -106,6 +108,8 @@ class OfferIn(BaseModel):
     salary: int = Field(ge=0, le=200_000_000)
     start_date: date | None = None
     note: str | None = Field(default=None, max_length=1000)
+    schedule: str | None = Field(default=None, max_length=200)
+    probation_days: int | None = Field(default=None, ge=0, le=180)
 
 
 @router.post("/applications/{aid}/offer")
@@ -116,6 +120,8 @@ async def make_offer(aid: int, body: OfferIn, request: Request, db: AsyncSession
         raise error(409, "invalid_transition")
     psvc.check_level(a, body.level)
     a.offer_level, a.offer_salary, a.offer_start, a.offer_note, a.offer_by = body.level, body.salary, body.start_date, (body.note or "").strip() or None, auth.user.id
+    a.offer_schedule, a.offer_probation_days = (body.schedule or "").strip() or None, body.probation_days if body.probation_days is not None else 7
+    a.offer_response = a.offer_response_at = a.offer_decline_reason = None  # yangi taklif: oldingi javob bekor
     a.offer_decision_note, a.offer_decided_by, a.offer_decided_at, a.offer_sent_at = None, None, None, None
     c = await db.get(Candidate, a.candidate_id)
     notes: list = []
@@ -172,7 +178,10 @@ async def send_offer(aid: int, request: Request, db: AsyncSession = Depends(get_
     if a.offer_status != "approved":
         raise error(409, "offer_not_approved")
     c, v = await db.get(Candidate, a.candidate_id), await db.get(Vacancy, a.vacancy_id)
-    if not await _tell_candidate(request, c, psvc.offer_text(a, v)):
+    if not a.offer_token:
+        a.offer_token = secrets.token_urlsafe(14)[:20]
+    link = f"{_base_url(request)}/offer/{a.offer_token}"
+    if not await _tell_candidate(request, c, psvc.offer_text(a, v) + f"\n\nQabul qilish yoki rad etish: {link}"):
         raise error(409, "candidate_no_telegram")
     a.offer_sent_at = now()
     await audit(db, request, "recruit.offer_send", actor=auth.user, entity="application", entity_id=a.id)
