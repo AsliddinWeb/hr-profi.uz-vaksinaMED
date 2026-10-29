@@ -2637,7 +2637,9 @@
       "summary": "Tahlil",
       "sources": "Manbalar",
       "requirements": "Lavozim talablari",
-      "recruiter": "Rekruter"
+      "recruiter": "Rekruter",
+      "today": "Bugun",
+      "funnel": "Voronka"
     },
     "stage": {
       "new": "Yangi",
@@ -4963,6 +4965,159 @@
       "valid": "Hujjat haqiqiy",
       "invalid": "Hujjat yaroqsiz",
       "cancelled": "Hujjat bekor qilingan."
+    }
+  },
+  "recruitCore": {
+    "match": {
+      "title": "Kompetensiyaga moslik",
+      "excluded": "Istisno mezoni topildi: {{list}}",
+      "miss": "Yetishmaydi",
+      "exp": "Tajriba: {{have}} yil / kamida {{need}} yil",
+      "parts": {
+        "hard_skills": "Kasbiy ko'nikmalar",
+        "languages": "Tillar",
+        "experience": "Tajriba",
+        "profile": "Profil to'liqligi"
+      }
+    },
+    "reject": {
+      "code": "Rad etish sababi (toifa)",
+      "codes": {
+        "no_answer": "Telefon ko'tarmadi",
+        "not_suitable": "Mos kelmadi",
+        "declined": "Nomzod rad etdi",
+        "salary": "Oylik mos kelmadi",
+        "schedule": "Grafik mos kelmadi",
+        "no_show": "Suhbatga kelmadi",
+        "failed_test": "Testdan o'tmadi",
+        "failed_background": "Fon tekshiruvidan o'tmadi",
+        "hired_elsewhere": "Boshqa joyga ishga kirdi",
+        "other": "Boshqa"
+      }
+    },
+    "invite": {
+      "title": "Suhbatga taklif",
+      "hint": "Bir yoki bir nechta bo'sh vaqt kiriting (5 tagacha): nomzod havola orqali birini tanlaydi. Bitta vaqt berilsa suhbat darhol belgilanadi.",
+      "slot": "Vaqt {{n}}",
+      "addSlot": "Yana vaqt",
+      "mode": "Format",
+      "offline": "Offlayn (manzil)",
+      "online": "Onlayn (video)",
+      "contact": "Aloqa telefoni",
+      "place": "Manzil",
+      "map": "Xarita havolasi",
+      "send": "Taklif yuborish",
+      "created": "Taklif yaratildi",
+      "sentTelegram": "Taklif nomzodning Telegramiga yuborildi",
+      "copied": "Havola nusxalandi",
+      "copy": "Nusxalash",
+      "cancel": "Taklifni bekor qilish",
+      "waiting": "Nomzod vaqt tanlashini kutmoqda ({{n}} ta variant)",
+      "status": {
+        "sent": "Yuborilgan",
+        "scheduled": "Belgilangan",
+        "declined": "Nomzod kela olmaydi",
+        "cancelled": "Bekor qilingan"
+      },
+      "reply": {
+        "coming": "Kelaman",
+        "not_coming": "Kela olmayman"
+      }
+    },
+    "profile": {
+      "title": "Birlashgan profil",
+      "confirmed": "Nomzod tasdiqlagan: {{when}}",
+      "notConfirmed": "Tasdiqlanmagan",
+      "link": "Anketa havolasi",
+      "sentTelegram": "Havola Telegramga yuborildi",
+      "copied": "Havola nusxalandi",
+      "mergeHint": "Takroriy kartochkani birlashtirish (ID):",
+      "mergeId": "Takroriy kartochka ID",
+      "merge": "Birlashtirish",
+      "merged": "Kartochkalar birlashtirildi",
+      "pinfl": "JSHSHIR",
+      "fields": {
+        "full_name": "F.I.Sh.",
+        "phone": "Telefon",
+        "birth_date": "Tug'ilgan sana",
+        "address": "Manzil",
+        "email": "Email",
+        "region": "Hudud",
+        "experience": "Tajriba",
+        "expected_salary": "Kutilgan oylik",
+        "languages": "Tillar",
+        "skills": "Ko'nikmalar",
+        "about": "O'zi haqida"
+      }
+    },
+    "card": {
+      "title": "Kompetensiya kartochkasi",
+      "hint": "Lavozim talablari (versiya {{v}}). Moslik bali va vakansiya talablari shundan hisoblanadi.",
+      "duties": "Vazifalar",
+      "hard": "Kasbiy ko'nikmalar (hard skills)",
+      "soft": "Shaxsiy sifatlar (soft skills)",
+      "languages": "Tillar",
+      "education": "Ma'lumot",
+      "minExp": "Kamida tajriba (yil)",
+      "exclusions": "Istisno mezonlari",
+      "exclusionsHint": "Shu so'z nomzod ma'lumotida topilsa moslik 0 bo'ladi",
+      "versionNote": "O'zgarish izohi"
+    },
+    "today": {
+      "subtitle": "Kunlik chek-list: hammasi tizimdagi harakatlardan avtomatik hisoblanadi",
+      "newApps": "Yangi arizalar",
+      "interviews": "Bugungi va ertangi suhbatlar",
+      "callbacks": "Qayta qo'ng'iroq qilinadiganlar",
+      "withoutAds": "E'lon qo'yilmagan vakansiyalar",
+      "expiring": "Muddati yaqin / o'tgan",
+      "offers": "Javob kutilayotgan offerlar",
+      "vacancies": "Mening vakansiyalarim",
+      "channels": "Kanal: {{n}}",
+      "applications": "Ochiq ariza: {{n}}",
+      "callsToday": "Bugungi qo'ng'iroqlar: {{n}}",
+      "daysLeft": "{{n}} kun qoldi",
+      "overdueBy": "{{n}} kun o'tdi"
+    },
+    "funnel": {
+      "subtitle": "Zayavka voronkasi: har bosqichga yetganlar va rad etish sabablari",
+      "vacancy": "Vakansiya",
+      "all": "Barcha vakansiyalar",
+      "from": "Dan",
+      "to": "Gacha",
+      "stages": "Bosqichlar ({{n}} ta ariza)",
+      "reasons": "Rad etish sabablari ({{n}})"
+    },
+    "closeChannel": "E'lonni yopish",
+    "channelClosed": "yopilgan {{when}}",
+    "public": {
+      "notFound": "Havola topilmadi yoki muddati o'tgan",
+      "profileTitle": "Anketa va rezyume",
+      "profileHint": "Ma'lumotlaringizni to'ldiring, rezyume yuklang va profilingizni tasdiqlang.",
+      "confirmedDone": "Profilingiz tasdiqlangan. Rahmat!",
+      "commaHint": "Vergul bilan ajrating",
+      "resume": "Rezyume va obyektivka",
+      "resumeHint": "PDF, DOCX yoki rasm, {{n}} tagacha fayl.",
+      "upload": "Fayl yuklash",
+      "uploadError": "Fayl yuklanmadi: turi yoki hajmi mos emas.",
+      "mergedTitle": "Sizning umumlashgan profilingiz",
+      "mergedHint": "Anketa, rezyume va suhbat ma'lumotlari birlashtirilgan. Tekshirib, tasdiqlang.",
+      "confirm": "Tasdiqlayman",
+      "inviteTitle": "Suhbatga taklif",
+      "salary": "Oylik",
+      "map": "Xaritada",
+      "videoLink": "Video suhbatga ulanish",
+      "videoAfter": "Video havola vaqt tanlangach ochiladi",
+      "yourTime": "Sizning suhbat vaqtingiz",
+      "changeTime": "Vaqtni o'zgartirish",
+      "pickTime": "Qulay vaqtni tanlang",
+      "willCome": "Suhbatga kelasizmi?",
+      "coming": "Kelaman",
+      "notComing": "Kela olmayman",
+      "closed": {
+        "declined": "Siz suhbatga kela olmasligingizni bildirdingiz.",
+        "cancelled": "Bu taklif bekor qilingan."
+      },
+      "error": "Xatolik yuz berdi. Qayta urinib ko'ring."
     }
   }
 }

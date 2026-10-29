@@ -17,6 +17,7 @@ from app.services.notifications import notify, register_template
 DEFAULTS: dict[str, dict[str, Any]] = {
     "attestation": {"pass_score": 70, "test_weight": 50, "practical_weight": 50, "promote_after": 2},
     "score_weights": {"attendance": 30, "learning": 20, "attestation": 30, "discipline": 20},
+    "recruit": {"sla_days": 14, "warn_days": 2, "invite_threshold": 60},
     "retention": {"interview_days": 3, "decision_days": 7, "meeting_gap_days": 7, "low_score": 50, "notice_days_default": 15, "notice_days_senior": 30},
 }
 DECISIONS = "passed|retake|extra_lessons"

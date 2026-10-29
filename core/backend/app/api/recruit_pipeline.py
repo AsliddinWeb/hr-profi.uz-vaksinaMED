@@ -188,6 +188,7 @@ class CallIn(BaseModel):
     phone: str | None = Field(default=None, max_length=20)
     vacancy_id: int | None = None
     note: str | None = Field(default=None, max_length=300)
+    callback_date: date | None = None
 
 
 @router.post("/calls", status_code=201)
@@ -199,7 +200,7 @@ async def log_call(body: CallIn, db: AsyncSession = Depends(get_session), auth: 
         except ValueError:
             raise error(400, "phone_invalid") from None
     cand = await db.scalar(select(Candidate).where(Candidate.phone == phone)) if phone else None
-    call = RecruitCall(recruiter_id=auth.user.id, phone=phone, candidate_id=cand.id if cand else None, vacancy_id=body.vacancy_id, outcome=body.outcome, note=(body.note or "").strip() or None)
+    call = RecruitCall(recruiter_id=auth.user.id, phone=phone, candidate_id=cand.id if cand else None, vacancy_id=body.vacancy_id, outcome=body.outcome, note=(body.note or "").strip() or None, callback_date=body.callback_date)
     db.add(call)
     await db.commit()
     return {"id": call.id}

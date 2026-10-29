@@ -15,6 +15,7 @@ from app.models.recruit import Application, Candidate, PositionRequirement, Sour
 from app.services import recruit as rsvc
 from app.services.answers import users_with_permission
 from app.services.notifications import notify, register_template
+from app.services.recruit_core import assign_phone, same_person
 
 CHANNELS = ("hh_uz", "olx", "telegram", "site", "instagram", "billboard", "target", "referral", "other")
 CHANNEL_RE = "^(" + "|".join(CHANNELS) + ")$"
@@ -120,11 +121,16 @@ async def submit_application(db: AsyncSession, lk: SourceLink, v: Vacancy, *, fu
     ('ok' | 'duplicate', nomzod, bildirishnomalar) qaytaradi."""
     from sqlalchemy.exc import IntegrityError  # noqa: PLC0415
 
-    cand = await db.scalar(select(Candidate).where(Candidate.phone == phone)) if phone else None
+    cand = None
+    if phone:  # shu raqamli nomzod bor va ism mos kelsa — o'sha shaxs; ism boshqa bo'lsa raqam yangi shaxsga o'tgan (tarix saqlanadi)
+        owner = await db.scalar(select(Candidate).where(Candidate.phone == phone))
+        if owner and same_person(owner.full_name, full_name):
+            cand = owner
     if cand is None:
-        cand = Candidate(full_name=full_name.strip(), phone=phone, source=lk.channel, note=(note or "").strip() or None, skills=[])
+        cand = Candidate(full_name=full_name.strip(), phone=None, source=lk.channel, note=(note or "").strip() or None, skills=[])
         db.add(cand)
         await db.flush()
+        await assign_phone(db, cand, phone, moment)
     if chat_id and cand.telegram_chat_id is None and not await db.scalar(select(Candidate.id).where(Candidate.telegram_chat_id == chat_id)):
         cand.telegram_chat_id = chat_id
     if await db.scalar(select(Application.id).where(Application.vacancy_id == v.id, Application.candidate_id == cand.id)):

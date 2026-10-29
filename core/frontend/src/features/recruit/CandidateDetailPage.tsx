@@ -17,6 +17,7 @@ import { NotFound } from '../../pages/NotFound'
 import { errorText } from '../auth/errorText'
 import { useCan } from '../auth/useAuth'
 import { sizeText } from '../tasks/api'
+import { ProfileSection } from './CoreParts'
 import { STAGE_TONE, type CandidateDetail } from './api'
 
 /** /recruit/candidates/:id: nomzod kartasi, rezyume fayllari va arizalari. */
@@ -69,6 +70,7 @@ export function CandidateDetailPage() {
         }
       />
       <AiSummary entity="candidate" id={c.id} />
+      <ProfileSection cid={c.id} manage={manage} />
       <Card className="flex flex-col gap-4 p-6">
         <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
           <Info label={t('recruit.candidate.birth')}>{c.birth_date ? formatDate(c.birth_date, i18n.language) : '—'}</Info>

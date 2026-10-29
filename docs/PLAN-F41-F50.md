@@ -54,7 +54,7 @@ Eslatma: Abet skrinshoti (9.jpg) uchun matn yo'q. Ko'rinib turgani: baholash oyn
 - Logo (och/to'q fon varianti), favicon, PWA ikonlari, kirish sahifasi, PDF sarlavhalari, Telegram bot, `client.yaml` ga `logo_dark`.
 - Mijoz yuborgan rasm 330×130 px past sifatli: vektor (SVG/AI) yoki 1000+ px kerak.
 
-### F48. Rekruting 1: MVP yadrosi (katta)
+### F48. Rekruting 1: MVP yadrosi (katta) — TAYYOR 2026-10-29
 TZ 4.1–4.5, 8.1–8.2 bo'yicha yetishmaydigani:
 - **Lavozim kartochkasi** (kompetensiya: vazifa, hard/soft skill, til, istisno mezonlari, versiyalar) va zayavkada avtoto'ldirish; **zayavka SLA** (14 kun) va muddat ogohlantirishi.
 - E'lon: kanal bo'yicha joylash jurnali, UTM havolalar, zayavka yopilganda e'lonlarni «Yopilgan» qilish eslatmasi.

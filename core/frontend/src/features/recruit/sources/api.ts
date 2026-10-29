@@ -15,7 +15,7 @@ export interface SourceLink {
 export interface Promo {
   vacancy: { id: number; title: string; status: string; branch: string | null }
   ad: string
-  channels: { id: number; channel: string; url: string | null; note: string | null; posted_by: string | null; posted_at: string }[]
+  channels: { id: number; channel: string; url: string | null; note: string | null; posted_by: string | null; posted_at: string; closed_at: string | null }[]
   links: SourceLink[]
 }
 export interface SourcesReport {

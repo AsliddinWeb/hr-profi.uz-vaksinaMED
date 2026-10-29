@@ -41,6 +41,8 @@ class Vacancy(Base, TimestampMixin):
     opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    sla_warned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # muddat yaqinlashgani haqida xabar berilgan payt
+    sla_overdue_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # muddat o'tgani haqida xabar berilgan payt
 
 
 class Candidate(Base, TimestampMixin):
@@ -57,6 +59,10 @@ class Candidate(Base, TimestampMixin):
     resume_text: Mapped[str | None] = mapped_column(Text)
     note: Mapped[str | None] = mapped_column(Text)
     telegram_chat_id: Mapped[int | None] = mapped_column(BigInteger, unique=True)  # bot orqali kelgan nomzod: unga xabar yuborish uchun
+    pinfl: Mapped[str | None] = mapped_column(String(14), index=True)  # JSHSHIR: takroriy nomzodlarni aniqlash
+    profile: Mapped[dict] = mapped_column(JSONB, default=dict)  # anketa javoblari (tajriba, kutilgan oylik, tillar...)
+    profile_token: Mapped[str | None] = mapped_column(String(24), unique=True)  # nomzodning shaxsiy anketa havolasi
+    profile_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
 
 
@@ -91,6 +97,9 @@ class Application(Base, TimestampMixin):
     bg_note: Mapped[str | None] = mapped_column(Text)
     bg_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     bg_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reject_code: Mapped[str | None] = mapped_column(String(16))  # rad etish sababi toifasi (voronka tahlili uchun)
+    match_score: Mapped[int | None] = mapped_column(Integer)  # kompetensiya kartochkasiga moslik, 0-100
+    match_detail: Mapped[dict | None] = mapped_column(JSONB)
     ai_scan: Mapped[dict | None] = mapped_column(JSONB)
     ai_scan_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # Job offer: HR taklif qiladi -> HRD tasdiqlaydi -> nomzodga yuboriladi
@@ -145,6 +154,8 @@ class PositionRequirement(Base, TimestampMixin):
     requirements: Mapped[str | None] = mapped_column(Text)
     competencies: Mapped[list] = mapped_column(JSONB, default=list)
     ad_template: Mapped[str | None] = mapped_column(Text)
+    profile: Mapped[dict] = mapped_column(JSONB, default=dict)  # tuzilgan kartochka: duties, hard_skills, soft_skills, languages, education, min_experience, exclusions
+    version: Mapped[int] = mapped_column(Integer, default=1)
     updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
 
 
@@ -160,6 +171,7 @@ class VacancyChannel(Base):
     note: Mapped[str | None] = mapped_column(String(300))
     posted_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     posted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # e'lon o'chirilgan/yopilgan payt
 
 
 class SourceLink(Base):
@@ -190,4 +202,58 @@ class RecruitCall(Base):
     vacancy_id: Mapped[int | None] = mapped_column(ForeignKey("vacancies.id", ondelete="SET NULL"))
     outcome: Mapped[str] = mapped_column(String(10))  # suitable | unsuitable | no_answer | callback
     note: Mapped[str | None] = mapped_column(String(300))
+    callback_date: Mapped[date | None] = mapped_column(Date)  # «qayta qo'ng'iroq» natijasida: qachon qo'ng'iroq qilish kerak
     called_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class PositionRequirementVersion(Base):
+    """Lavozim kartochkasining oldingi versiyalari (har o'zgarishda snapshot)."""
+
+    __tablename__ = "position_requirement_versions"
+    __table_args__ = (UniqueConstraint("position_id", "version", name="uq_position_requirement_version"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    position_id: Mapped[int] = mapped_column(ForeignKey("positions.id", ondelete="CASCADE"), index=True)
+    version: Mapped[int] = mapped_column(Integer)
+    snapshot: Mapped[dict] = mapped_column(JSONB)
+    note: Mapped[str | None] = mapped_column(String(300))
+    changed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class CandidatePhone(Base):
+    """Telefon raqami egaligi tarixi: bir raqam turli vaqtda turli shaxsga tegishli bo'lishi mumkin."""
+
+    __tablename__ = "candidate_phones"
+    __table_args__ = (Index("ix_candidate_phones_phone", "phone"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    candidate_id: Mapped[int] = mapped_column(ForeignKey("candidates.id", ondelete="CASCADE"), index=True)
+    phone: Mapped[str] = mapped_column(String(13))
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class InterviewInvite(Base, TimestampMixin):
+    """Suhbatga taklif: nomzod havola orqali bo'sh vaqtlardan birini tanlaydi va «kelaman / kela olmayman» deb javob beradi."""
+
+    __tablename__ = "interview_invites"
+    __table_args__ = (Index("ix_interview_invites_app", "application_id", "status"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id", ondelete="CASCADE"))
+    token: Mapped[str] = mapped_column(String(24), unique=True)
+    slots: Mapped[list] = mapped_column(JSONB, default=list)  # ISO vaqtlar
+    mode: Mapped[str] = mapped_column(String(8), default="offline")  # offline | online
+    place: Mapped[str | None] = mapped_column(String(200))
+    map_url: Mapped[str | None] = mapped_column(String(300))
+    contact_phone: Mapped[str | None] = mapped_column(String(20))
+    meeting_url: Mapped[str | None] = mapped_column(String(300))
+    status: Mapped[str] = mapped_column(String(10), default="sent")  # sent | scheduled | declined | cancelled
+    chosen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # nomzod tanlagan suhbat vaqti
+    reply: Mapped[str | None] = mapped_column(String(12))  # coming | not_coming
+    replied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reminded_day: Mapped[bool] = mapped_column(Boolean, default=False)
+    reminded_2h: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+

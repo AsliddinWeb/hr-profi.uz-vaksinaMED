@@ -15,6 +15,14 @@ import { errorText } from '../auth/errorText'
 import { useCan } from '../auth/useAuth'
 import { STAGE_TONE, STAGES, salaryText, VSTATUS_TONE, type Board, type Vacancy, type VStatus } from './api'
 
+function daysLeft(deadline: string): number {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return Math.round((new Date(`${deadline}T00:00:00`).getTime() - today.getTime()) / 86400000)
+}
+const deadlineClass = (d: string, status: string) => (status !== 'open' ? '' : daysLeft(d) < 0 ? 'font-medium text-danger' : daysLeft(d) <= 2 ? 'font-medium text-warning' : '')
+const deadlineNote = (d: string, status: string, t: (k: string, o?: Record<string, unknown>) => string) => (status !== 'open' ? '' : daysLeft(d) < 0 ? ` · ${t('recruitCore.today.overdueBy', { n: -daysLeft(d) })}` : ` · ${t('recruitCore.today.daysLeft', { n: daysLeft(d) })}`)
+
 /** /recruit/vacancies/:id: vakansiya, holat amallari va pipeline (ustunlar). */
 export function VacancyDetailPage() {
   const { t, i18n } = useTranslation()
@@ -88,7 +96,7 @@ export function VacancyDetailPage() {
             {v.hired} / {v.openings}
           </Info>
           <Info label={t('recruit.vacancy.recruiter')}>{v.recruiter?.name ?? '—'}</Info>
-          <Info label={t('recruit.vacancy.deadline')}>{v.deadline ? formatDate(v.deadline, i18n.language) : '—'}</Info>
+          <Info label={t('recruit.vacancy.deadline')}>{v.deadline ? <span className={deadlineClass(v.deadline, v.status)}>{formatDate(v.deadline, i18n.language)}{deadlineNote(v.deadline, v.status, t)}</span> : '—'}</Info>
         </dl>
         {v.description && <p className="whitespace-pre-wrap border-t border-border pt-4 text-sm leading-relaxed">{v.description}</p>}
         {v.requirements && (

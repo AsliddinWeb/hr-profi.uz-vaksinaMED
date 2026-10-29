@@ -225,3 +225,24 @@ async def flows(sd) -> None:  # noqa: C901
             await sd.call(f2, "POST", f"/api/v1/tasks/{mine[f2]}/accept", label="qabul qilish")
             await sd.call(f2, "POST", f"/api/v1/tasks/{mine[f2]}/move", json={"status": "in_progress"}, label="jarayonga")
 
+    # 20. Rekruting yadrosi: kompetensiya kartochkasi, nomzod anketasi (birlashgan profil, moslik), suhbat taklifi
+    print("20. Rekruting yadrosi")
+    if farm_pos:
+        await sd.call(hrm, "PUT", f"/api/v1/recruit/requirements/{farm_pos}", json={"profile": {"duties": "Mijozlarga dori vositalarini tavsiya qilish, kassa bilan ishlash, tovar qabul qilish.", "hard_skills": ["kassa", "farmatsevt", "dori"], "soft_skills": ["muloqot", "mas'uliyat"], "languages": ["rus"], "education": "O'rta maxsus (farmatsevtika)", "min_experience": 1, "exclusions": []}, "note": "Boshlang'ich kartochka"}, label="kompetensiya kartochkasi")
+    if vac and len(cands) >= 2 and cands[0] and cands[1]:
+        link = await sd.call(hrm, "POST", f"/api/v1/recruit/candidates/{cands[0]['id']}/profile-link", label="anketa havolasi")
+        if link:
+            token = link["url"].rsplit("/", 1)[1]
+            anon = sd._mk()
+            await anon.put(f"/api/v1/public/profile/{token}", json={"full_name": cands[0]["full_name"], "address": "Toshkent, Yunusobod", "experience": "2 yil", "expected_salary": 4200000, "languages": ["rus", "ingliz"], "skills": ["kassa", "farmatsevt"], "about": "Dorixonada ishlash tajribam bor."})
+            await anon.post(f"/api/v1/public/profile/{token}/confirm")
+            await anon.aclose()
+        apps = _items(await sd.call(hrm, "GET", f"/api/v1/recruit/applications?vacancy_id={vac['id']}&size=50", label="arizalar"))
+        for a in apps:
+            await sd.call(hrm, "POST", f"/api/v1/recruit/applications/{a['id']}/rescore", label="moslik bali")
+        second = next((a for a in apps if a["candidate"]["id"] == cands[1]["id"]), None)
+        if second:
+            await sd.call(hrm, "POST", f"/api/v1/recruit/applications/{second['id']}/invitation", json={"slots": [(now + timedelta(days=2, hours=1)).replace(minute=0, second=0, microsecond=0).isoformat(), (now + timedelta(days=3, hours=2)).replace(minute=0, second=0, microsecond=0).isoformat()],
+                          "mode": "offline", "place": "Yunusobod-15 filiali, mudir xonasi", "map_url": "https://maps.google.com/?q=41.3702,69.2918", "contact_phone": "+998901234501"}, label="suhbat taklifi")
+    await sd.call(hrm, "POST", "/api/v1/recruit/calls", json={"outcome": "callback", "phone": "+998931110009", "vacancy_id": vac["id"] if vac else None, "note": "Ertaga qayta qo'ng'iroq qilish kerak", "callback_date": str(today)}, label="qayta qo'ng'iroq")
+

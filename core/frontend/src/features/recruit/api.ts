@@ -48,6 +48,8 @@ export interface Candidate {
   source: string | null
   skills: string[]
   note: string | null
+  pinfl?: string | null
+  profile_confirmed_at?: string | null
 }
 
 export interface CandidateRow extends Candidate {
@@ -87,6 +89,9 @@ export interface Application {
   ai_scan_at: string | null
   offer: { status: 'pending_hrd' | 'approved' | 'rejected'; level: string | null; salary: number | null; start: string | null; note: string | null; decision_note: string | null; sent_at: string | null } | null
   has_telegram: boolean
+  reject_code: string | null
+  match_score: number | null
+  match_detail: { parts: { key: string; weight: number; ratio: number; hit?: string[]; miss?: string[]; have?: number | null; need?: number }[]; excluded: string[] } | null
 }
 
 export interface ApplicationDetail extends Application {
@@ -120,3 +125,30 @@ export const VSTATUS_TONE: Record<VStatus, 'neutral' | 'success' | 'warning' | '
 export const STAGE_TONE: Record<Stage, 'neutral' | 'success' | 'warning' | 'danger'> = { new: 'neutral', screening: 'neutral', interview: 'warning', offer: 'warning', hired: 'success', rejected: 'danger' }
 export const money = (n: number | null): string => (n === null ? '' : new Intl.NumberFormat('ru-RU').format(n))
 export const salaryText = (a: number | null, b: number | null): string => (a === null && b === null ? '—' : a !== null && b !== null ? `${money(a)} – ${money(b)}` : a !== null ? `${money(a)}+` : `≤ ${money(b)}`)
+
+export const REJECT_CODES = ['no_answer', 'not_suitable', 'declined', 'salary', 'schedule', 'no_show', 'failed_test', 'failed_background', 'hired_elsewhere', 'other'] as const
+
+export interface Invitation {
+  id: number
+  status: 'sent' | 'scheduled' | 'declined' | 'cancelled'
+  mode: 'offline' | 'online'
+  slots: string[]
+  place: string | null
+  map_url: string | null
+  contact_phone: string | null
+  meeting_url: string | null
+  chosen_at: string | null
+  reply: 'coming' | 'not_coming' | null
+  url: string | null
+  telegram_sent?: boolean
+}
+
+export interface CardProfile {
+  duties: string | null
+  hard_skills: string[]
+  soft_skills: string[]
+  languages: string[]
+  education: string | null
+  min_experience: number | null
+  exclusions: string[]
+}

@@ -502,6 +502,26 @@ async def duty_overdue_job(ctx: dict) -> str:
     return f"notified {len(notes)}"
 
 
+async def recruit_scan_job(ctx: dict) -> str:
+    """Rekruting: vakansiya muddati ogohlantirishi va suhbatdan 1 kun/2 soat oldin nomzodga eslatma."""
+    from types import SimpleNamespace
+
+    from app.services import recruit_core
+    from app.services.notifications import deliver
+    from app.timeutil import now
+
+    moment = now()
+    async with SessionLocal() as session:
+        notes = await recruit_core.sla_scan(session, moment)
+        reminders = await recruit_core.reminder_scan(session, moment)
+        await session.commit()
+    app = SimpleNamespace(state=SimpleNamespace(redis=ctx["redis"], queue=_QueueAdapter(ctx["redis"])))
+    await deliver(app, notes)  # type: ignore[arg-type]
+    for chat_id, text in reminders:
+        await _QueueAdapter(ctx["redis"]).enqueue("deliver_candidate_telegram", chat_id, text)
+    return f"notes {len(notes)}, reminders {len(reminders)}"
+
+
 async def control_digest_job(ctx: dict) -> str:
     """Har kuni 09:00 dan keyin HRD va HR auditorga kechikkan jarayonlar xulosasi (bo'lsa)."""
     from types import SimpleNamespace
@@ -547,7 +567,7 @@ async def shutdown(ctx: dict) -> None:
 
 
 _registry = WorkerRegistry(
-    functions=[ping, deliver_telegram, cleanup_notifications, purge_face_templates, escalate_leave_requests, scan_penalties, release_penalty_blocks, task_deadlines, need_deadlines, fire_reminders, logistics_expiry, warehouse_watch, mobile_watch, desk_watch, calls_watch, report_scheduler, deliver_report_telegram, deliver_statement_telegram, coord_report_job, explanation_deadlines, deliver_candidate_telegram, attestation_job, retention_scan_job, rotation_job, duty_overdue_job, control_digest_job],
+    functions=[ping, deliver_telegram, cleanup_notifications, purge_face_templates, escalate_leave_requests, scan_penalties, release_penalty_blocks, task_deadlines, need_deadlines, fire_reminders, logistics_expiry, warehouse_watch, mobile_watch, desk_watch, calls_watch, report_scheduler, deliver_report_telegram, deliver_statement_telegram, coord_report_job, explanation_deadlines, deliver_candidate_telegram, attestation_job, retention_scan_job, rotation_job, duty_overdue_job, recruit_scan_job, control_digest_job],
     cron_jobs=[
         cron(heartbeat, second={0, 30}),
         cron(cleanup_notifications, hour={3}, minute={15}),
@@ -568,6 +588,7 @@ _registry = WorkerRegistry(
         cron(retention_scan_job, minute={25}),
         cron(rotation_job, minute=set(range(3, 60, 10))),
         cron(duty_overdue_job, minute={7, 22, 37, 52}),
+        cron(recruit_scan_job, minute={4, 14, 24, 34, 44, 54}),
         cron(control_digest_job, minute={35}),
         cron(warehouse_watch, minute={2, 12, 22, 32, 42, 52}),
         cron(logistics_expiry, hour={8}, minute={10}),

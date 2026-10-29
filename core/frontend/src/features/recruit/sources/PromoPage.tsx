@@ -32,6 +32,7 @@ export function PromoPage() {
   const [label, setLabel] = useState('')
   const refresh = () => void qc.invalidateQueries({ queryKey: ['recruit', 'promo', id] })
   const addChannel = useMutation({ mutationFn: () => send('POST', `/api/v1/recruit/vacancies/${id}/channels`, { channel: chan, url: url || null }), onSuccess: () => (setUrl(''), refresh()) })
+  const closeChannel = useMutation({ mutationFn: (cid: number) => send('POST', `/api/v1/recruit/vacancies/${id}/channels/${cid}/close`), onSuccess: refresh })
   const delChannel = useMutation({ mutationFn: (cid: number) => send('DELETE', `/api/v1/recruit/vacancies/${id}/channels/${cid}`), onSuccess: refresh })
   const addLink = useMutation({ mutationFn: () => send('POST', `/api/v1/recruit/vacancies/${id}/links`, { channel: lchan, label: label || null }), onSuccess: () => (setLabel(''), refresh()) })
   const offLink = useMutation({ mutationFn: (lid: number) => send('POST', `/api/v1/recruit/links/${lid}/deactivate`), onSuccess: refresh })
@@ -80,12 +81,20 @@ export function PromoPage() {
                 )}
                 <div className="text-xs text-muted">
                   {c.posted_by} · {formatDateTime(c.posted_at, i18n.language)}
+                  {c.closed_at ? ` · ${t('recruitCore.channelClosed', { when: formatDateTime(c.closed_at, i18n.language) })}` : ''}
                 </div>
               </div>
               {manage && (
-                <Button variant="outline" className="h-8 text-danger" aria-label={t('common.delete')} onClick={() => delChannel.mutate(c.id)}>
-                  <Trash2 className="size-4" />
-                </Button>
+                <div className="flex gap-2">
+                  {!c.closed_at && (
+                    <Button variant="outline" className="h-8" onClick={() => closeChannel.mutate(c.id)}>
+                      {t('recruitCore.closeChannel')}
+                    </Button>
+                  )}
+                  <Button variant="outline" className="h-8 text-danger" aria-label={t('common.delete')} onClick={() => delChannel.mutate(c.id)}>
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
               )}
             </li>
           ))}

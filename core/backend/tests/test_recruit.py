@@ -119,11 +119,11 @@ async def test_candidates_parse_dedupe_and_files(new_client, clock):
     assert (await ctx["boss"].post(f"{R}/candidates/parse", json={"text": RESUME})).status_code == 403
     c = await mk_candidate(hr, skills=["Excel", "excel ", "Word"], email="A@B.uz")
     assert c["skills"] == ["Excel", "excel", "Word"] and c["email"] == "a@b.uz"
-    dup = await hr.post(f"{R}/candidates", json={"full_name": "Boshqa Odam", "phone": "90 123 45 67"})
+    dup = await hr.post(f"{R}/candidates", json={"full_name": "Aziz Karimov", "phone": "90 123 45 67"})  # bir shaxs (umumiy so'z): takroriy kartochka ochilmaydi
     assert dup.status_code == 409 and dup.json()["detail"]["id"] == c["id"]
     assert (await hr.post(f"{R}/candidates", json={"full_name": "Odam Bor", "phone": "123"})).json()["detail"]["code"] == "phone_invalid"
     other = await mk_candidate(hr, "Aliyev Vali", "+998931112233")
-    assert (await hr.put(f"{R}/candidates/{other['id']}", json={"full_name": "Aliyev Vali", "phone": "+998901234567"})).status_code == 409
+    assert (await hr.put(f"{R}/candidates/{other['id']}", json={"full_name": "Karimov Vali", "phone": "+998901234567"})).status_code == 409  # shu raqamning egasi bilan bir shaxs (umumiy so'z)
     assert (await hr.put(f"{R}/candidates/{other['id']}", json={"full_name": "Aliyev Valijon", "phone": "+998931112233", "note": "Yaxshi"})).json()["note"] == "Yaxshi"
     assert (await hr.get(f"{R}/candidates", params={"q": "valijon"})).json()["total"] == 1
     assert (await hr.get(f"{R}/candidates", params={"q": "90 123"})).json()["total"] == 1

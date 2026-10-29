@@ -15,6 +15,7 @@ import { useToast } from '../../../components/ui/toastContext'
 import { api, send } from '../../../lib/api'
 import { errorText } from '../../auth/errorText'
 import { useCan } from '../../auth/useAuth'
+import type { CardProfile } from '../api'
 import { RecruitTabs } from '../RecruitTabs'
 
 interface Row {
@@ -29,6 +30,8 @@ interface Req {
   requirements: string | null
   competencies: string[]
   ad_template: string | null
+  profile: CardProfile
+  version: number
 }
 
 /** /recruit/requirements: lavozimlar bo'yicha talab, kompetensiya va e'lon shabloni. */
@@ -87,8 +90,19 @@ function ReqForm({ req }: { req: Req }) {
   const [requirements, setRequirements] = useState(req.requirements ?? '')
   const [competencies, setCompetencies] = useState(req.competencies.join(', '))
   const [template, setTemplate] = useState(req.ad_template ?? '')
+  const csv = (a: string[]) => a.join(', ')
+  const [duties, setDuties] = useState(req.profile.duties ?? '')
+  const [hard, setHard] = useState(csv(req.profile.hard_skills))
+  const [soft, setSoft] = useState(csv(req.profile.soft_skills))
+  const [langs, setLangs] = useState(csv(req.profile.languages))
+  const [edu, setEdu] = useState(req.profile.education ?? '')
+  const [minExp, setMinExp] = useState(req.profile.min_experience === null ? '' : String(req.profile.min_experience))
+  const [excl, setExcl] = useState(csv(req.profile.exclusions))
+  const [vnote, setVnote] = useState('')
+  const versions = useQuery({ queryKey: ['recruit', 'req-versions', req.position_id], queryFn: () => api<{ version: number; note: string | null; changed_by: string | null; created_at: string }[]>(`/api/v1/recruit/requirements/${req.position_id}/versions`) })
+  const list = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean)
   const save = useMutation({
-    mutationFn: () => send('PUT', `/api/v1/recruit/requirements/${req.position_id}`, { requirements: requirements || null, competencies: competencies.split(',').map((x) => x.trim()).filter(Boolean), ad_template: template || null }),
+    mutationFn: () => send('PUT', `/api/v1/recruit/requirements/${req.position_id}`, { requirements: requirements || null, competencies: list(competencies), ad_template: template || null, note: vnote || null, profile: { duties: duties || null, hard_skills: list(hard), soft_skills: list(soft), languages: list(langs), education: edu || null, min_experience: minExp === '' ? null : Number(minExp), exclusions: list(excl) } }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['recruit'] })
       toast.push({ title: t('common.saved'), tone: 'success' })
@@ -104,6 +118,28 @@ function ReqForm({ req }: { req: Req }) {
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <PageHeader title={req.position} subtitle={t('recruitSources.reqEdit')} backTo="/recruit/requirements" backLabel={t('recruit.tabs.requirements')} />
       <form onSubmit={submit} className="flex flex-col gap-6">
+        <FormSection title={t('recruitCore.card.title')} description={t('recruitCore.card.hint', { v: req.version })}>
+          <Field label={t('recruitCore.card.duties')}>{(id) => <textarea id={id} value={duties} onChange={(e) => setDuties(e.target.value)} rows={3} maxLength={3000} className={area} />}</Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label={t('recruitCore.card.hard')} hint={t('recruitSources.competenciesHint')}>{(id) => <Input id={id} value={hard} onChange={(e) => setHard(e.target.value)} />}</Field>
+            <Field label={t('recruitCore.card.soft')}>{(id) => <Input id={id} value={soft} onChange={(e) => setSoft(e.target.value)} />}</Field>
+            <Field label={t('recruitCore.card.languages')}>{(id) => <Input id={id} value={langs} onChange={(e) => setLangs(e.target.value)} />}</Field>
+            <Field label={t('recruitCore.card.education')}>{(id) => <Input id={id} value={edu} onChange={(e) => setEdu(e.target.value)} maxLength={200} />}</Field>
+            <Field label={t('recruitCore.card.minExp')}>{(id) => <Input id={id} type="number" min={0} max={50} value={minExp} onChange={(e) => setMinExp(e.target.value)} />}</Field>
+            <Field label={t('recruitCore.card.exclusions')} hint={t('recruitCore.card.exclusionsHint')}>{(id) => <Input id={id} value={excl} onChange={(e) => setExcl(e.target.value)} />}</Field>
+          </div>
+          <Field label={t('recruitCore.card.versionNote')}>{(id) => <Input id={id} value={vnote} onChange={(e) => setVnote(e.target.value)} maxLength={300} />}</Field>
+          {versions.data && versions.data.length > 0 && (
+            <ul className="text-xs text-muted">
+              {versions.data.map((v) => (
+                <li key={v.version}>
+                  v{v.version} · {v.changed_by ?? '—'}
+                  {v.note ? ` · ${v.note}` : ''}
+                </li>
+              ))}
+            </ul>
+          )}
+        </FormSection>
         <FormSection title={t('recruitSources.reqTitle')}>
           <Field label={t('recruitSources.reqText')}>{(id) => <textarea id={id} value={requirements} onChange={(e) => setRequirements(e.target.value)} rows={5} maxLength={4000} className={area} />}</Field>
           <Field label={t('recruitSources.competencies')} hint={t('recruitSources.competenciesHint')}>{(id) => <Input id={id} value={competencies} onChange={(e) => setCompetencies(e.target.value)} />}</Field>

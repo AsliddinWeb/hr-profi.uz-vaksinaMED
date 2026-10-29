@@ -21,9 +21,12 @@ from app.models.org import Branch
 from app.models.recruit import Application, ApplicationEvent, Candidate, CandidateFile, Vacancy
 from app.rbac import matches
 from app.services import employees as emp_svc
+from app.services import growth
 from app.services import onboarding as _onboarding  # noqa: F401  (xabar shablonlarini ro'yxatdan o'tkazadi)
 from app.services import recruit as svc
+from app.services import recruit_core as core
 from app.services import recruit_pipeline as psvc
+from app.services import recruit_sources as rsvc_src
 from app.services.answers import users_with_permission
 from app.services.audit import audit
 from app.services.notifications import deliver, notify
@@ -165,7 +168,12 @@ async def vacancies(
 async def create_vacancy(body: VacancyIn, request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(Manage)):
     _salary_ok(body)
     await _check_refs(db, body.branch_id, body.department_id, body.position_id, body.recruiter_id)
-    v = Vacancy(**{**body.model_dump(), "title": body.title.strip()}, status="draft", created_by=auth.user.id)
+    values = {**body.model_dump(), "title": body.title.strip()}
+    if body.position_id and not (body.requirements or "").strip():  # lavozim kartochkasidan talablar avtomatik to'ldiriladi
+        card = await rsvc_src.requirement_for(db, body.position_id)
+        if card:
+            values["requirements"] = (card.requirements or "").strip() or core.card_text(card.profile or {}) or None
+    v = Vacancy(**values, status="draft", created_by=auth.user.id)
     db.add(v)
     await db.flush()
     await audit(db, request, "recruit.vacancy_create", actor=auth.user, entity="vacancy", entity_id=v.id, data={"title": v.title})
@@ -198,6 +206,8 @@ async def update_vacancy(vid: int, body: VacancyIn, request: Request, db: AsyncS
     notes = []
     if body.recruiter_id and body.recruiter_id != v.recruiter_id and body.recruiter_id != auth.user.id:
         notes = await notify(db, [body.recruiter_id], "recruit.assigned", link=f"/recruit/vacancies/{v.id}", params={"vacancy": body.title})
+    if body.deadline != v.deadline:
+        v.sla_warned_at = v.sla_overdue_at = None
     for k, val in {**body.model_dump(), "title": body.title.strip()}.items():
         setattr(v, k, val)
     await audit(db, request, "recruit.vacancy_update", actor=auth.user, entity="vacancy", entity_id=v.id, data={"title": v.title})
@@ -216,14 +226,19 @@ async def vacancy_status(vid: int, body: StatusIn, request: Request, db: AsyncSe
     if v.status == body.status:
         raise error(409, "invalid_transition")
     moment = now()
+    notes: list = []
     if body.status == "open":
         v.opened_at = v.opened_at or moment
         v.closed_at = None
+        if v.deadline is None:  # zayavka SLA: standart muddat (sozlamada, 14 kun)
+            v.deadline = local_date(moment) + timedelta(days=(await growth.get_setting(db, "recruit"))["sla_days"])
     elif body.status == "closed":
         v.closed_at = moment
+        notes = await core.close_ads_notice(db, v)  # kanallardagi e'lonlarni o'chirish eslatmasi
     v.status = body.status
     await audit(db, request, "recruit.vacancy_status", actor=auth.user, entity="vacancy", entity_id=v.id, data={"status": v.status})
     await db.commit()
+    await deliver(request.app, notes)
     return await _vacancy_detail(db, v)
 
 
@@ -250,6 +265,7 @@ class CandidateIn(BaseModel):
     skills: list[str] = Field(default=[], max_length=30)
     resume_text: str | None = Field(default=None, max_length=50000)
     note: str | None = Field(default=None, max_length=5000)
+    pinfl: str | None = Field(default=None, pattern=r"^\d{14}$")
 
 
 class ParseIn(BaseModel):
@@ -276,7 +292,7 @@ def _cand_values(body: CandidateIn) -> dict[str, Any]:
     return {
         "full_name": " ".join(body.full_name.split()), "phone": _phone(body.phone), "email": _email(body.email), "birth_date": body.birth_date,
         "address": (body.address or "").strip() or None, "source": body.source, "skills": list(dict.fromkeys(s.strip()[:40] for s in body.skills if s.strip())),
-        "resume_text": (body.resume_text or "").strip() or None, "note": (body.note or "").strip() or None,
+        "resume_text": (body.resume_text or "").strip() or None, "note": (body.note or "").strip() or None, "pinfl": body.pinfl,
     }  # fmt: skip
 
 
@@ -306,13 +322,20 @@ async def candidates(
 @router.post("/candidates", status_code=201)
 async def create_candidate(body: CandidateIn, request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(Manage)):
     vals = _cand_values(body)
-    if vals["phone"]:
-        existing = await db.scalar(select(Candidate.id).where(Candidate.phone == vals["phone"]))
-        if existing:
-            raise error(409, "candidate_exists", id=existing)
+    if vals["pinfl"]:
+        dup = await db.scalar(select(Candidate.id).where(Candidate.pinfl == vals["pinfl"]))
+        if dup:
+            raise error(409, "candidate_exists", id=dup)
+    phone = vals.pop("phone")
+    if phone:
+        owner = await core.phone_owner(db, phone)
+        if owner and core.same_person(owner.full_name, vals["full_name"]):
+            raise error(409, "candidate_exists", id=owner.id)  # shu odam: takroriy kartochka ochilmaydi
+    moment = now()
     c = Candidate(**vals, created_by=auth.user.id)
     db.add(c)
     await db.flush()
+    await core.assign_phone(db, c, phone, moment)  # raqam boshqa shaxsga tegishli bo'lgan bo'lsa, eski egalik tarixda yopiladi
     await audit(db, request, "recruit.candidate_create", actor=auth.user, entity="candidate", entity_id=c.id, data={"name": c.full_name})
     await db.commit()
     return await _candidate_detail(db, c)
@@ -345,12 +368,19 @@ async def candidate(cid: int, db: AsyncSession = Depends(get_session), auth: Aut
 async def update_candidate(cid: int, body: CandidateIn, request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(Manage)):
     c = await _candidate(db, cid)
     vals = _cand_values(body)
-    if vals["phone"]:
-        other = await db.scalar(select(Candidate.id).where(Candidate.phone == vals["phone"], Candidate.id != c.id))
-        if other:
-            raise error(409, "candidate_exists", id=other)
+    if vals["pinfl"]:
+        dup = await db.scalar(select(Candidate.id).where(Candidate.pinfl == vals["pinfl"], Candidate.id != c.id))
+        if dup:
+            raise error(409, "candidate_exists", id=dup)
+    phone = vals.pop("phone")
+    if phone and phone != c.phone:
+        owner = await core.phone_owner(db, phone, exclude_id=c.id)
+        if owner and core.same_person(owner.full_name, vals["full_name"]):
+            raise error(409, "candidate_exists", id=owner.id)
     for k, v in vals.items():
         setattr(c, k, v)
+    if phone and phone != c.phone:
+        await core.assign_phone(db, c, phone, now())
     await audit(db, request, "recruit.candidate_update", actor=auth.user, entity="candidate", entity_id=c.id, data={"name": c.full_name})
     await db.commit()
     return await _candidate_detail(db, c)
@@ -414,7 +444,7 @@ async def delete_file(cid: int, fid: int, request: Request, db: AsyncSession = D
 def _app_out(a: Application, cands: dict[int, Candidate], vac: dict[int, Vacancy], unames: dict[int, str]) -> dict[str, Any]:
     c, v = cands.get(a.candidate_id), vac.get(a.vacancy_id)
     return {
-        "id": a.id, "stage": a.stage, "rating": a.rating, "reject_reason": a.reject_reason, "interview_at": a.interview_at, "applied_at": a.applied_at, "stage_changed_at": a.stage_changed_at,
+        "id": a.id, "stage": a.stage, "rating": a.rating, "reject_reason": a.reject_reason, "reject_code": a.reject_code, "match_score": a.match_score, "match_detail": a.match_detail, "interview_at": a.interview_at, "applied_at": a.applied_at, "stage_changed_at": a.stage_changed_at,
         "candidate": {"id": a.candidate_id, "full_name": c.full_name if c else None, "phone": c.phone if c else None, "source": c.source if c else None, "skills": (c.skills if c else []) or []},
         "vacancy": {"id": a.vacancy_id, "title": v.title if v else None},
         "recruiter": {"id": a.recruiter_id, "name": unames.get(a.recruiter_id or 0)} if a.recruiter_id else None,
@@ -462,6 +492,7 @@ async def apply(body: ApplyIn, request: Request, db: AsyncSession = Depends(get_
     db.add(a)
     await db.flush()
     svc.log(db, a, auth.user.id, "applied", to="new", note=(body.note or "").strip() or None)
+    await core.rescore(db, a)
     await audit(db, request, "recruit.apply", actor=auth.user, entity="application", entity_id=a.id, data={"vacancy_id": v.id, "candidate_id": c.id})
     notes = await svc.notify_new(db, v, c, auth.user.id)
     await db.commit()
@@ -547,6 +578,7 @@ async def set_stage(aid: int, body: StageIn, request: Request, db: AsyncSession 
 
 class ReasonIn(BaseModel):
     reason: str = Field(min_length=3, max_length=300)
+    code: str = Field(default="other", pattern="^(" + "|".join(core.REJECT_CODES) + ")$")
 
 
 @router.post("/applications/{aid}/reject")
@@ -554,6 +586,7 @@ async def reject(aid: int, body: ReasonIn, request: Request, db: AsyncSession = 
     a = await _application(db, aid, lock=True)
     before = a.stage
     await svc.reject(db, a, auth, body.reason, now())
+    a.reject_code = body.code
     await audit(db, request, "recruit.reject", actor=auth.user, entity="application", entity_id=a.id, data={"from": before, "reason": a.reject_reason})
     await db.commit()
     return (await _out_many(db, [a]))[0]

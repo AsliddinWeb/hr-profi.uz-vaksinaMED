@@ -3,10 +3,12 @@ import { useTranslation } from 'react-i18next'
 import { NavLink } from 'react-router-dom'
 
 const TABS = [
+  { to: '/recruit/today', key: 'today' },
   { to: '/recruit/vacancies', key: 'vacancies' },
   { to: '/recruit/candidates', key: 'candidates' },
   { to: '/recruit/applications', key: 'applications' },
   { to: '/recruit/recruiter', key: 'recruiter' },
+  { to: '/recruit/funnel', key: 'funnel' },
   { to: '/recruit/sources', key: 'sources' },
   { to: '/recruit/requirements', key: 'requirements' },
   { to: '/recruit/summary', key: 'summary' },

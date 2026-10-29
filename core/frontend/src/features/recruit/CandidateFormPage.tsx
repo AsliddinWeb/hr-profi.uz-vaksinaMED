@@ -44,6 +44,7 @@ function CandidateForm({ c }: { c: CandidateDetail | null }) {
   const back = c ? `/recruit/candidates/${c.id}` : '/recruit/candidates'
   const [name, setName] = useState(c?.full_name ?? '')
   const [phone, setPhone] = useState(c?.phone ?? '')
+  const [pinfl, setPinfl] = useState(c?.pinfl ?? '')
   const [email, setEmail] = useState(c?.email ?? '')
   const [birth, setBirth] = useState(c?.birth_date ?? '')
   const [address, setAddress] = useState(c?.address ?? '')
@@ -69,7 +70,7 @@ function CandidateForm({ c }: { c: CandidateDetail | null }) {
   })
   const save = useMutation({
     mutationFn: () => {
-      const body = { full_name: name, phone: phone || null, email: email || null, birth_date: birth || null, address: address || null, source: source || null, skills: skills.split(',').map((s) => s.trim()).filter(Boolean), resume_text: resume || null, note: note || null }
+      const body = { full_name: name, pinfl: pinfl || null, phone: phone || null, email: email || null, birth_date: birth || null, address: address || null, source: source || null, skills: skills.split(',').map((s) => s.trim()).filter(Boolean), resume_text: resume || null, note: note || null }
       return c ? send<CandidateDetail>('PUT', `/api/v1/recruit/candidates/${c.id}`, body) : send<CandidateDetail>('POST', '/api/v1/recruit/candidates', body)
     },
     onSuccess: (r) => {
@@ -118,6 +119,7 @@ function CandidateForm({ c }: { c: CandidateDetail | null }) {
         <FormSection title={t('needs.form.main')}>
           <Field label={t('recruit.candidate.name')} error={fe.full_name}>{(id) => <Input id={id} value={name} onChange={(e) => setName(e.target.value)} required minLength={2} maxLength={250} autoFocus={!c} />}</Field>
           <div className="grid gap-4 sm:grid-cols-2">
+            <Field label={t('recruitCore.profile.pinfl')} error={fe.pinfl}>{(id) => <Input id={id} value={pinfl} onChange={(e) => setPinfl(e.target.value.replace(/\D/g, '').slice(0, 14))} inputMode="numeric" maxLength={14} placeholder="12345678901234" />}</Field>
             <Field label={t('recruit.candidate.phone')} error={fe.phone}>{(id) => <Input id={id} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+998 90 123 45 67" inputMode="tel" />}</Field>
             <Field label="Email" error={fe.email}>{(id) => <Input id={id} type="email" value={email} onChange={(e) => setEmail(e.target.value)} />}</Field>
             <Field label={t('recruit.candidate.birth')}>{(id) => <Input id={id} type="date" value={birth} onChange={(e) => setBirth(e.target.value)} />}</Field>

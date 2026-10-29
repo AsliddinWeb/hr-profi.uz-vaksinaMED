@@ -104,7 +104,7 @@ async def names(db: AsyncSession, ids: set[int | None]) -> dict[int, str]:
 
 
 def candidate_out(c: Candidate) -> dict[str, Any]:
-    return {"id": c.id, "full_name": c.full_name, "phone": c.phone, "email": c.email, "birth_date": c.birth_date, "address": c.address, "source": c.source, "skills": c.skills or [], "note": c.note}
+    return {"id": c.id, "full_name": c.full_name, "phone": c.phone, "email": c.email, "birth_date": c.birth_date, "address": c.address, "source": c.source, "skills": c.skills or [], "note": c.note, "pinfl": c.pinfl, "profile_confirmed_at": c.profile_confirmed_at}
 
 
 def log(db: AsyncSession, a: Application, actor_id: int | None, action: str, *, frm: str | None = None, to: str | None = None, note: str | None = None, data: dict | None = None) -> None:

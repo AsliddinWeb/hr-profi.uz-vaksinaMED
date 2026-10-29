@@ -15,8 +15,9 @@ import { formatDateTime } from '../../lib/format'
 import { NotFound } from '../../pages/NotFound'
 import { fromLocalInput, toLocalInput } from '../attendance/api'
 import { errorText } from '../auth/errorText'
+import { InvitationPanel, MatchCard } from './CoreParts'
 import { PipelinePanel } from './PipelinePanel'
-import { MOVABLE, STAGES, type ApplicationDetail, type Stage } from './api'
+import { MOVABLE, REJECT_CODES, STAGES, type ApplicationDetail, type Stage } from './api'
 
 const area = 'w-full rounded-control border border-border bg-surface px-3 py-2 text-sm'
 
@@ -31,6 +32,7 @@ export function ApplicationDetailPage() {
   const [rating, setRating] = useState('')
   const [note, setNote] = useState('')
   const [reason, setReason] = useState('')
+  const [code, setCode] = useState('other')
   const [comment, setComment] = useState('')
   const done = () => {
     setNote('')
@@ -94,6 +96,8 @@ export function ApplicationDetailPage() {
 
       <PipelinePanel a={a} />
 
+      <MatchCard a={a} />
+      {a.can.manage && <InvitationPanel appId={a.id} open={open} />}
       {a.can.manage && open && (
         <Card className="flex flex-col gap-6 p-6">
           <section className="flex flex-col gap-3" aria-labelledby="app-stage">
@@ -142,9 +146,16 @@ export function ApplicationDetailPage() {
           )}
           <section className="flex flex-col gap-2 border-t border-border pt-5" aria-labelledby="app-reject">
             <h2 id="app-reject" className="text-sm font-medium">{t('recruit.application.reject')}</h2>
+            <Select value={code} onChange={(e) => setCode(e.target.value)} aria-label={t('recruitCore.reject.code')}>
+              {REJECT_CODES.map((c) => (
+                <option key={c} value={c}>
+                  {t(`recruitCore.reject.codes.${c}`)}
+                </option>
+              ))}
+            </Select>
             <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} maxLength={300} placeholder={t('recruit.application.rejectHint')} aria-label={t('recruit.application.reject')} className={area} />
             <div>
-              <Button variant="outline" className="text-danger" disabled={reason.trim().length < 3 || act.isPending} onClick={() => act.mutate({ path: 'reject', body: { reason } })}>
+              <Button variant="outline" className="text-danger" disabled={reason.trim().length < 3 || act.isPending} onClick={() => act.mutate({ path: 'reject', body: { reason, code } })}>
                 {t('recruit.application.rejectBtn')}
               </Button>
             </div>

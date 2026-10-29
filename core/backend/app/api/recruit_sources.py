@@ -16,12 +16,14 @@ from app.models.recruit import (
     Application,
     Candidate,
     PositionRequirement,
+    PositionRequirementVersion,
     SourceLink,
     Vacancy,
     VacancyChannel,
 )
 from app.services import employees as emp_svc
 from app.services import recruit as rsvc
+from app.services import recruit_core as core
 from app.services import recruit_sources as svc
 from app.services.audit import audit, client_ip
 from app.services.notifications import deliver
@@ -34,14 +36,26 @@ public_router = APIRouter(prefix="/v1/public", tags=["public"])
 # --- Lavozim talablari --------------------------------------------------------------------
 
 
+class CardIn(BaseModel):
+    duties: str | None = Field(default=None, max_length=3000)
+    hard_skills: list[str] = Field(default_factory=list, max_length=30)
+    soft_skills: list[str] = Field(default_factory=list, max_length=30)
+    languages: list[str] = Field(default_factory=list, max_length=10)
+    education: str | None = Field(default=None, max_length=200)
+    min_experience: int | None = Field(default=None, ge=0, le=50)
+    exclusions: list[str] = Field(default_factory=list, max_length=30)
+
+
 class RequirementIn(BaseModel):
     requirements: str | None = Field(default=None, max_length=4000)
     competencies: list[str] = Field(default_factory=list, max_length=30)
     ad_template: str | None = Field(default=None, max_length=4000)
+    profile: CardIn | None = None
+    note: str | None = Field(default=None, max_length=300)
 
 
 def _req_out(r: PositionRequirement, position: str | None) -> dict[str, Any]:
-    return {"position_id": r.position_id, "position": position, "requirements": r.requirements, "competencies": r.competencies or [], "ad_template": r.ad_template}
+    return {"position_id": r.position_id, "position": position, "requirements": r.requirements, "competencies": r.competencies or [], "ad_template": r.ad_template, "profile": r.profile or core.clean_card({}), "version": r.version or 1}
 
 
 @router.get("/requirements")
@@ -57,7 +71,14 @@ async def get_requirement(position_id: int, db: AsyncSession = Depends(get_sessi
     if not p:
         raise error(404, "not_found")
     r = await svc.requirement_for(db, position_id)
-    return _req_out(r, p.name) if r else {"position_id": position_id, "position": p.name, "requirements": None, "competencies": [], "ad_template": None}
+    return _req_out(r, p.name) if r else {"position_id": position_id, "position": p.name, "requirements": None, "competencies": [], "ad_template": None, "profile": core.clean_card({}), "version": 0}
+
+
+@router.get("/requirements/{position_id}/versions")
+async def requirement_versions(position_id: int, db: AsyncSession = Depends(get_session), _: AuthContext = Depends(Read)):
+    rows = (await db.scalars(select(PositionRequirementVersion).where(PositionRequirementVersion.position_id == position_id).order_by(PositionRequirementVersion.version.desc()))).all()
+    names = await rsvc.names(db, {v.changed_by for v in rows})
+    return [{"version": v.version, "snapshot": v.snapshot, "note": v.note, "changed_by": names.get(v.changed_by or 0), "created_at": v.created_at} for v in rows]
 
 
 @router.put("/requirements/{position_id}")
@@ -71,11 +92,16 @@ async def put_requirement(position_id: int, body: RequirementIn, request: Reques
         except (KeyError, IndexError, ValueError):
             raise error(400, "template_invalid") from None
     r = await svc.requirement_for(db, position_id)
+    new_vals = {"requirements": (body.requirements or "").strip() or None, "ad_template": (body.ad_template or "").strip() or None, "competencies": [c.strip() for c in body.competencies if c.strip()],
+                "profile": core.clean_card(body.profile.model_dump() if body.profile else (r.profile if r else {}))}  # fmt: skip
     if r is None:
-        r = PositionRequirement(position_id=position_id)
+        r = PositionRequirement(position_id=position_id, version=1)
         db.add(r)
-    r.requirements, r.ad_template, r.updated_by = (body.requirements or "").strip() or None, (body.ad_template or "").strip() or None, auth.user.id
-    r.competencies = [c.strip() for c in body.competencies if c.strip()]
+        await db.flush()
+    elif core.snapshot(r) != new_vals:  # o'zgarish bo'lsa eski holat versiya sifatida saqlanadi
+        db.add(PositionRequirementVersion(position_id=position_id, version=r.version or 1, snapshot=core.snapshot(r), note=(body.note or "").strip() or None, changed_by=auth.user.id))
+        r.version = (r.version or 1) + 1
+    r.requirements, r.ad_template, r.competencies, r.profile, r.updated_by = new_vals["requirements"], new_vals["ad_template"], new_vals["competencies"], new_vals["profile"], auth.user.id
     await audit(db, request, "recruit.requirement", actor=auth.user, entity="position", entity_id=position_id)
     await db.commit()
     return _req_out(r, p.name)
@@ -113,7 +139,7 @@ async def promo(vid: int, db: AsyncSession = Depends(get_session), _: AuthContex
     return {
         "vacancy": {"id": v.id, "title": v.title, "status": v.status, "branch": svc.branch_label(branch) if branch else None},
         "ad": svc.ad_text(v, branch, req, links[0]["url"] if links else svc.apply_url("…")),
-        "channels": [{"id": c.id, "channel": c.channel, "url": c.url, "note": c.note, "posted_by": names.get(c.posted_by or 0), "posted_at": c.posted_at} for c in chans],
+        "channels": [{"id": c.id, "channel": c.channel, "url": c.url, "note": c.note, "posted_by": names.get(c.posted_by or 0), "posted_at": c.posted_at, "closed_at": c.closed_at} for c in chans],
         "links": links,
     }  # fmt: skip
 
