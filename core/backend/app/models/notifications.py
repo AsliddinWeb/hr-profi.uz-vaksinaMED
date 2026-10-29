@@ -23,3 +23,14 @@ class Notification(Base):
     data: Mapped[dict | None] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class NotificationPref(Base):
+    """Foydalanuvchi o'chirib qo'ygan bildirishnoma toifalari (kind ning birinchi qismi: tasks, needs, ...). Majburiylari o'chmaydi."""
+
+    __tablename__ = "notification_prefs"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    muted: Mapped[list] = mapped_column(JSONB, default=list)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+

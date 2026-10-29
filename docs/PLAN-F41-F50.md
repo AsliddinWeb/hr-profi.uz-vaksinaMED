@@ -45,7 +45,7 @@ Eslatma: Abet skrinshoti (9.jpg) uchun matn yo'q. Ko'rinib turgani: baholash oyn
 - Mijoz ro'yxatidagi ~25 ta hujjat uchun bo'sh shablon-kartochkalar tayyor yaratiladi (mazmunini mijoz to'ldiradi).
 - **Ariza** (ta'til, ishdan bo'shash, ko'chirish) va **buyruq** (ishga qabul, ko'chirish, ta'til, bo'shatish) — raqamlash, PDF, QR, tasdiq zanjiri; xodim kartochkasida bitta «Elektron hujjatlar» tabida tushuntirish xati, ariza, buyruq, jarima birga.
 
-### F46. Topshiriqlar: berish tartibi va bildirishnoma dizayni (o'rta)
+### F46. Topshiriqlar: berish tartibi va bildirishnoma dizayni (o'rta) — TAYYOR 2026-10-29
 - Berish: bir nechta mas'ul (har biriga alohida topshiriq), bo'lim/filial/ish guruhi bo'yicha ommaviy berish, holat zanjiri (Yangi → Qabul → Jarayonda → Tekshiruvda → Bajarildi), qabul tasdig'i. Forma alohida sahifada qoladi (modal emas).
 - Bildirishnoma markazi: guruhlash, o'qilmagan/o'qilgan, chuqur havola, foydalanuvchi sozlamasi; hisobot (Excel/PDF) dizayni F42 bilan bir uslubda.
 - Avval mijozdan aniqlashtirish kerak (savollar ro'yxati, 3-band).

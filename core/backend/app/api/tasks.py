@@ -1,6 +1,7 @@
 """Topshiriqlar: ro'yxat, kanban, kalendar, izoh (chat), fayl, tarix, shablon, tahlil."""
 
 import calendar
+import secrets
 from datetime import date, datetime, timedelta
 from typing import Any
 from urllib.parse import quote
@@ -57,6 +58,29 @@ async def assignees(q: str | None = None, db: AsyncSession = Depends(get_session
         stmt = stmt.where(User.full_name.ilike(f"%{q.strip()}%"))
     rows = (await db.execute(stmt.order_by(User.full_name).limit(15))).all()
     return [{"id": r.id, "name": r.full_name} for r in rows]
+
+
+def _need_assign(auth: AuthContext) -> None:
+    if not (svc.has(auth, "tasks.assign") or svc.has(auth, "tasks.manage")):
+        raise error(403, "cannot_assign_others")
+
+
+@router.get("/audience")
+async def audience(
+    department_id: int | None = None,
+    branch_id: int | None = None,
+    work_group_id: int | None = None,
+    position_id: int | None = None,
+    role_key: str | None = None,
+    db: AsyncSession = Depends(get_session),
+    auth: AuthContext = Depends(Access),
+):
+    """Guruh bo'yicha berishdan oldin: kimga tushishini ko'rsatadi (soni va dastlabki 20 kishi)."""
+    _need_assign(auth)
+    if not any([department_id, branch_id, work_group_id, position_id, role_key]):
+        return {"count": 0, "people": []}
+    people = await svc.resolve_audience(db, department_id=department_id, branch_id=branch_id, work_group_id=work_group_id, position_id=position_id, role_key=role_key)
+    return {"count": len(people), "people": [{"id": i, "name": n} for i, n in people[:20]]}
 
 
 @router.get("/summary")
@@ -192,6 +216,15 @@ class TaskIn(BaseModel):
     template_id: int | None = None
 
 
+class BulkIn(TaskIn):
+    assignee_ids: list[int] = Field(default_factory=list, max_length=200)
+    department_id: int | None = None
+    branch_id: int | None = None
+    work_group_id: int | None = None
+    position_id: int | None = None
+    role_key: str | None = None
+
+
 @router.post("", status_code=201)
 async def create(body: TaskIn, request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(Access)):
     await svc.validate_people(db, auth, body.assignee_id, body.watchers)
@@ -212,6 +245,41 @@ async def create(body: TaskIn, request: Request, db: AsyncSession = Depends(get_
     await deliver(request.app, notes)
     names = await svc.user_names(db, [t])
     return svc.task_out(t, names, now())
+
+
+@router.post("/bulk", status_code=201)
+async def create_bulk(body: BulkIn, request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(Access)):
+    """Bir nechta ijrochiga (xodimlar ro'yxati va/yoki bo'lim/filial/guruh/lavozim/rol bo'yicha) HAR BIRIGA ALOHIDA topshiriq yaratadi."""
+    _need_assign(auth)
+    ids = list(dict.fromkeys(body.assignee_ids))
+    if any([body.department_id, body.branch_id, body.work_group_id, body.position_id, body.role_key]):
+        ids += [u for u, _ in await svc.resolve_audience(db, department_id=body.department_id, branch_id=body.branch_id, work_group_id=body.work_group_id, position_id=body.position_id, role_key=body.role_key) if u != auth.user.id and u not in ids]
+    if not ids:
+        raise error(400, "no_assignees")
+    if len(ids) > 300:
+        raise error(400, "too_many_assignees", max=300)
+    await svc.validate_people(db, auth, None, body.watchers)
+    found = await svc.active_users(db, ids)
+    if any(u not in found for u in ids):
+        raise error(400, "unknown_user")
+    batch = secrets.token_hex(6)
+    moment = now()
+    notes: list = []
+    created: list[Task] = []
+    for uid in ids:
+        t = Task(title=body.title.strip(), description=(body.description or "").strip() or None, priority=body.priority, due_at=body.due_at, creator_id=auth.user.id, assignee_id=uid,
+                 watchers=sorted(set(body.watchers)), labels=svc.clean_labels(body.labels), status="todo", template_id=body.template_id, created_at=moment, batch_id=batch)  # fmt: skip
+        t.position = await svc.next_position(db, "todo")
+        db.add(t)
+        await db.flush()
+        svc.log(db, t, auth.user.id, "created", {"batch": batch})
+        created.append(t)
+        if uid != auth.user.id:
+            notes += await notify(db, [uid], "tasks.assigned", link=f"/tasks/{t.id}", params={"title": t.title})
+    await audit(db, request, "tasks.create_bulk", actor=auth.user, entity="task", entity_id=created[0].id, data={"batch": batch, "count": len(created)})
+    await db.commit()
+    await deliver(request.app, notes)
+    return {"batch_id": batch, "created": len(created), "task_ids": [t.id for t in created]}
 
 
 @router.get("/analytics")
@@ -358,6 +426,34 @@ async def update(task_id: int, body: TaskIn, request: Request, db: AsyncSession 
 class MoveIn(BaseModel):
     status: str = Field(pattern="^(todo|in_progress|review|done)$")
     before_id: int | None = None
+
+
+@router.post("/{task_id}/accept")
+async def accept(task_id: int, request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(Access)):
+    """Ijrochi topshiriqni «qabul qilaman» deydi (yaratuvchiga xabar boradi)."""
+    t = await _task(db, task_id, auth, lock=True)
+    notes = await svc.accept(db, t, auth, now())
+    await db.commit()
+    await deliver(request.app, notes)
+    return svc.task_out(t, await svc.user_names(db, [t]), now())
+
+
+@router.get("/{task_id}/batch")
+async def batch(task_id: int, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(Access)):
+    """Bir vaqtda berilgan topshiriqlar guruhi bo'yicha holat (yaratuvchi va boshqaruvchi uchun)."""
+    t = await _task(db, task_id, auth)
+    if not t.batch_id or not (t.creator_id == auth.user.id or svc.has(auth, "tasks.manage")):
+        return {"batch_id": None, "total": 0, "by_step": {}, "items": []}
+    siblings = list((await db.scalars(select(Task).where(Task.batch_id == t.batch_id).order_by(Task.id))).all())
+    names = await svc.user_names(db, siblings)
+    moment = now()
+    by_step: dict[str, int] = {}
+    items = []
+    for s in siblings:
+        step = svc.stepper(s, moment)
+        by_step[step] = by_step.get(step, 0) + 1
+        items.append({"id": s.id, "assignee": names.get(s.assignee_id or 0), "step": step, "overdue": bool(s.due_at and s.status != "done" and s.due_at < moment)})
+    return {"batch_id": t.batch_id, "total": len(siblings), "by_step": by_step, "items": items}
 
 
 @router.post("/{task_id}/move")

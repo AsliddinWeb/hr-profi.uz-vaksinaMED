@@ -8,10 +8,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db import get_session
 from app.deps import AuthContext, error, get_auth, require
 from app.models.auth import Role, User
-from app.models.notifications import Notification
+from app.models.notifications import Notification, NotificationPref
 from app.realtime import publish
 from app.services.audit import audit
-from app.services.notifications import deliver, notify, serialize
+from app.services.notifications import (
+    MANDATORY_CATEGORIES,
+    all_categories,
+    category_of,
+    deliver,
+    notify,
+    serialize,
+)
 
 router = APIRouter(prefix="/v1/notifications", tags=["notifications"])
 
@@ -19,6 +26,7 @@ router = APIRouter(prefix="/v1/notifications", tags=["notifications"])
 @router.get("")
 async def list_notifications(
     unread: bool = False,
+    category: str | None = Query(default=None, pattern="^[a-z_]{2,20}$"),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_session),
@@ -27,6 +35,8 @@ async def list_notifications(
     stmt = select(Notification).where(Notification.user_id == auth.user.id)
     if unread:
         stmt = stmt.where(Notification.read_at.is_(None))
+    if category:
+        stmt = stmt.where(Notification.kind.like(f"{category}.%"))
     total = await db.scalar(select(func.count()).select_from(stmt.subquery()))
     rows = (
         await db.scalars(
@@ -156,3 +166,33 @@ async def broadcast(
     await db.commit()
     await deliver(request.app, notes)
     return {"recipients": len(ids)}
+
+
+class PrefsIn(BaseModel):
+    muted: list[str] = Field(default_factory=list, max_length=60)
+
+
+@router.get("/preferences")
+async def get_preferences(db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
+    """Toifalar ro'yxati: majburiyligi, o'chirilganligi va o'qilmaganlar soni (sozlamalar va filtr uchun)."""
+    pref = await db.get(NotificationPref, auth.user.id)
+    muted = set(pref.muted or []) if pref else set()
+    rows = (await db.execute(select(Notification.kind, func.count()).where(Notification.user_id == auth.user.id, Notification.read_at.is_(None)).group_by(Notification.kind))).all()
+    unread: dict[str, int] = {}
+    for kind, n in rows:
+        unread[category_of(kind)] = unread.get(category_of(kind), 0) + n
+    cats = sorted(set(all_categories()) | set(unread))
+    return {"categories": [{"key": c, "mandatory": c in MANDATORY_CATEGORIES, "muted": c in muted and c not in MANDATORY_CATEGORIES, "unread": unread.get(c, 0)} for c in cats]}
+
+
+@router.put("/preferences", status_code=204)
+async def set_preferences(body: PrefsIn, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
+    known = set(all_categories())
+    muted = sorted({c for c in body.muted if c in known and c not in MANDATORY_CATEGORIES})
+    pref = await db.get(NotificationPref, auth.user.id)
+    if pref is None:
+        db.add(NotificationPref(user_id=auth.user.id, muted=muted))
+    else:
+        pref.muted = muted
+    await db.commit()
+

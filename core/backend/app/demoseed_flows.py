@@ -207,3 +207,21 @@ async def flows(sd) -> None:  # noqa: C901
                 await sd.call(f1, "POST", f"/api/v1/staffdocs/{o['id']}/ack", label="buyruq bilan tanishish")
     await sd.call(hrm, "POST", "/api/v1/staffdocs/orders", json={"employee_id": eid["Ismoilova"], "subtype": "hire", "start_date": str(today - timedelta(days=10))}, label="buyruq (qoralama)")
 
+    # 19. Ommaviy topshiriq: butun bo'limga (har biriga alohida), qabul qilish va bajarish zanjiri
+    print("19. Ommaviy topshiriq")
+    bulk = await sd.call(hrd, "POST", "/api/v1/tasks/bulk", json={"title": "Yangi narx yorliqlarini joylashtirish", "description": "Barcha filiallarda yangi narx yorliqlari 1-sanagacha joylashtirilsin.", "priority": "high",
+                         "due_at": (now + timedelta(days=4)).isoformat(), "department_id": sd.ids["dept"]["Dorixona tarmog'i"]}, label="ommaviy topshiriq")
+    if bulk:
+        by_user: dict[int, int] = {}
+        for tid in bulk["task_ids"]:
+            r = await sd.call(hrd, "GET", f"/api/v1/tasks/{tid}", label="topshiriq")
+            if r and r["assignee"]:
+                by_user[r["assignee"]["id"]] = tid
+        mine = {f1: by_user.get(uid(f1)), f2: by_user.get(uid(f2))}
+        mine = {k: v for k, v in mine.items() if v}
+        if f1 in mine:
+            await sd.call(f1, "POST", f"/api/v1/tasks/{mine[f1]}/accept", label="qabul qilish")
+        if f2 in mine:
+            await sd.call(f2, "POST", f"/api/v1/tasks/{mine[f2]}/accept", label="qabul qilish")
+            await sd.call(f2, "POST", f"/api/v1/tasks/{mine[f2]}/move", json={"status": "in_progress"}, label="jarayonga")
+

@@ -195,6 +195,7 @@ import { StaffVerifyPage } from './features/hrdocs/StaffVerifyPage'
 import { DutyControlPage, DutyFormPage, DutyTemplatesPage, MyDutyPage } from './features/duty/DutyPages'
 import { RotationDetailPage, RotationFormPage, RotationsPage } from './features/rotations/RotationPages'
 import { BroadcastPage } from './features/notifications/BroadcastPage'
+import { NotificationSettingsPage } from './features/notifications/SettingsPage'
 import { NotificationsPage } from './features/notifications/NotificationsPage'
 import { ProfilePage } from './features/profile/ProfilePage'
 import { RolesPage } from './features/roles/RolesPage'
@@ -252,6 +253,7 @@ export function createRouter() {
             { path: 'system/plan', element: <RequirePerm perm="roles.read"><PlanPage /></RequirePerm> },
             { path: 'profile', element: <ProfilePage /> },
             { path: 'notifications', element: <NotificationsPage /> },
+            { path: 'notifications/settings', element: <NotificationSettingsPage /> },
             { path: 'notifications/send', element: <RequirePerm perm="notifications.send"><BroadcastPage /></RequirePerm> },
             { path: 'employees', element: <RequirePerm perm="employees.read"><EmployeesPage /></RequirePerm> },
             { path: 'employees/new', element: <RequirePerm perm="employees.create"><EmployeeFormPage /></RequirePerm> },

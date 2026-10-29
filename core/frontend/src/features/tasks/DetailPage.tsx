@@ -1,3 +1,4 @@
+import { TaskStepper } from './TaskStepper'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlarmClock, Download, Paperclip, Pencil, Send, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
@@ -19,7 +20,7 @@ import { formatDateTime } from '../../lib/format'
 import { NotFound } from '../../pages/NotFound'
 import { errorText } from '../auth/errorText'
 import { useMe } from '../auth/useAuth'
-import { dueText, PRIORITY_TONE, sizeText, STATUSES, type Comment, type TaskDetail, type TaskFile, type TStatus } from './api'
+import { dueText, PRIORITY_TONE, sizeText, STATUSES, type BatchInfo, type Comment, type TaskDetail, type TaskFile, type TStatus } from './api'
 
 type Tab = 'comments' | 'files' | 'history'
 
@@ -35,6 +36,8 @@ export function DetailPage() {
   const q = useQuery({ queryKey: ['tasks', 'one', id], queryFn: () => api<TaskDetail>(`/api/v1/tasks/${id}`), retry: false, refetchInterval: 20_000 })
   const refresh = () => void qc.invalidateQueries({ queryKey: ['tasks'] })
   const move = useMutation({ mutationFn: (status: TStatus) => send('POST', `/api/v1/tasks/${id}/move`, { status }), onSuccess: refresh })
+  const me = useMe().data
+  const accept = useMutation({ mutationFn: () => send('POST', `/api/v1/tasks/${id}/accept`), onSuccess: refresh })
   const archive = useMutation({
     mutationFn: () => send('DELETE', `/api/v1/tasks/${id}`),
     onSuccess: () => {
@@ -43,6 +46,7 @@ export function DetailPage() {
       navigate('/tasks/board')
     },
   })
+  const batch = useQuery({ queryKey: ['tasks', 'batch', id], queryFn: () => api<BatchInfo>(`/api/v1/tasks/${id}/batch`), enabled: !!q.data?.batch_id, retry: false })
   if (q.error instanceof ApiError && q.error.status === 404) return <NotFound />
   const task = q.data
   if (!task) return <Skeleton className="mx-auto h-96 max-w-4xl" />
@@ -89,7 +93,44 @@ export function DetailPage() {
 
       <AiSummary entity="task" id={id} />
 
+      {batch.data && batch.data.total > 1 && (
+        <Card className="flex flex-col gap-3 p-5">
+          <h2 className="font-semibold">{t('tasks.chain.batchTitle', { n: batch.data.total })}</h2>
+          <div className="flex flex-wrap gap-2 text-xs">
+            {(['new', 'accepted', 'in_progress', 'review', 'done'] as const).map((s) => (
+              <Badge key={s} tone={s === 'done' ? 'success' : 'neutral'}>
+                {t(`tasks.chain.${s}`)}: {batch.data?.by_step[s] ?? 0}
+              </Badge>
+            ))}
+          </div>
+          <ul className="grid gap-1.5 text-sm sm:grid-cols-2">
+            {batch.data.items.map((it) => (
+              <li key={it.id}>
+                <Link to={`/tasks/${it.id}`} className="flex items-center justify-between gap-2 rounded-control border border-border px-3 py-1.5 hover:bg-surface-2">
+                  <span className="truncate">{it.assignee ?? '—'}</span>
+                  <span className={it.overdue ? 'text-danger' : 'text-muted'}>{t(`tasks.chain.${it.step}`)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       <Card className="flex flex-col gap-4 p-6">
+        <TaskStepper step={task.step} overdue={task.overdue} />
+        {task.step === 'new' && me?.id === task.assignee?.id && !task.archived && (
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
+            <span className="text-sm">{t('tasks.chain.acceptPrompt')}</span>
+            <Button disabled={accept.isPending} onClick={() => accept.mutate()}>
+              {t('tasks.chain.accept')}
+            </Button>
+          </div>
+        )}
+        {accept.isError && (
+          <p role="alert" className="text-sm text-danger">
+            {errorText(t, accept.error)}
+          </p>
+        )}
         <div className="flex flex-wrap items-center gap-2">
           <span className={`rounded-md px-2 py-0.5 text-xs font-medium ${PRIORITY_TONE[task.priority]}`}>{t(`tasks.priority.${task.priority}`)}</span>
           {task.overdue && <Badge tone="danger">{t('tasks.overdue')}</Badge>}

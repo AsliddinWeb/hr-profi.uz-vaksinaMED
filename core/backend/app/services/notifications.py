@@ -14,14 +14,25 @@ from dataclasses import dataclass
 from typing import Any
 
 from fastapi import FastAPI
+from sqlalchemy import select
 
 from app.config import get_settings
-from app.models.notifications import Notification
+from app.models.notifications import Notification, NotificationPref
 from app.realtime import publish
 
 log = logging.getLogger("vaksina.notify")
 
 SEVERITIES = {"info", "success", "warning", "danger"}
+# Foydalanuvchi o'chira olmaydigan (majburiy) toifalar: xavfsizlik, hisob, qarorlar va rasmiy hujjatlar
+MANDATORY_CATEGORIES = frozenset({"security", "account", "telegram", "auth", "answers", "letters", "penalties", "staff", "employee", "branch", "hrdoc", "retention"})
+
+
+def category_of(kind: str) -> str:
+    return kind.split(".", 1)[0]
+
+
+def all_categories() -> list[str]:
+    return sorted({category_of(k) for k in TEMPLATES})
 
 
 @dataclass(frozen=True)
@@ -133,7 +144,12 @@ async def notify(
     body_src = body if body is not None else (tpl.body if tpl else None)
 
     created: list[Notification] = []
-    for uid in dict.fromkeys(user_ids):
+    cat = category_of(kind)
+    recipients = list(dict.fromkeys(user_ids))
+    if recipients and cat not in MANDATORY_CATEGORIES:  # foydalanuvchi shu toifani o'chirib qo'ygan bo'lsa yaratilmaydi
+        muted = {u for u, m in (await session.execute(select(NotificationPref.user_id, NotificationPref.muted).where(NotificationPref.user_id.in_(recipients)))).all() if cat in (m or [])}
+        recipients = [u for u in recipients if u not in muted]
+    for uid in recipients:
         n = Notification(
             user_id=uid,
             kind=kind,

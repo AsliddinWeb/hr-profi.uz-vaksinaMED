@@ -31,6 +31,19 @@ export interface TaskItem {
   comments: number
   files: number
   archived: boolean
+  accepted_at: string | null
+  batch_id: string | null
+  step: Step
+}
+
+export type Step = 'new' | 'accepted' | 'in_progress' | 'review' | 'done'
+export const STEPS: Step[] = ['new', 'accepted', 'in_progress', 'review', 'done']
+
+export interface BatchInfo {
+  batch_id: string | null
+  total: number
+  by_step: Partial<Record<Step, number>>
+  items: { id: number; assignee: string | null; step: Step; overdue: boolean }[]
 }
 
 export interface TaskDetail extends TaskItem {

@@ -23,6 +23,7 @@ STEP = 1000.0
 
 register_template("tasks.assigned", {"uz": "Sizga topshiriq berildi", "ru": "Вам назначено поручение"}, {"uz": "{title}", "ru": "{title}"}, "info")
 register_template("tasks.status", {"uz": "Topshiriq holati o'zgardi", "ru": "Статус поручения изменён"}, {"uz": "{title}: {status}", "ru": "{title}: {status}"}, "info")
+register_template("tasks.accepted", {"uz": "Topshiriq qabul qilindi", "ru": "Поручение принято"}, {"uz": "{who}: {title}", "ru": "{who}: {title}"}, "success")
 register_template("tasks.comment", {"uz": "Topshiriqqa yangi izoh", "ru": "Новый комментарий к поручению"}, {"uz": "{author}: {title}", "ru": "{author}: {title}"}, "info")
 register_template("tasks.due_soon", {"uz": "Topshiriq muddati yaqin", "ru": "Срок поручения близок"}, {"uz": "{title} — {due}", "ru": "{title} — {due}"}, "warning")
 register_template("tasks.overdue", {"uz": "Topshiriq muddati o'tdi", "ru": "Поручение просрочено"}, {"uz": "{title} — {due}", "ru": "{title} — {due}"}, "danger")
@@ -135,6 +136,8 @@ async def set_status(db: AsyncSession, task: Task, auth: AuthContext, new_status
     old = task.status
     if old != new_status:
         task.status = new_status
+        if new_status != "todo" and task.accepted_at is None and task.assignee_id:
+            task.accepted_at = moment
         task.completed_at = moment if new_status == "done" else None
         if new_status != "done":
             task.notified_soon = task.notified_overdue = False
@@ -197,6 +200,7 @@ def task_out(t: Task, names: dict[int, str], moment: datetime, comments: int = 0
         "creator": {"id": t.creator_id, "name": names.get(t.creator_id or 0)} if t.creator_id else None,
         "assignee": {"id": t.assignee_id, "name": names.get(t.assignee_id or 0)} if t.assignee_id else None,
         "comments": comments, "files": files, "archived": t.archived_at is not None,
+        "accepted_at": t.accepted_at, "batch_id": t.batch_id, "step": stepper(t, moment),
     }  # fmt: skip
 
 
@@ -269,3 +273,41 @@ async def analytics(db: AsyncSession, start, end, clause) -> dict[str, Any]:
         "trend": trend, "by_assignee": by_assignee, "today": local_date(moment),
     }  # fmt: skip
 
+
+async def resolve_audience(db: AsyncSession, *, department_id: int | None = None, branch_id: int | None = None, work_group_id: int | None = None, position_id: int | None = None, role_key: str | None = None, limit: int = 400) -> list[tuple[int, str]]:
+    """Filtr bo'yicha (bo'lim, filial, ish guruhi, lavozim, rol) topshiriq oladigan faol foydalanuvchilar: (user_id, ism)."""
+    from app.models.auth import Role
+    from app.models.employees import Employee
+
+    stmt = select(User.id, User.full_name).join(Employee, Employee.user_id == User.id).where(User.is_active.is_(True), Employee.status == "active")
+    if department_id:
+        stmt = stmt.where(Employee.department_id == department_id)
+    if branch_id:
+        stmt = stmt.where(Employee.branch_id == branch_id)
+    if work_group_id:
+        stmt = stmt.where(Employee.work_group_id == work_group_id)
+    if position_id:
+        stmt = stmt.where(Employee.position_id == position_id)
+    if role_key:
+        stmt = stmt.join(Role, Role.id == User.role_id).where(Role.key == role_key)
+    return [(r[0], r[1]) for r in (await db.execute(stmt.order_by(User.full_name).limit(limit))).all()]
+
+
+def stepper(t: Task, moment: datetime) -> str:
+    """Zanjirdagi joriy bosqich: new | accepted | in_progress | review | done."""
+    if t.status == "todo":
+        return "accepted" if t.accepted_at else "new"
+    return t.status
+
+
+async def accept(db: AsyncSession, task: Task, auth: AuthContext, moment: datetime):
+    if task.assignee_id != auth.user.id:
+        raise error(403, "forbidden")
+    if task.status != "todo" or task.archived_at is not None:
+        raise error(409, "cannot_accept")
+    if task.accepted_at is None:
+        task.accepted_at = moment
+        log(db, task, auth.user.id, "accepted")
+    if task.creator_id and task.creator_id != auth.user.id:
+        return await notify(db, [task.creator_id], "tasks.accepted", link=f"/tasks/{task.id}", params={"who": auth.user.full_name, "title": task.title})
+    return []

@@ -44,6 +44,8 @@ class Task(Base, TimestampMixin):
     template_id: Mapped[int | None] = mapped_column(ForeignKey("task_templates.id", ondelete="SET NULL"))
     notified_soon: Mapped[bool] = mapped_column(Boolean, default=False)
     notified_overdue: Mapped[bool] = mapped_column(Boolean, default=False)
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # ijrochi «qabul qilaman» degan payt
+    batch_id: Mapped[str | None] = mapped_column(String(16), index=True)  # bir vaqtda ko'p kishiga berilgan topshiriqlar guruhi
 
 
 class TaskComment(Base):

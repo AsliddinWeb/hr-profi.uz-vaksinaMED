@@ -29,7 +29,7 @@ from app.models.logistics import DriverProfile, FuelLog, GpsPoint, Trip, Vehicle
 from app.models.migration import MigrationBatch, MigrationCheck, MigrationLegacyId, MigrationMapping
 from app.models.mobile import MobileEvent, MobilePermit, MobilePoint, MobileSession
 from app.models.needs import NeedCategory, NeedComment, NeedEvent, NeedFile, NeedRequest
-from app.models.notifications import Notification
+from app.models.notifications import Notification, NotificationPref
 from app.models.org import Branch, Department, Position
 from app.models.payroll import PayItem, PayrollLine, PayrollRun, PayScheme
 from app.models.penalties import Penalty, PenaltyRuleVersion
@@ -137,6 +137,7 @@ __all__ = [
     "MobilePoint",
     "MobileSession",
     "Notification",
+    "NotificationPref",
     "PayItem",
     "PayScheme",
     "PayrollLine",
