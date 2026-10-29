@@ -37,6 +37,7 @@ from app.api import (
     growth,
     health,
     helpdesk,
+    hrdocs,
     integrations,
     internship,
     letters,
@@ -63,6 +64,7 @@ from app.api import (
     rotations,
     schedule,
     schedule_config,
+    staffdocs,
     tasks,
     telegram,
     users,
@@ -179,11 +181,12 @@ def create_app() -> FastAPI:
     for module in (
         health, metrics, meta, auth, users, roles, audit, notifications, telegram, org, branches,
         employee_io, employee_bulk, employees, employee_files,
-        schedule_config, schedule, attendance, attendance_issues, attestation, growth, integrations, complaints, coord_report, face, answers, letters, penalties, tasks, reminders, pharmacy, needs, checklists, recruit, recruit_pipeline, recruit_sources, retention, rotations, duty, internship, onboarding, plan, payroll, canteen, logistics, warehouse, mobile, reception, helpdesk, calls, ai, reports, migration,
+        schedule_config, schedule, attendance, attendance_issues, attestation, growth, integrations, complaints, coord_report, face, answers, letters, penalties, tasks, reminders, pharmacy, needs, checklists, recruit, recruit_pipeline, recruit_sources, retention, rotations, duty, hrdocs, staffdocs, internship, onboarding, plan, payroll, canteen, logistics, warehouse, mobile, reception, helpdesk, calls, ai, reports, migration,
     ):  # fmt: skip
         app.include_router(module.router, prefix="/api")
     app.include_router(letters.public_router, prefix="/api")
     app.include_router(answers.public_router, prefix="/api")
+    app.include_router(staffdocs.public_router, prefix="/api")
     app.include_router(onboarding.kadr_router, prefix="/api")
     app.include_router(integrations.ext_router, prefix="/api")
     app.include_router(retention.off_router, prefix="/api")

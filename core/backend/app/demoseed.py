@@ -116,6 +116,9 @@ class Seeder:
             from app.services.penalties import ensure_default_rules
 
             await ensure_default_template(s)
+            from app.services.hrdocs import ensure_default_docs
+
+            await ensure_default_docs(s)
             await ensure_default_rules(s)
         print(f"Tozalandi: {len(drop)} jadval")
 

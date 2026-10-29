@@ -10,6 +10,7 @@ from alembic.config import Config
 
 from app.config import get_settings
 from app.db import SessionLocal
+from app.services.hrdocs import ensure_default_docs
 from app.services.seed import ensure_roles
 
 log = logging.getLogger("vaksina.migrate")
@@ -43,6 +44,7 @@ def main() -> int:
     async def _seed() -> None:
         async with SessionLocal() as session:
             await ensure_roles(session)
+            await ensure_default_docs(session)
 
     asyncio.run(_seed())
     return 0

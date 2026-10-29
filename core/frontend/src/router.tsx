@@ -189,6 +189,9 @@ import { TransferPage } from './features/employees/TransferPage'
 import { DepartmentFormPage } from './features/org/DepartmentFormPage'
 import { DepartmentsPage } from './features/org/DepartmentsPage'
 import { OrgChartPage } from './features/org/OrgChartPage'
+import { DocFormPage, DocViewPage, LibraryPage } from './features/hrdocs/LibraryPages'
+import { ApplicationFormPage, OrderFormPage, StaffDocDetailPage, StaffDocsPage } from './features/hrdocs/StaffDocPages'
+import { StaffVerifyPage } from './features/hrdocs/StaffVerifyPage'
 import { DutyControlPage, DutyFormPage, DutyTemplatesPage, MyDutyPage } from './features/duty/DutyPages'
 import { RotationDetailPage, RotationFormPage, RotationsPage } from './features/rotations/RotationPages'
 import { BroadcastPage } from './features/notifications/BroadcastPage'
@@ -234,6 +237,7 @@ export function createRouter() {
     // Ochiq: QR orqali hujjatni tekshirish (kirish shart emas)
     { path: '/verify', element: <VerifyPage /> },
     { path: '/verify/leave/:code', element: <LeaveVerifyPage /> },
+    { path: '/verify/doc/:code', element: <StaffVerifyPage /> },
     { path: '/verify/:code', element: <VerifyPage /> },
     { path: '/apply/:code', element: <PublicApplyPage /> },
     {
@@ -519,6 +523,15 @@ export function createRouter() {
             { path: 'org/rotations', element: <RequirePerm any={['rotations.read', 'rotations.request', 'rotations.manage']}><RotationsPage /></RequirePerm> },
             { path: 'org/rotations/new', element: <RequirePerm any={['rotations.request', 'rotations.manage']}><RotationFormPage /></RequirePerm> },
             { path: 'org/rotations/:id', element: <RequirePerm any={['rotations.read', 'rotations.request', 'rotations.manage']}><RotationDetailPage /></RequirePerm> },
+            { path: 'hr/library', element: <RequirePerm perm="hrdocs.read"><LibraryPage /></RequirePerm> },
+            { path: 'hr/library/new', element: <RequirePerm perm="hrdocs.manage"><DocFormPage /></RequirePerm> },
+            { path: 'hr/library/:id', element: <RequirePerm perm="hrdocs.read"><DocViewPage /></RequirePerm> },
+            { path: 'hr/library/:id/edit', element: <RequirePerm perm="hrdocs.manage"><DocFormPage /></RequirePerm> },
+            { path: 'hr/documents', element: <RequirePerm any={['staffdocs.apply', 'staffdocs.read', 'staffdocs.manage']}><StaffDocsPage /></RequirePerm> },
+            { path: 'hr/documents/application/new', element: <RequirePerm perm="staffdocs.apply"><ApplicationFormPage /></RequirePerm> },
+            { path: 'hr/documents/order/new', element: <RequirePerm perm="staffdocs.manage"><OrderFormPage /></RequirePerm> },
+            { path: 'hr/documents/:id', element: <RequirePerm any={['staffdocs.apply', 'staffdocs.read', 'staffdocs.manage']}><StaffDocDetailPage /></RequirePerm> },
+            { path: 'hr/documents/:id/edit', element: <RequirePerm perm="staffdocs.manage"><OrderFormPage /></RequirePerm> },
             { path: 'branches', element: <RequirePerm perm="branches.read"><BranchesPage /></RequirePerm> },
             { path: 'branches/new', element: <RequirePerm perm="branches.manage"><BranchFormPage /></RequirePerm> },
             { path: 'branches/import', element: <RequirePerm perm="branches.manage"><BranchImportPage /></RequirePerm> },

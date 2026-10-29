@@ -11,6 +11,7 @@ from app.models.employees import Employee, EmployeeDocument, EmployeeEvent
 from app.models.face import FaceAttempt, FaceConsent, FaceTemplate
 from app.models.growth import Attestation, CareerLevel, HrSetting, Promotion
 from app.models.helpdesk import Ticket, TicketCategory, TicketEvent, TicketFile
+from app.models.hrdocs import HrDocument, HrDocumentAck, HrDocumentVersion, StaffDocument
 from app.models.integrations import ApiKey, BranchDailyMetric, Complaint
 from app.models.internship import (
     ClassAttendee,
@@ -60,6 +61,10 @@ __all__ = [
     "ApiKey",
     "RetentionMeeting",
     "DutyChecklist",
+    "HrDocument",
+    "HrDocumentAck",
+    "HrDocumentVersion",
+    "StaffDocument",
     "DutyRun",
     "RetentionCase",
     "Rotation",

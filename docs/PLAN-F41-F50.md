@@ -40,7 +40,7 @@ Eslatma: Abet skrinshoti (9.jpg) uchun matn yo'q. Ko'rinib turgani: baholash oyn
 - Bo'lim va lavozim kartochkasida ko'rinadi; xodimning panelida «Mening chek-listim»; bajarilish nazorati (koordinator/HR), kechikish bildirishnomasi.
 - «Javob olish tartibi» qadamlari so'rov formasida qoida sifatida ko'rsatiladi.
 
-### F45. HR hujjatlar kutubxonasi va xodim elektron hujjatlari (katta)
+### F45. HR hujjatlar kutubxonasi va xodim elektron hujjatlari (katta) — TAYYOR 2026-10-29
 - **Kutubxona**: kategoriyalar (strategiya, siyosat va nizomlar, jarayonlar, tizimlar, madaniyat), versiyalar, rol/bo'lim bo'yicha ko'rinish, fayl yoki matn, «tanishdim» tasdig'i (kim, qachon).
 - Mijoz ro'yxatidagi ~25 ta hujjat uchun bo'sh shablon-kartochkalar tayyor yaratiladi (mazmunini mijoz to'ldiradi).
 - **Ariza** (ta'til, ishdan bo'shash, ko'chirish) va **buyruq** (ishga qabul, ko'chirish, ta'til, bo'shatish) — raqamlash, PDF, QR, tasdiq zanjiri; xodim kartochkasida bitta «Elektron hujjatlar» tabida tushuntirish xati, ariza, buyruq, jarima birga.

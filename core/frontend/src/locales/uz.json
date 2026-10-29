@@ -59,7 +59,8 @@
       "ai": "AI yordamchi",
       "reports": "Hisobotlar",
       "migration": "Migratsiya",
-      "org": "Tashkiliy tuzilma"
+      "org": "Tashkiliy tuzilma",
+      "hr": "HR bo'limi"
     }
   },
   "theme": {
@@ -914,7 +915,8 @@
     "tenureMonths": "{{m}} oy",
     "tenure": "Ish staji",
     "tenureNew": "1 oydan kam",
-    "rotation": "Rotatsiya"
+    "rotation": "Rotatsiya",
+    "tab_edocs": "Elektron hujjatlar"
   },
   "schedule": {
     "title": "Ish grafigi",
@@ -4760,6 +4762,136 @@
       "expected": "Kutilgan",
       "byDept": "Bo'limlar bo'yicha bajarilish",
       "rate": "Bajarilish: {{n}}%"
+    }
+  },
+  "hrdocs": {
+    "title": "Hujjatlar kutubxonasi",
+    "subtitle": "Kompaniya missiyasi, nizom, jarayonlar va tizimlar: o'qing va «tanishdim» deb tasdiqlang",
+    "add": "Yangi hujjat",
+    "edit": "Hujjatni tahrirlash",
+    "search": "Sarlavha bo'yicha qidirish…",
+    "all": "Hammasi",
+    "draft": "Qoralama",
+    "empty": "To'ldirilmagan",
+    "needsAck": "Tanishing",
+    "acked": "{{n}} kishi tanishgan",
+    "noDocs": "Hujjat topilmadi",
+    "pendingBanner": "Tanishib chiqishingiz kerak bo'lgan hujjatlar: {{n}}",
+    "cat": {
+      "strategy": "Strategiya va maqsadlar",
+      "policy": "Nizom va qoidalar",
+      "process": "HR jarayonlari",
+      "system": "Tizimlar",
+      "culture": "Madaniyat"
+    },
+    "file": "Fayl",
+    "fileOnly": "Hujjat fayl sifatida biriktirilgan: yuqoridagi tugma orqali yuklab oling.",
+    "noContent": "Bu hujjat hali to'ldirilmagan.",
+    "ackPrompt": "Hujjat bilan tanishib chiqdingizmi?",
+    "ackButton": "Tanishdim",
+    "ackedAt": "Tanishgansiz: {{when}} (v{{v}})",
+    "publishing": "E'lon qilish",
+    "publishedHint": "E'lon qilingan. Yangi versiya chiqarsangiz, tanishish talab qilingan hujjat bo'yicha hamma qayta tanishadi.",
+    "draftHint": "Hozir qoralama: xodimlar ko'rmaydi. E'lon qilinganda tanishish talab qilingan bo'lsa, hammaga xabar boradi.",
+    "versionNote": "Versiya izohi (ixtiyoriy)",
+    "publish": "E'lon qilish",
+    "publishNew": "Yangi versiya e'lon qilish",
+    "unpublish": "Qoralamaga qaytarish",
+    "ackStatus": "Tanishish: {{done}} / {{total}}",
+    "notAcked": "Tanishmaganlar",
+    "ackedList": "Tanishganlar",
+    "main": "Asosiy",
+    "category": "Kategoriya",
+    "titleLabel": "Sarlavha",
+    "summary": "Qisqa tavsif",
+    "body": "Matn",
+    "access": "Kimga ko'rinadi",
+    "accessHint": "Rol tanlanmasa hamma xodim ko'radi.",
+    "requiresAck": "Xodimlar «tanishdim» deb tasdiqlashi shart",
+    "rolesOnly": "Faqat tanlangan rollar ko'radi.",
+    "rolesAll": "Hamma xodim ko'radi.",
+    "attachment": "Biriktirilgan fayl",
+    "attachmentHint": "PDF, DOCX, XLSX yoki rasm (15 MB gacha).",
+    "uploadFile": "Fayl yuklash",
+    "replaceFile": "Faylni almashtirish"
+  },
+  "staffdocs": {
+    "title": "Ariza va buyruqlar",
+    "subtitle": "Elektron ariza va buyruqlar: raqam, QR kod va PDF bilan",
+    "newApp": "Yangi ariza",
+    "newOrder": "Yangi buyruq",
+    "search": "Xodim, raqam yoki sarlavha…",
+    "pendingApps": "Ko'rib chiqilmagan arizalar: {{n}}",
+    "draftNo": "qoralama",
+    "kind": {
+      "all": "Hammasi",
+      "application": "Ariza",
+      "order": "Buyruq"
+    },
+    "status": {
+      "submitted": "Ko'rib chiqilmoqda",
+      "approved": "Qabul qilindi",
+      "rejected": "Rad etildi",
+      "cancelled": "Bekor qilingan",
+      "draft": "Qoralama",
+      "issued": "Amal qiladi"
+    },
+    "statusLabel": "Holat",
+    "appHint": "Arizangiz HR bo'limiga yuboriladi va elektron raqam oladi.",
+    "appMain": "Ariza",
+    "type": "Turi",
+    "from": "Boshlanish",
+    "to": "Tugash",
+    "text": "Ariza matni",
+    "send": "Yuborish",
+    "appSent": "Ariza yuborildi",
+    "appTypes": {
+      "vacation": "Mehnat ta'tili",
+      "unpaid": "O'z hisobidan ta'til",
+      "resign": "Ishdan bo'shash",
+      "transfer": "Boshqa joyga o'tkazish",
+      "other": "Boshqa"
+    },
+    "orderTypes": {
+      "hire": "Ishga qabul",
+      "transfer": "Ko'chirish",
+      "vacation": "Ta'til",
+      "dismiss": "Bo'shatish",
+      "other": "Boshqa"
+    },
+    "orderHint": "Matn bo'sh qoldirilsa, tur bo'yicha tayyor shablon yoziladi. Imzolagandan keyin tahrirlab bo'lmaydi.",
+    "orderMain": "Buyruq",
+    "editOrder": "Buyruqni tahrirlash",
+    "titleLabel": "Sarlavha",
+    "titleAuto": "Bo'sh bo'lsa tur bo'yicha yoziladi",
+    "orderText": "Buyruq matni",
+    "orderTextAuto": "Bo'sh bo'lsa tayyor shablon yoziladi",
+    "period": "Muddat",
+    "createdBy": "Tayyorlagan",
+    "decidedBy": "Qaror qildi",
+    "decisionNote": "Izoh",
+    "signedBy": "Imzolagan",
+    "acknowledged": "Xodim tanishgan",
+    "approve": "Qabul qilish",
+    "reject": "Rad etish",
+    "makeOrder": "Buyruq chiqarish",
+    "signHint": "Imzolash uchun parolingizni tasdiqlang. Imzolangach hujjat raqami, QR kodi beriladi va xodimga xabar yuboriladi.",
+    "password": "Parol",
+    "sign": "Imzolash",
+    "ack": "Tanishdim",
+    "cancel": "Bekor qilish",
+    "feed": {
+      "application": "Ariza",
+      "order": "Buyruq",
+      "letter": "Tushuntirish xati",
+      "penalty": "Jarima"
+    },
+    "verify": {
+      "title": "Hujjatni tekshirish",
+      "subtitle": "QR kod yoki kod orqali ariza/buyruq haqiqiyligini tekshiring",
+      "valid": "Hujjat haqiqiy",
+      "invalid": "Hujjat yaroqsiz",
+      "cancelled": "Hujjat bekor qilingan."
     }
   }
 }

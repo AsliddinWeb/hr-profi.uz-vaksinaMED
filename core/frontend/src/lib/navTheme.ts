@@ -10,6 +10,7 @@ const COLORS: Record<GroupKey, string> = {
   main: 'blue',
   people: 'blue',
   org: 'indigo',
+  hr: 'rose',
   schedule: 'violet',
   attendance: 'teal',
   requests: 'amber',

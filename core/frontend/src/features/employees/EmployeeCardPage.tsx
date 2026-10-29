@@ -1,3 +1,4 @@
+import { EDocsTab } from '../hrdocs/EDocsTab'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRightLeft, CalendarDays, Download, ExternalLink, FileText, KeyRound, Pencil, Plus, Repeat, RotateCcw, Trash2, UserMinus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -20,7 +21,7 @@ import { useCan } from '../auth/useAuth'
 import { Avatar } from './Avatar'
 import { formatSize, type Employee, type EmployeeDocument, type EmployeeEvent } from './api'
 
-type Tab = 'overview' | 'history' | 'documents'
+type Tab = 'overview' | 'history' | 'documents' | 'edocs'
 
 export function EmployeeCardPage() {
   const { id } = useParams()
@@ -41,6 +42,7 @@ export function EmployeeCardPage() {
     { key: 'overview', show: true },
     { key: 'history', show: true },
     { key: 'documents', show: can('employees.documents') },
+    { key: 'edocs', show: can('employees.documents') || can('staffdocs.read') || can('staffdocs.manage') },
   ]
 
   const actions = (
@@ -138,6 +140,7 @@ export function EmployeeCardPage() {
       {tab === 'overview' && <Overview e={e} lang={lang} />}
       {tab === 'history' && <History empId={e.id} lang={lang} />}
       {tab === 'documents' && can('employees.documents') && <Documents empId={e.id} lang={lang} />}
+      {tab === 'edocs' && <EDocsTab empId={e.id} lang={lang} />}
     </div>
   )
 }

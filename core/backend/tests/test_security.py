@@ -39,7 +39,7 @@ async def test_every_non_public_endpoint_rejects_anonymous(app, new_client):
             open_routes.append(f"{method} {path} -> {r.status_code}")
     assert checked > 300
     # ochiq bo'lishi ataylab: shaxsiy havola bilan ishlaydigan jamoat endpointlari (token URL ichida)
-    allowed_open = [x for x in open_routes if "/public/letters" in x or "/public/leave" in x or "/public/apply" in x or "/canteen/public" in x or "/canteen/qr" in x]
+    allowed_open = [x for x in open_routes if "/public/letters" in x or "/public/leave" in x or "/public/staffdoc" in x or "/public/apply" in x or "/canteen/public" in x or "/canteen/qr" in x]
     assert [x for x in open_routes if x not in allowed_open] == []
 
 

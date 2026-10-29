@@ -13,6 +13,8 @@ export const coreNav: NavItem[] = [
   { id: 'departments', group: 'org', label: { uz: "Bo'limlar va lavozimlar", ru: 'Отделы и должности' }, to: '/org/departments', icon: Building2, permission: 'org.read', module: 'org' },
   { id: 'branches', group: 'org', label: { uz: 'Filiallar', ru: 'Филиалы' }, to: '/branches', icon: Store, permission: 'branches.read', module: 'pharmacy' },
   { id: 'rotations', group: 'org', label: { uz: 'Rotatsiya', ru: 'Ротация' }, to: '/org/rotations', icon: Repeat, anyPermission: ['rotations.read', 'rotations.request', 'rotations.manage'], module: 'org' },
+  { id: 'hr-library', group: 'hr', label: { uz: 'Hujjatlar kutubxonasi', ru: 'Библиотека документов' }, to: '/hr/library', icon: BookOpen, permission: 'hrdocs.read', module: 'employees' },
+  { id: 'hr-documents', group: 'hr', label: { uz: 'Ariza va buyruqlar', ru: 'Заявления и приказы' }, to: '/hr/documents', icon: FileStack, anyPermission: ['staffdocs.apply', 'staffdocs.read', 'staffdocs.manage'], module: 'employees' },
   { id: 'schedule', group: 'schedule', label: { uz: 'Ish grafigi', ru: 'График работы' }, to: '/schedule', icon: CalendarDays, permission: 'schedule.read', module: 'attendance' },
   { id: 'shifts', group: 'schedule', label: { uz: 'Smena turlari', ru: 'Виды смен' }, to: '/schedule/shifts', icon: Clock, permission: 'schedule.read', module: 'attendance' },
   { id: 'work-groups', group: 'schedule', label: { uz: 'Ish guruhlari', ru: 'Рабочие группы' }, to: '/schedule/groups', icon: Layers, permission: 'schedule.read', module: 'attendance' },

@@ -173,3 +173,37 @@ async def flows(sd) -> None:  # noqa: C901
         for who, vals in ((f1, [True, True, True, 5]), (f2, [True, True, False, 4]), (sai, [True, False, True, 3])):
             await sd.call(who, "PUT", f"/api/v1/duty/my/{farm['id']}", json={"answers": dict(zip(ids, vals, strict=True)), "note": "Kun yakunida topshirildi"}, label="chek-list topshirish")
 
+    # 17. HR hujjatlar kutubxonasi: tayyor kartochkalarning bir qismi to'ldirilib e'lon qilinadi
+    print("17. HR hujjatlar kutubxonasi")
+    lib = _items(await sd.call(hrd, "GET", "/api/v1/hrdocs", label="kutubxona"))
+    by_key = {d["key"]: d for d in lib if d.get("key")}
+    texts = {
+        "mission": ("Kompaniya missiyasi", "Aholiga sifatli va arzon dori vositalarini o'z vaqtida yetkazish, har bir mijozga g'amxo'rlik bilan xizmat ko'rsatish.", False),
+        "goal": ("Oliy maqsad", "Hududdagi eng ishonchli dorixonalar tarmog'iga aylanish va 5 yil ichida 100 ta filialga yetish.", False),
+        "values": ("Qadriyatlar", "1. Mijoz salomatligi — birinchi o'rinda.\n2. Halollik va mas'uliyat.\n3. Jamoaviy ish va o'zaro hurmat.\n4. Doimiy o'rganish va rivojlanish.", True),
+        "slogan": ("Shior", "«Salomatlik — bizning g'amxo'rligimiz».", False),
+        "internal_rules": ("Ichki tartib qoidalari", "1. Ish vaqti: 09:00–18:00 (dorixonalarda smena grafigi bo'yicha).\n2. Kechikish va ruxsatsiz kelmaslik jarima qoidalariga muvofiq ko'riladi.\n3. Ish joyida forma va nishon majburiy.\n4. Mijozlar ma'lumoti maxfiy saqlanadi.", True),
+        "job_duties": ("Lavozim majburiyatlari", "Har bir lavozim bo'yicha majburiyatlar lavozim yo'riqnomasida keltirilgan. Xodim ish boshlashdan oldin o'z yo'riqnomasi bilan tanishadi.", True),
+    }
+    for key, (title, body, ack) in texts.items():
+        d = by_key.get(key)
+        if not d:
+            continue
+        await sd.call(hrd, "PUT", f"/api/v1/hrdocs/{d['id']}", json={"category": d["category"], "title": d["title"], "summary": title, "body": body, "requires_ack": ack, "roles": [], "sort_order": d["id"]}, label="hujjat matni")
+        await sd.call(hrd, "POST", f"/api/v1/hrdocs/{d['id']}/publish", json={"note": "Birinchi versiya"}, label="hujjatni e'lon qilish")
+    if by_key.get("values"):
+        await sd.call(f1, "POST", f"/api/v1/hrdocs/{by_key['values']['id']}/ack", label="tanishdim")
+
+    # 18. Elektron ariza va buyruq: ariza -> HR qabul qiladi -> buyruq -> HRD imzolaydi -> xodim tanishadi
+    print("18. Ariza va buyruqlar")
+    apl = await sd.call(f1, "POST", "/api/v1/staffdocs/applications", json={"subtype": "vacation", "body": "Oilaviy sharoit tufayli mehnat ta'tilini berishingizni so'rayman.", "start_date": str(today + timedelta(days=20)), "end_date": str(today + timedelta(days=33))}, label="ariza")
+    await sd.call(f2, "POST", "/api/v1/staffdocs/applications", json={"subtype": "transfer", "body": "Yashash joyim yaqinidagi filialga o'tkazishingizni so'rayman."}, label="ariza (kutilmoqda)")
+    if apl:
+        await sd.call(hrm, "POST", f"/api/v1/staffdocs/{apl['id']}/decide", json={"action": "approve", "note": "Ta'til grafigiga mos"}, label="ariza qarori")
+        o = await sd.call(hrm, "POST", "/api/v1/staffdocs/orders", json={"employee_id": apl["employee"]["id"], "subtype": "vacation", "start_date": apl["start_date"], "end_date": apl["end_date"], "related_id": apl["id"]}, label="buyruq")
+        if o:
+            s = await sd.call(hrd, "POST", f"/api/v1/staffdocs/{o['id']}/sign", json={"password": "Demo-2026!"}, label="buyruqni imzolash")
+            if s:
+                await sd.call(f1, "POST", f"/api/v1/staffdocs/{o['id']}/ack", label="buyruq bilan tanishish")
+    await sd.call(hrm, "POST", "/api/v1/staffdocs/orders", json={"employee_id": eid["Ismoilova"], "subtype": "hire", "start_date": str(today - timedelta(days=10))}, label="buyruq (qoralama)")
+

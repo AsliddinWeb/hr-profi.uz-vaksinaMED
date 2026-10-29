@@ -146,4 +146,10 @@ register_permission("duty.own", "O'z ish chek-listini to'ldirish (lavozim/bo'lim
 register_permission("duty.read", "Ish chek-listlari va nazoratni ko'rish (hammasi)", "Просмотр рабочих чек-листов и контроля")
 register_permission("duty.control", "Ish chek-listi bajarilishini nazorat qilish (o'z filiallari)", "Контроль выполнения рабочих чек-листов (свои филиалы)")
 register_permission("duty.manage", "Ish chek-list shablonlarini yaratish va tahrirlash (HR)", "Создание и редактирование рабочих чек-листов (HR)")
+register_permission("hrdocs.read", "HR hujjatlar kutubxonasini o'qish va «tanishdim» tasdiqlash", "Чтение библиотеки HR-документов и подтверждение ознакомления")
+register_permission("hrdocs.manage", "HR hujjatlar kutubxonasini boshqarish (yaratish, e'lon qilish, fayl)", "Управление библиотекой HR-документов")
+register_permission("staffdocs.apply", "O'z arizasini yozish va o'z hujjatlarini ko'rish", "Подача своих заявлений и просмотр своих документов")
+register_permission("staffdocs.read", "Barcha xodim arizalari va buyruqlarini ko'rish", "Просмотр всех заявлений и приказов")
+register_permission("staffdocs.manage", "Arizalarni ko'rib chiqish va buyruq tayyorlash (HR)", "Рассмотрение заявлений и подготовка приказов (HR)")
+register_permission("staffdocs.sign", "Buyruqni elektron imzolash (HR direktor)", "Электронная подпись приказов (HR-директор)")
 
