@@ -78,7 +78,7 @@ chmod 600 "$ARCHIVE"
 # Tashqi nusxa
 if [[ -n "${S3_ENDPOINT:-}" && -n "${S3_BUCKET:-}" ]]; then
   echo "S3 ga yuklanmoqda..."
-  docker run --rm -v "$OUT:/b:ro" -e H="$S3_ENDPOINT" -e K="${S3_ACCESS_KEY:-}" -e S="${S3_SECRET_KEY:-}" --entrypoint sh minio/mc -c \
+  docker run --rm -v "$OUT:/b:ro" -e H="$S3_ENDPOINT" -e K="${S3_ACCESS_KEY:-}" -e S="${S3_SECRET_KEY:-}" --entrypoint sh pgsty/mc:RELEASE.2026-09-16T00-00-00Z -c \
     "mc alias set r \"\$H\" \"\$K\" \"\$S\" >/dev/null && mc cp /b/$(basename "$ARCHIVE") /b/$(basename "$ARCHIVE").sha256 r/$S3_BUCKET/ >/dev/null" \
     && echo "S3: yuklandi" || echo "OGOHLANTIRISH: S3 ga yuklab bo'lmadi (mahalliy nusxa saqlangan)" >&2
 fi

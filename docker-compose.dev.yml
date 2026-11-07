@@ -5,6 +5,8 @@ services:
   gateway:
     environment:
       FRONTEND_UPSTREAM: frontend:5173
+      # Vite dev serveri index.html ga inline skript (React Refresh preamble) qo'shadi: faqat dev da ruxsat
+      FRONTEND_SCRIPT_SRC: "'self' 'unsafe-inline'"
 
   frontend:
     build:

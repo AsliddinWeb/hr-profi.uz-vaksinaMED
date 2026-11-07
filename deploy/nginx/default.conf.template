@@ -1,7 +1,8 @@
 # Gateway: yagona ichki kirish nuqtasi (konteyner :80 -> host 6788).
 # TLS bu yerda emas: host nginx (certbot) 443 da tugatadi va 127.0.0.1:6788 ga uzatadi.
 # Host: $http_host (port bilan). `$host` portni tashlaydi va nostandart portda (6788) WebSocket Origin tekshiruvi yiqiladi.
-# Bu faylda faqat ${FRONTEND_UPSTREAM} almashtiriladi (NGINX_ENVSUBST_FILTER).
+# Bu faylda faqat ${FRONTEND_UPSTREAM} va ${FRONTEND_SCRIPT_SRC} almashtiriladi (NGINX_ENVSUBST_FILTER).
+# FRONTEND_SCRIPT_SRC: productionda 'self'; faqat `make dev` da Vite inline preamble uchun 'unsafe-inline' qo'shiladi.
 
 map $http_upgrade $connection_upgrade {
     default upgrade;
@@ -55,7 +56,7 @@ server {
     # Kamera (Face ID/skaner), geolokatsiya (davomat) va mikrofon (qo'ng'iroq) faqat o'z saytimiz uchun
     add_header Permissions-Policy "camera=(self), geolocation=(self), microphone=(self)" always;
     # CSP: faqat o'z manbamiz; rasm/ulanish uchun https: (xarita tile serveri mijozga qarab o'zgaradi), LiveKit ws(s)
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' ws: wss: https:; worker-src 'self' blob:; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src ${FRONTEND_SCRIPT_SRC}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' ws: wss: https:; worker-src 'self' blob:; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'" always;
     add_header Cross-Origin-Opener-Policy "same-origin" always;
 
     # Sekin so'rovlardan (slowloris) himoya

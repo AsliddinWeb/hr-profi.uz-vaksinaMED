@@ -22,6 +22,7 @@ services:
     image: nginx:1.27-alpine
     environment:
       FRONTEND_UPSTREAM: frontend:80
+      FRONTEND_SCRIPT_SRC: "'self'"
       NGINX_ENVSUBST_FILTER: FRONTEND_
     volumes:
       - ./deploy/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
@@ -156,7 +157,8 @@ services:
     networks: [internal]
 
   minio:
-    image: minio/minio:latest
+    # Rasmiy minio/minio image'i Docker Hub va quay.io'dan olib tashlangan: Pigsty jamoasining mos forki.
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
     command: ["server", "/data"]
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
