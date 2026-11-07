@@ -20,7 +20,7 @@ from app.deps import error
 from app.models.attendance import AttendanceRecord
 from app.models.auth import User
 from app.models.employees import Employee
-from app.models.letters import ExplanationLetter, LetterTemplate
+from app.models.letters import ExplanationLetter, LetterEvent, LetterTemplate
 from app.models.org import Branch, Department, Position
 from app.models.penalties import Penalty, PenaltyRuleVersion
 from app.models.schedule import ShiftTemplate
@@ -40,11 +40,58 @@ register_template(
     "letters.auto",
     {"uz": "Tushuntirish xati yozishingiz kerak", "ru": "Нужно написать объяснительную"},
     {
-        "uz": "{incident}, {incident_date}. Xat imzolanmaguncha keyingi «Keldim» belgilanmaydi.",
-        "ru": "{incident}, {incident_date}. Пока письмо не подписано, следующая отметка «Пришёл» недоступна.",
+        "uz": "{incident_date}: {detail}.\nBelgilangan chora: {measure}.\n\nTushuntirish xatini oching, sababni o'zingiz yozing va imzolang. "
+        "Xat imzolanmaguncha keyingi «Keldim» belgilanmaydi.",
+        "ru": "{incident_date}: {detail_ru}.\nНазначенная мера: {measure}.\n\nОткройте объяснительную, напишите причину и подпишите. "
+        "Пока письмо не подписано, следующая отметка «Пришёл» недоступна.",
     },
     "danger",
 )
+register_template(
+    "letters.auto_reminder",
+    {"uz": "Tushuntirish xati hali imzolanmagan", "ru": "Объяснительная ещё не подписана"},
+    {
+        "uz": "{number}: {incident}, {incident_date}. {hours} soatdan beri kutilmoqda. To'ldirib imzolang: imzolanmaguncha «Keldim» belgilanmaydi.",
+        "ru": "{number}: {incident_ru}, {incident_date}. Ожидает {hours} ч. Заполните и подпишите: до подписи отметка «Пришёл» недоступна.",
+    },
+    "warning",
+)
+register_template(
+    "letters.auto_overdue",
+    {"uz": "Xodim tushuntirish xatini imzolamadi", "ru": "Сотрудник не подписал объяснительную"},
+    {
+        "uz": "{name} ({branch}): {number}, {incident}, {incident_date}. {hours} soatdan beri imzolanmagan, xodim bilan bog'laning.",
+        "ru": "{name} ({branch}): {number}, {incident_ru}, {incident_date}. Не подписана {hours} ч., свяжитесь с сотрудником.",
+    },
+    "warning",
+)
+
+INCIDENT_RU = {"late": "опоздание", "absent": "неявка", "early_leave": "ранний уход", "no_checkout": "не отмечен уход", "discipline": "дисциплина", "other": "другое"}
+REMIND_AFTER_H = (2, 8, 24, 48)  # xodimga eslatma (har biri bir marta)
+ESCALATE_AFTER_H = 24  # koordinator, mudir va HR ga (bir marta)
+QUIET_HOURS = (22, 7)  # shu oraliqda (mahalliy vaqt) eslatma yuborilmaydi, keyingi tekshiruvda ketadi
+
+
+def fill_link(letter_id: int) -> str:
+    """Bildirishnoma/Telegram havolasi: ochilganda xat oynasi ochiladi."""
+    return f"/letters/{letter_id}/fill"
+
+
+def detail_text(f: dict[str, Any], lang: str = "uz") -> str:
+    i = f["incident"]
+    if lang == "ru":
+        return {
+            "late": f"вы пришли в {f.get('check_in')}, опоздание {f.get('late_minutes')} мин.",
+            "early_leave": f"вы ушли в {f.get('check_out')}, на {f.get('early_minutes')} мин. раньше",
+            "absent": "вы не вышли на работу по графику",
+            "no_checkout": "уход с работы не отмечен",
+        }.get(i, INCIDENT_RU.get(i, i))  # fmt: skip
+    return {
+        "late": f"soat {f.get('check_in')} da keldingiz, {f.get('late_minutes')} daqiqa kechikish",
+        "early_leave": f"soat {f.get('check_out')} da ketdingiz, {f.get('early_minutes')} daqiqa erta",
+        "absent": "grafik bo'yicha ishga kelmadingiz",
+        "no_checkout": "ishdan ketish vaqti belgilanmagan",
+    }.get(i, lsvc.INCIDENT_UZ.get(i, i))  # fmt: skip
 
 
 def enabled(cfg: dict[str, Any]) -> bool:
@@ -122,7 +169,12 @@ async def create(db: AsyncSession, emp: Employee, itype: str, day: date, rec: At
     lsvc.add_event(db, letter, "requested", None, "avtomatik")
     notes = []
     if emp.user_id:
-        notes = await notify(db, [emp.user_id], "letters.auto", link="/", params={"incident": lsvc.INCIDENT_UZ[itype], "incident_date": lsvc.fmt_date(day)})
+        f = letter.facts
+        amount = f" ({_money(f['amount'])} so'm)" if f.get("amount") else ""
+        notes = await notify(
+            db, [emp.user_id], "letters.auto", link=fill_link(letter.id),
+            params={"incident_date": lsvc.fmt_date(day), "detail": detail_text(f), "detail_ru": detail_text(f, "ru"), "measure": f"{f['measure']}{amount}"},
+        )  # fmt: skip
     return letter, notes
 
 
@@ -150,6 +202,49 @@ async def on_violation(db: AsyncSession, emp: Employee, itype: str, rec: Attenda
     await db.flush()
     shift = await db.get(ShiftTemplate, rec.shift_id) if rec.shift_id else None
     _, notes = await create(db, emp, itype, day, rec, shift, p, rules, moment)
+    return notes
+
+
+async def remind(db: AsyncSession, moment: datetime) -> list:
+    """Imzolanmagan avtomatik xatlar: xodimga 2/8/24/48 soatda eslatma, 24 soatda koordinator, mudir va HR ga xabar.
+    Har bosqich bir marta (LetterEvent bilan belgilanadi); tunda yuborilmaydi, keyingi tekshiruvda ketadi."""
+    from app.services.answers import users_with_permission  # circular importdan qochish
+
+    hour = localize(moment).hour
+    if hour >= QUIET_HOURS[0] or hour < QUIET_HOURS[1]:
+        return []
+    letters = (await db.scalars(select(ExplanationLetter).where(ExplanationLetter.auto.is_(True), ExplanationLetter.status.in_(OPEN)))).all()
+    if not letters:
+        return []
+    done: dict[int, set[str]] = {}
+    for ev in (await db.scalars(select(LetterEvent).where(LetterEvent.letter_id.in_([x.id for x in letters]), LetterEvent.action.in_(("reminded", "escalated"))))).all():
+        done.setdefault(ev.letter_id, set()).add(f"{ev.action}:{(ev.data or {}).get('h', '')}")
+    reviewers: list[int] | None = None
+    notes: list = []
+    for letter in letters:
+        age_h = int((moment - letter.requested_at).total_seconds() // 3600)
+        seen = done.get(letter.id, set())
+        emp = await db.get(Employee, letter.employee_id)
+        if emp is None or emp.status != "active":
+            continue
+        f = letter.facts or {}
+        base = {"number": letter.number, "incident": lsvc.INCIDENT_UZ.get(letter.incident_type, ""), "incident_ru": INCIDENT_RU.get(letter.incident_type, ""), "incident_date": lsvc.fmt_date(letter.incident_date)}
+        due = [h for h in REMIND_AFTER_H if age_h >= h and f"reminded:{h}" not in seen]
+        if due and emp.user_id:
+            # bir nechta bosqich o'tib ketgan bo'lsa ham bitta eslatma ketadi (yig'ilmaydi)
+            notes += await notify(db, [emp.user_id], "letters.auto_reminder", link=fill_link(letter.id), params={**base, "hours": age_h})
+            for x in due:
+                lsvc.add_event(db, letter, "reminded", None, data={"h": x})
+        if age_h >= ESCALATE_AFTER_H and f"escalated:{ESCALATE_AFTER_H}" not in seen:
+            branch = await db.get(Branch, emp.branch_id) if emp.branch_id else None
+            if reviewers is None:
+                reviewers = await users_with_permission(db, "letters.review")
+            to = [u for u in [branch.coordinator_user_id if branch else None, branch.manager_user_id if branch else None, *reviewers] if u and u != emp.user_id]
+            notes += await notify(
+                db, to, "letters.auto_overdue", link=f"/letters/{letter.id}",
+                params={**base, "hours": age_h, "name": emp.full_name, "branch": f.get("branch") or (branch.name if branch else "—")},
+            )  # fmt: skip
+            lsvc.add_event(db, letter, "escalated", None, data={"h": ESCALATE_AFTER_H})
     return notes
 
 

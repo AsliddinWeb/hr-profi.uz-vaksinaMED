@@ -1795,7 +1795,10 @@
       "accepted": "Qabul qilindi",
       "returned": "Qaytarildi",
       "cancelled": "Bekor qilindi",
-      "scanned": "Skaner yuklandi"
+      "scanned": "Skaner yuklandi",
+      "confirmed": "Sabab yozildi, QR qo'yildi",
+      "reminded": "Eslatma yuborildi",
+      "escalated": "Rahbarlarga xabar berildi"
     },
     "form": {
       "subtitle": "Xodimga xat yozish talabi yuboriladi",

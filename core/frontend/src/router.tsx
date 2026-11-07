@@ -35,6 +35,7 @@ import { AnswersStatusPage } from './features/answers/StatusPage'
 import { MyRequestsPage } from './features/answers/MyRequestsPage'
 import { RequestDetailPage } from './features/answers/RequestDetailPage'
 import { RequestFormPage } from './features/answers/RequestFormPage'
+import { FillRedirect } from './features/letters/FillRedirect'
 import { IssueFormPage } from './features/letters/IssueFormPage'
 import { LetterDetailPage } from './features/letters/LetterDetailPage'
 import { LettersPage } from './features/letters/LettersPage'
@@ -330,6 +331,7 @@ export function createRouter() {
             { path: 'letters/templates/new', element: <RequirePerm perm="letters.manage"><TemplateFormPage /></RequirePerm> },
             { path: 'letters/templates/:id/edit', element: <RequirePerm any={['letters.manage', 'letters.issue']}><TemplateFormPage /></RequirePerm> },
             { path: 'letters/:id', element: <RequirePerm any={['letters.own', 'letters.issue', 'letters.read', 'letters.manage']}><LetterDetailPage /></RequirePerm> },
+            { path: 'letters/:id/fill', element: <FillRedirect /> },
             { path: 'letters/:id/write', element: <RequirePerm perm="letters.own"><WritePage /></RequirePerm> },
             { path: 'letters/:id/scan', element: <RequirePerm any={['letters.own', 'letters.issue', 'letters.read', 'letters.manage']}><ScanPage /></RequirePerm> },
             { path: 'penalties', element: <RequirePerm any={['penalties.own', 'penalties.read', 'penalties.approve', 'penalties.manage']}><PenaltiesPage /></RequirePerm> },

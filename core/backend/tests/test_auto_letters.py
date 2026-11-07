@@ -143,3 +143,51 @@ async def test_scan_creates_letter_for_absence(new_client, clock):  # noqa: F811
     clock.set("2026-11-04 08:50")
     r = await pc.post(f"{API}/punch", json={"method": "gps", **NEAR})
     assert r.status_code == 409 and r.json()["detail"]["code"] == "letter_pending"
+
+
+async def test_first_message_and_reminders(new_client, clock):  # noqa: F811
+    from datetime import datetime, timedelta
+
+    from app.models.auth import User
+    from app.models.notifications import Notification
+    from app.models.org import Branch
+    from app.timeutil import tz
+    from tests.conftest import make_user
+
+    hr, pc, ctx = await setup_basic(new_client)
+    coord = await make_user("koord", "koordinator")
+    async with SessionLocal() as s:
+        (await s.get(Branch, ctx["branch"]["id"])).coordinator_user_id = coord
+        await s.commit()
+    lid = (await late_punch(pc, clock))["letter_id"]
+    async with SessionLocal() as s:
+        emp_uid = await s.scalar(select(User.id).where(User.login == "ali"))
+        first = await s.scalar(select(Notification).where(Notification.user_id == emp_uid, Notification.kind == "letters.auto"))
+        letter = await s.get(ExplanationLetter, lid)
+    assert first.link == f"/letters/{lid}/fill" and "09:32 da keldingiz, 32 daqiqa" in first.body_uz and "Og'zaki ogohlantirish" in first.body_uz
+    assert "опоздание 32 мин" in first.body_ru
+
+    async def run(at: datetime) -> list:
+        async with SessionLocal() as s:
+            notes = await svc.remind(s, at)
+            await s.commit()
+            return [(n.user_id, n.kind) for n in notes]
+
+    t0 = letter.requested_at
+    assert await run(t0 + timedelta(hours=1)) == []
+    assert await run(t0 + timedelta(hours=3)) == [(emp_uid, "letters.auto_reminder")]
+    assert await run(t0 + timedelta(hours=4)) == []  # bir bosqich bir marta
+    night = datetime(2026, 11, 3, 23, 30, tzinfo=tz())
+    assert await run(night) == []  # tunda yuborilmaydi
+    got = await run(datetime(2026, 11, 3, 10, 0, tzinfo=tz()))  # ~24.5 soat
+    kinds = sorted(k for _, k in got)
+    assert kinds.count("letters.auto_reminder") == 1 and "letters.auto_overdue" in kinds
+    assert (coord, "letters.auto_overdue") in got and all(u != emp_uid for u, k in got if k == "letters.auto_overdue")
+    assert await run(datetime(2026, 11, 3, 11, 0, tzinfo=tz())) == []
+    # eslatmalar tarixda
+    events = [e["action"] for e in (await hr.get(f"{L}/{lid}")).json()["events"]]
+    assert events.count("reminded") >= 2 and "escalated" in events
+    # imzolangan xatga eslatma yo'q
+    await pc.post(f"{L}/{lid}/auto/confirm", json={"explanation": REASON, "read": True})
+    await pc.post(f"{L}/{lid}/auto/sign", json={"signature": png()})
+    assert await run(datetime(2026, 11, 5, 10, 0, tzinfo=tz())) == []
