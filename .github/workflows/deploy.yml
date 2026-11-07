@@ -1,0 +1,62 @@
+name: Deploy
+
+# main ga push bo'lib, CI to'liq yashil bo'lgandan keyin serverni yangilaydi (yoki Actions sahifasidan qo'lda).
+# Kerakli secrets (Settings -> Secrets and variables -> Actions): DEPLOY_KEY (SSH yopiq kalit).
+# Ixtiyoriy variables: DEPLOY_HOST, DEPLOY_USER, DEPLOY_PATH, DEPLOY_URL. DEPLOY_KEY bo'lmasa job o'tkazib yuboriladi.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      HOST: ${{ vars.DEPLOY_HOST || '134.209.3.36' }}
+      USER_: ${{ vars.DEPLOY_USER || 'root' }}
+      APP_PATH: ${{ vars.DEPLOY_PATH || '/opt/vaksina' }}
+      URL: ${{ vars.DEPLOY_URL || 'https://hr-profi.uz' }}
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - name: SSH sozlash
+        id: ssh
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+        run: |
+          if [ -z "$DEPLOY_KEY" ]; then
+            echo "::notice::DEPLOY_KEY secret qo'shilmagan: deploy o'tkazib yuborildi (docs/DEPLOY.md)"
+            echo "skip=1" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          # Server host kaliti qotirilgan (SHA256:LFddAZRzEGAJK3TXkrNS1k/tHgJ9nk/tRwDsI2Dq4Fg): soxta serverga ulanib bo'lmaydi
+          echo "134.209.3.36 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHu7v7U7GYjjT8kPpBE6olGqcqKreoKXLUe4mbdKF/HJ" > ~/.ssh/known_hosts
+
+      - name: Serverni yangilash
+        if: steps.ssh.outputs.skip != '1'
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$USER_@$HOST" "set -e; cd '$APP_PATH'
+            [ -d .git ] || { echo 'Server git ga ulanmagan: deploy/scripts/deploy.sh --init' >&2; exit 1; }
+            git fetch -q origin main
+            deploy/scripts/upgrade.sh '$SHA'
+            docker image prune -f >/dev/null"
+
+      - name: Tashqi tekshiruv
+        if: steps.ssh.outputs.skip != '1'
+        run: |
+          for i in $(seq 1 20); do
+            if curl -fsS "$URL/api/health/ready"; then echo; exit 0; fi
+            sleep 3
+          done
+          echo "::error::$URL/api/health/ready javob bermadi"; exit 1
