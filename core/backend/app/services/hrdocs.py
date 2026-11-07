@@ -10,6 +10,7 @@ from app.deps import AuthContext
 from app.models.auth import Role, User
 from app.models.hrdocs import HrDocument, HrDocumentAck
 from app.rbac import matches
+from app.services.hrdocs_templates import TEMPLATES
 from app.services.notifications import register_template
 
 CATEGORIES = ("strategy", "policy", "process", "system", "culture")
@@ -23,9 +24,10 @@ DEFAULT_DOCS: tuple[tuple[str, str, str], ...] = (
     ("strategies", "strategy", "Kompaniya strategiyalari (ketma-ketlikda)"),
     ("values", "strategy", "Kompaniya qadriyatlari"),
     ("slogan", "strategy", "Kompaniya shiori"),
+    ("org_structure", "policy", "Tashkiliy tuzilma"),
     ("charter", "policy", "Kompaniya nizomi"),
     ("internal_rules", "policy", "Ichki tartib qoidalari"),
-    ("hr_docflow", "policy", "HR hujjatlar nazorati"),
+    ("hr_docflow", "policy", "HR byudjet nazorati"),
     ("job_duties", "policy", "Lavozim majburiyatlari"),
     ("recruiting", "process", "Recruiting jarayoni"),
     ("preboarding", "process", "Preboarding tizimi"),
@@ -42,6 +44,8 @@ DEFAULT_DOCS: tuple[tuple[str, str, str], ...] = (
     ("corp_culture", "culture", "Korporativ madaniyat"),
     ("gamification", "culture", "Gamifikatsiya"),
 )
+# Avvalgi versiyalardagi noto'g'ri sarlavhalar: kartochka hali to'ldirilmagan bo'lsa yangisiga almashtiriladi
+_OLD_TITLES: dict[str, str] = {"hr_docflow": "HR hujjatlar nazorati"}
 
 
 def has(auth: AuthContext, perm: str) -> bool:
@@ -59,13 +63,23 @@ def visible_to(doc: HrDocument, auth: AuthContext) -> bool:
 
 
 async def ensure_default_docs(db: AsyncSession) -> int:
-    """Yo'q tayyor kartochkalarni (qoralama holatida, bo'sh) yaratadi. Mavjudlariga tegmaydi."""
-    have = set((await db.scalars(select(HrDocument.key).where(HrDocument.key.is_not(None)))).all())
+    """Yo'q tayyor kartochkalarni qoralama holatida, shablon (bo'limlar rejasi) bilan yaratadi.
+    Mavjudlariga faqat hech kim tahrirlamagan bo'lsa tegadi: bo'sh kartochkaga shablon qo'yiladi va eski (noto'g'ri)
+    sarlavha tuzatiladi. HR o'zgartirgan kartochka hech qachon qayta yozilmaydi."""
+    have = {d.key: d for d in (await db.scalars(select(HrDocument).where(HrDocument.key.is_not(None)))).all()}
     added = 0
     for i, (key, cat, title) in enumerate(DEFAULT_DOCS, 1):
-        if key not in have:
-            db.add(HrDocument(key=key, category=cat, title=title, status="draft", version=0, sort_order=i, roles=[], requires_ack=False))
+        doc = have.get(key)
+        if doc is None:
+            db.add(HrDocument(key=key, category=cat, title=title, body=TEMPLATES.get(key), status="draft", version=0, sort_order=i, roles=[], requires_ack=False))
             added += 1
+            continue
+        if doc.updated_by is not None or doc.version != 0:
+            continue
+        if _OLD_TITLES.get(key) == doc.title:
+            doc.title = title
+        if not (doc.body or "").strip() and not doc.file_key and key in TEMPLATES:
+            doc.body = TEMPLATES[key]
     await db.commit()
     return added
 

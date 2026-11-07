@@ -33,7 +33,41 @@ async def test_default_cards_idempotent(new_client):
         assert await svc.ensure_default_docs(s) == len(svc.DEFAULT_DOCS)
         assert await svc.ensure_default_docs(s) == 0
         rows = (await s.scalars(select(HrDocument))).all()
-        assert len(rows) == 24 and all(r.status == "draft" and r.version == 0 for r in rows)
+        assert len(rows) == len(svc.DEFAULT_DOCS) == 25 and all(r.status == "draft" and r.version == 0 for r in rows)
+        assert {r.key for r in rows} >= {"org_structure", "hr_docflow"}
+        assert set(svc.TEMPLATES) == {k for k, _, _ in svc.DEFAULT_DOCS}
+        assert all(r.body and r.body.startswith("SHABLON") for r in rows)
+
+
+async def test_default_cards_template_only_for_untouched(new_client):
+    async with SessionLocal() as s:
+        await svc.ensure_default_docs(s)
+        uid = await make_user("hrd_tpl", "hr_direktor")
+        empty = await s.scalar(select(HrDocument).where(HrDocument.key == "kpi"))
+        empty.body = None  # eski versiyada bo'sh yaratilgan kartochka
+        edited = await s.scalar(select(HrDocument).where(HrDocument.key == "kaizen"))
+        edited.body, edited.updated_by = None, uid  # HR ataylab tozalagan
+        await s.commit()
+        await svc.ensure_default_docs(s)
+        await s.refresh(empty)
+        await s.refresh(edited)
+        assert empty.body == svc.TEMPLATES["kpi"]
+        assert edited.body is None
+
+
+async def test_default_cards_fix_old_title_only_if_untouched(new_client):
+    async with SessionLocal() as s:
+        await svc.ensure_default_docs(s)
+        flow = await s.scalar(select(HrDocument).where(HrDocument.key == "hr_docflow"))
+        flow.title = "HR hujjatlar nazorati"  # avvalgi versiyadagi sarlavha
+        mission = await s.scalar(select(HrDocument).where(HrDocument.key == "mission"))
+        mission.title = "Bizning missiyamiz"  # mijoz o'zi o'zgartirgan
+        await s.commit()
+        assert await svc.ensure_default_docs(s) == 0
+        await s.refresh(flow)
+        await s.refresh(mission)
+        assert flow.title == "HR byudjet nazorati"
+        assert mission.title == "Bizning missiyamiz"
 
 
 async def test_lifecycle_visibility_and_ack(new_client):
