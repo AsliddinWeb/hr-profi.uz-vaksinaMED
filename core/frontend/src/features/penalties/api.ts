@@ -50,6 +50,7 @@ export interface RuleStep {
 }
 export interface RulesConfig {
   auto_scan: boolean
+  auto_letters?: boolean
   window_days: number
   count_mode: 'all' | 'per_type'
   triggers: Record<(typeof AUTO_TYPES)[number], { enabled: boolean; min_minutes: number }>

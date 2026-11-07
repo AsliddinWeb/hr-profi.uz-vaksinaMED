@@ -1,10 +1,12 @@
 """Tushuntirish xatlari: shablonlar, so'rash, yozish + imzo, ko'rib chiqish, PDF, skaner, ochiq tekshiruv."""
 
 import asyncio
+import io
 from datetime import date, timedelta
 from typing import Any
 from urllib.parse import quote
 
+import segno
 from fastapi import APIRouter, Depends, File, Query, Request, UploadFile
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
@@ -19,6 +21,7 @@ from app.models.auth import User
 from app.models.employees import Employee
 from app.models.letters import ExplanationLetter, LetterEvent, LetterTemplate
 from app.security import verify_password
+from app.services import auto_letters as auto_svc
 from app.services import letters as svc
 from app.services.audit import audit, client_ip
 from app.services.letters_pdf import build_letter_pdf
@@ -300,6 +303,88 @@ async def detail(letter_id: int, db: AsyncSession = Depends(get_session), auth: 
         {"id": e.id, "action": e.action, "note": e.note, "actor": names.get(e.actor_id or 0), "created_at": e.created_at} for e in events
     ]  # fmt: skip
     return out
+
+
+# --- Avtomatik xat (davomatdagi qoidabuzarlikdan) --------------------------------------
+
+
+async def _auto_out(db: AsyncSession, letter: ExplanationLetter, emp: Employee, request: Request) -> dict[str, Any]:
+    company = _company(request)
+    doc = auto_svc.document(letter, company, await auto_svc.recipient_line(db, letter, company))
+    return {
+        "id": letter.id, "number": letter.number, "code": letter.code, "status": letter.status, "incident_type": letter.incident_type,
+        "incident_date": letter.incident_date, "facts": letter.facts, "explanation": letter.explanation, "confirmed_at": letter.confirmed_at,
+        "submitted_at": letter.submitted_at, "signature_image": letter.signature_image, "review_note": letter.review_note,
+        "signer": letter.signature.get("name") if letter.signature else emp.full_name,
+        "verify_url": f"{_base_url(request)}/verify/{letter.code}" if letter.confirmed_at else None,
+        "document": doc, "min_words": auto_svc.MIN_WORDS, "min_chars": auto_svc.MIN_CHARS,
+    }  # fmt: skip
+
+
+async def _auto_load(db: AsyncSession, letter_id: int, auth: AuthContext, *, lock: bool = False) -> tuple[ExplanationLetter, Employee]:
+    letter, emp = await _load(db, letter_id, auth, lock=lock)
+    if not letter.auto:
+        raise error(404, "not_found")
+    return letter, emp
+
+
+@router.get("/auto/pending")
+async def auto_pending(request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
+    """Joriy xodimning imzolanmagan avtomatik xati (bo'lmasa null). Har sahifada oyna shu bilan ochiladi."""
+    emp = await db.scalar(select(Employee).where(Employee.user_id == auth.user.id))
+    letter = await auto_svc.open_letter(db, emp.id) if emp else None
+    return await _auto_out(db, letter, emp, request) if letter and emp else None
+
+
+@router.get("/{letter_id}/auto")
+async def auto_detail(letter_id: int, request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
+    letter, emp = await _auto_load(db, letter_id, auth)
+    return await _auto_out(db, letter, emp, request)
+
+
+@router.get("/{letter_id}/auto/qr")
+async def auto_qr(letter_id: int, request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
+    letter, _ = await _auto_load(db, letter_id, auth)
+    if letter.confirmed_at is None:
+        raise error(409, "letter_not_confirmed")
+    buf = io.BytesIO()
+    segno.make(f"{_base_url(request)}/verify/{letter.code}", error="m").save(buf, kind="svg", scale=4, border=1, dark="#0f172a")
+    return Response(buf.getvalue(), media_type="image/svg+xml", headers={"Cache-Control": "private, max-age=3600"})
+
+
+class AutoConfirmIn(BaseModel):
+    explanation: str = Field(min_length=1, max_length=svc.MAX_TEXT)
+    read: bool
+
+
+@router.post("/{letter_id}/auto/confirm")
+async def auto_confirm(letter_id: int, body: AutoConfirmIn, request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
+    """1-qadam: xodim sababni o'zi yozadi va xatni to'liq o'qiganini tasdiqlaydi (QR qo'yiladi)."""
+    letter, emp = await _auto_load(db, letter_id, auth, lock=True)
+    if emp.user_id != auth.user.id:
+        raise error(403, "forbidden")
+    if not body.read:
+        raise error(400, "read_required")
+    auto_svc.confirm(db, letter, body.explanation, auth.user.id, now())
+    await db.commit()
+    return await _auto_out(db, letter, emp, request)
+
+
+class AutoSignIn(BaseModel):
+    signature: str = Field(min_length=30, max_length=auto_svc.MAX_SIGNATURE_BYTES * 2)
+
+
+@router.post("/{letter_id}/auto/sign")
+async def auto_sign(letter_id: int, body: AutoSignIn, request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
+    """3-qadam: chizilgan imzo bilan topshiriladi. Shundan keyin «Keldim» yana ochiladi."""
+    letter, emp = await _auto_load(db, letter_id, auth, lock=True)
+    if emp.user_id != auth.user.id:
+        raise error(403, "forbidden")
+    notes = await auto_svc.sign(db, letter, emp, auth.user, body.signature, _company(request), client_ip(request), now())
+    await audit(db, request, "letters.submit", actor=auth.user, entity="letter", entity_id=letter.id, data={"number": letter.number, "hash": letter.content_hash, "auto": True})
+    await db.commit()
+    await deliver(request.app, notes)
+    return await _auto_out(db, letter, emp, request)
 
 
 class SubmitIn(BaseModel):

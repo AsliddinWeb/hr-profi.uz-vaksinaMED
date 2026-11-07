@@ -87,6 +87,13 @@ function RulesForm({ base }: { base: RuleVersion }) {
               <span className="block text-xs text-muted">{t('penalties.rules.autoScanHint')}</span>
             </span>
           </label>
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" className="mt-0.5 size-4" checked={cfg.auto_letters !== false} onChange={(e) => set({ auto_letters: e.target.checked })} />
+            <span>
+              {t('penalties.rules.autoLetters')}
+              <span className="block text-xs text-muted">{t('penalties.rules.autoLettersHint')}</span>
+            </span>
+          </label>
         </FormSection>
 
         <FormSection title={t('penalties.rules.steps')} description={t('penalties.rules.stepsHint')}>

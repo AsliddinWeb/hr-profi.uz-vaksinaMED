@@ -265,6 +265,11 @@ async def punch(
         select(AttendanceRecord.id).where(AttendanceRecord.employee_id == emp.id, AttendanceRecord.work_date == work_date)
     ):
         raise error(409, "already_checked_out")
+    from app.services.auto_letters import open_letter  # circular importdan qochish
+
+    pending = await open_letter(db, emp.id)
+    if pending is not None:  # imzolanmagan avtomatik tushuntirish xati: yangi «Keldim» yopiq
+        raise error(409, "letter_pending", letter_id=pending.id, number=pending.number)
     start, end = planned_window(shift, work_date)
     rec = AttendanceRecord(
         employee_id=emp.id, work_date=work_date, shift_id=shift.id if shift else None,

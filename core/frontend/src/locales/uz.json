@@ -407,7 +407,11 @@
     "api_key_invalid": "API kaliti yaroqsiz",
     "scope_forbidden": "Kalitda bu amal uchun ruxsat yo'q",
     "scope_invalid": "Noma'lum ruxsat turi",
-    "case_exists": "Bu xodim uchun faol holat allaqachon bor"
+    "case_exists": "Bu xodim uchun faol holat allaqachon bor",
+    "letter_pending": "Avval tushuntirish xatini imzolang: imzolanmaguncha «Keldim» belgilanmaydi",
+    "letter_not_confirmed": "Avval sababni yozib tasdiqlang",
+    "signature_invalid": "Imzo noto'g'ri. Qaytadan chizing",
+    "read_required": "Xatni to'liq o'qiganingizni belgilang"
   },
   "auth": {
     "heroTitle": "Kadrlar va filiallar — bitta tizimda",
@@ -1966,7 +1970,10 @@
       "note": "Izoh",
       "noteHint": "Nima va nega o'zgardi (tarixda ko'rinadi)",
       "saveVersion": "Yangi versiyani saqlash",
-      "saved": "Qoida v{{v}} saqlandi"
+      "saved": "Qoida v{{v}} saqlandi",
+      "autoLetters": "Qoidabuzarlikda avtomatik tushuntirish xati",
+      "autoLettersHint": "Kechikish, erta ketish (belgilash paytida), kelmaslik va ketish belgilanmagan holatda (har kecha) xodimga xat va «tasdiq kutilmoqda» jarimasi chiqadi. Xat imzolanmaguncha keyingi «Keldim» bloklanadi.",
+      "autoLettersOn": "Avtomatik tushuntirish xati"
     },
     "report": {
       "title": "Jarima hisoboti",
@@ -5264,6 +5271,84 @@
         "accepted": "Siz offerni qabul qildingiz. HR siz bilan bog'lanadi.",
         "declined": "Siz offerni rad etdingiz."
       }
+    }
+  },
+  "autoLetter": {
+    "title": "Tushuntirish xati",
+    "waiting": "Kutilmoqda",
+    "signed": "Imzolangan",
+    "stepBadge": "{{n}}-holat",
+    "fine": "jarima {{amount}}",
+    "blocked": "Xat imzolanmaguncha keyingi davomat («Keldim») belgilanmaydi.",
+    "later": "Keyinroq to'ldiraman",
+    "steps": {
+      "read": "O'qish va sabab",
+      "qr": "Tasdiqlash · QR",
+      "sign": "Imzo"
+    },
+    "reason": {
+      "title": "Sababni o'zingiz yozing",
+      "hint": "Nima bo'lganini aniq, o'z so'zlaringiz bilan yozing: qachon, nima sababdan va kimni ogohlantirganingiz. Matn xatga aynan shunday tushadi. Nusxa ko'chirib qo'yish o'chirilgan.",
+      "placeholder": "Sababni shu yerga yozing...",
+      "counter": "{{words}}/{{minWords}} so'z · {{chars}}/{{minChars}}+ belgi",
+      "read": "Tushuntirish xatini to'liq o'qib chiqdim. Undagi ma'lumotlar to'g'ri, takrorlansa bosqichlarda ko'rsatilgan jarima va intizomiy jazo qo'llanilishiga roziman.",
+      "submit": "Tasdiqlash",
+      "need": "Sababni qo'lda yozing: kamida {{minWords}} so'z, {{minChars}} belgi",
+      "returned": "HR xatni qaytardi: {{note}}"
+    },
+    "qr": {
+      "title": "Tasdiqlandi — QR qo'yildi",
+      "body": "Oxirgi qadam: «Imzo qo'yish» tugmasini bosib, imzoingizni chizing."
+    },
+    "sign": {
+      "open": "Imzo qo'yish",
+      "padTitle": "Imzoingizni chizing",
+      "padHint": "Barmoq, stilus yoki sichqoncha bilan quyidagi maydonga imzo qo'ying.",
+      "clear": "Tozalash",
+      "save": "Imzolash va saqlash",
+      "done": "Xat imzolandi va saqlandi"
+    },
+    "final": {
+      "title": "Imzolangan va saqlangan",
+      "body": "{{date}}, {{time}} da elektron imzo qo'yildi. Hujjat № {{number}}.",
+      "verify": "Tekshirish"
+    },
+    "coord": {
+      "title": "Koordinator · bog'lanish uchun",
+      "none": "Koordinator biriktirilmagan"
+    },
+    "facts": {
+      "employee": "Xodim",
+      "position": "Lavozim",
+      "branch": "Filial",
+      "shift": "Smena",
+      "state": "Holat",
+      "date": "Sana",
+      "count": "Qoidabuzarlik",
+      "countValue": "{{n}}-marta (joriy oy)",
+      "measure": "Chora",
+      "phone": "Xodim telefoni",
+      "branchPhone": "Filial telefoni",
+      "none": "Kiritilmagan",
+      "lateState": "Kechikish · {{time}} da keldi ({{minutes}} daq.)",
+      "earlyState": "Erta ketish · {{time}} da ketdi ({{minutes}} daq.)"
+    },
+    "doc": {
+      "qrLater": "QR kod tasdiqlangandan keyin qo'yiladi",
+      "qrAlt": "Hujjatni tekshirish QR kodi",
+      "qrHint": "Haqiqiyligini tekshirish uchun QR kodni skanerlang",
+      "number": "Hujjat raqami",
+      "companyEmployee": "«{{company}}» jamiyatining",
+      "from": "dan",
+      "tel": "Tel: {{phone}}",
+      "measureLine": "Belgilangan chora:",
+      "reasonPlace": "Sabab shu yerga yoziladi",
+      "ladder": "Intizomiy choralar bosqichlari (joriy oy davomida)",
+      "you": "SIZ",
+      "date": "sana",
+      "signature": "imzo",
+      "fio": "F.I.Sh.",
+      "footer": "Elektron imzolangan: {{date}} {{time}} (Toshkent vaqti) · Hujjat № {{number}} · {{company}} platformasi"
     }
   }
 }

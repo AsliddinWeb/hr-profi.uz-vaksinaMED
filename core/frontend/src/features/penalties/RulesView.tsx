@@ -14,6 +14,7 @@ export function RulesView({ version, current }: { version: RuleVersion; current?
         <h2 className="font-semibold">{t('penalties.ruleVersion', { v: version.version })}</h2>
         {current && <Badge tone="success">{t('penalties.rules.current')}</Badge>}
         <Badge tone={c.auto_scan ? 'success' : 'neutral'}>{c.auto_scan ? t('penalties.rules.autoOn') : t('penalties.rules.autoOff')}</Badge>
+        {c.auto_letters !== false && <Badge tone="warning">{t('penalties.rules.autoLettersOn')}</Badge>}
         <Badge>{t('penalties.rules.windowN', { days: c.window_days })}</Badge>
         <Badge>{t(`penalties.rules.mode.${c.count_mode}`)}</Badge>
       </div>

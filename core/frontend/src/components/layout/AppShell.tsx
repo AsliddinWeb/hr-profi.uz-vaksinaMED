@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 
 import { IncomingCalls } from '../../features/calls/IncomingCalls'
+import { AutoLetterModal } from '../../features/letters/AutoLetterModal'
 import { useRealtime } from '../../features/notifications/useRealtime'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
@@ -18,6 +19,7 @@ export function AppShell() {
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onMenu={() => setOpen(true)} />
         <IncomingCalls />
+        <AutoLetterModal />
         <main id="main" className="flex-1 px-4 pb-12 pt-1 lg:px-8">
           <Outlet />
         </main>

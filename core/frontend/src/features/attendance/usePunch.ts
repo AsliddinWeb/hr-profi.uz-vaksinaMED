@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { ApiError, send } from '../../lib/api'
 import { errorText } from '../auth/errorText'
+import { openAutoLetter } from '../letters/autoApi'
 import type { PunchResult } from './api'
 import { getPosition } from './geo'
 
@@ -32,7 +33,13 @@ export function usePunch(token?: string) {
         accuracy: pos?.accuracy ?? null,
       })
     },
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['attendance'] }),
+    onSuccess: (r) => {
+      void qc.invalidateQueries({ queryKey: ['attendance'] })
+      if (r.letter_id) openAutoLetter() // qoidabuzarlik: tushuntirish xati darhol ochiladi
+    },
+    onError: (e) => {
+      if (e instanceof ApiError && e.code === 'letter_pending') openAutoLetter()
+    },
   })
 
   const err = mutation.error

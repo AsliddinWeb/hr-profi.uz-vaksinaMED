@@ -56,6 +56,7 @@ class Step(BaseModel):
 
 class RulesConfig(BaseModel):
     auto_scan: bool = False
+    auto_letters: bool = True  # qoidabuzarlikda avtomatik tushuntirish xati + «Keldim» bloki
     window_days: int = Field(default=90, ge=7, le=730)
     count_mode: str = Field(default="all", pattern="^(all|per_type)$")
     triggers: dict[str, Trigger]
@@ -119,11 +120,14 @@ def detect(status: str, rec, cfg: dict[str, Any]) -> tuple[str, dict[str, Any]] 
     return None
 
 
-async def scan_day(db: AsyncSession, day: date, rules: PenaltyRuleVersion, *, dry_run: bool, moment: datetime) -> dict[str, int]:
-    """Bitta o'tgan kun uchun davomatdan jarimalarni hisoblaydi (takrorlanmaydi). Natija: soni."""
+async def scan_day(db: AsyncSession, day: date, rules: PenaltyRuleVersion, *, dry_run: bool, moment: datetime, notes: list | None = None) -> dict[str, int]:
+    """Bitta o'tgan kun uchun davomatdan jarimalarni hisoblaydi (takrorlanmaydi). Natija: soni.
+    Qoidada `auto_letters` yoqilgan bo'lsa, har yangi jarimaga avtomatik tushuntirish xati ham yaratiladi."""
     from app.api.attendance import _rows  # davomat holati bilan BIR manba
+    from app.services import auto_letters
 
     cfg = rules.config
+    letters = auto_letters.enabled(cfg)
     employees = list((await db.scalars(select(Employee).where(Employee.status == "active", (Employee.hire_date.is_(None)) | (Employee.hire_date <= day)).order_by(Employee.id))).all())
     stats = {"employees": len(employees), "created": 0, "existing": 0, "warnings": 0, "fines": 0, "blocks": 0}
     for i in range(0, len(employees), 500):
@@ -143,16 +147,21 @@ async def scan_day(db: AsyncSession, day: date, rules: PenaltyRuleVersion, *, dr
             stats["blocks" if step["block_days"] else "fines" if step["amount"] else "warnings"] += 1
             if dry_run:
                 continue
-            db.add(Penalty(
+            p = Penalty(
                 employee_id=emp.id, incident_type=itype, incident_date=day, source="auto", rule_version_id=rules.id,
                 step=step["step"], label=step["label"], amount=Decimal(str(step["amount"])), block_days=step["block_days"],
                 details=details, status="pending",
-            ))  # fmt: skip
+            )  # fmt: skip
+            db.add(p)
             await db.flush()
+            if letters:
+                _, n = await auto_letters.create(db, emp, itype, day, d["record"], d["shift"], p, rules, moment)
+                if notes is not None:
+                    notes += n
     return stats
 
 
-async def scan_range(db: AsyncSession, start: date, end: date, *, dry_run: bool, moment: datetime) -> dict[str, Any]:
+async def scan_range(db: AsyncSession, start: date, end: date, *, dry_run: bool, moment: datetime, notes: list | None = None) -> dict[str, Any]:
     today = local_date(moment)
     if end >= today:
         raise error(400, "range_not_finished")  # tugamagan kunni hisoblab bo'lmaydi
@@ -162,7 +171,7 @@ async def scan_range(db: AsyncSession, start: date, end: date, *, dry_run: bool,
     total = {"employees": 0, "created": 0, "existing": 0, "warnings": 0, "fines": 0, "blocks": 0}
     d = start
     while d <= end:  # tartib bilan: bosqich oldingi kunlardagi jarimalarga bog'liq
-        s = await scan_day(db, d, rules, dry_run=dry_run, moment=moment)
+        s = await scan_day(db, d, rules, dry_run=dry_run, moment=moment, notes=notes)
         for k in total:
             total[k] = max(total[k], s[k]) if k == "employees" else total[k] + s[k]
         d += timedelta(days=1)
@@ -253,7 +262,7 @@ def penalty_out(p: Penalty, emp: Employee) -> dict[str, Any]:
 
 
 DEFAULT_CONFIG: dict[str, Any] = {
-    "auto_scan": False, "window_days": 90, "count_mode": "all",
+    "auto_scan": False, "auto_letters": True, "window_days": 90, "count_mode": "all",
     "triggers": {
         "late": {"enabled": True, "min_minutes": 10}, "early_leave": {"enabled": True, "min_minutes": 10},
         "absent": {"enabled": True, "min_minutes": 0}, "no_checkout": {"enabled": False, "min_minutes": 0},

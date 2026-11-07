@@ -64,6 +64,13 @@ class ExplanationLetter(Base, TimestampMixin):
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     review_note: Mapped[str | None] = mapped_column(Text)
 
+    # Avtomatik xat (davomatdagi qoidabuzarlikdan): faktlar muhrlanadi, jarima bog'lanadi, imzo qo'lda chiziladi
+    auto: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    penalty_id: Mapped[int | None] = mapped_column(ForeignKey("penalties.id", ondelete="SET NULL"))
+    facts: Mapped[dict | None] = mapped_column(JSONB)
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # sabab yozilib tasdiqlangan (QR qo'yilgan)
+    signature_image: Mapped[str | None] = mapped_column(Text)  # data:image/png;base64,...
+
     scan_key: Mapped[str | None] = mapped_column(String(300))
     scan_mime: Mapped[str | None] = mapped_column(String(60))
     scan_filename: Mapped[str | None] = mapped_column(String(200))

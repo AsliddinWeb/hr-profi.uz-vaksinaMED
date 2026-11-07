@@ -314,8 +314,21 @@ async def test_attendance_permissions(new_client, clock):
 # --- Dashboard (F8) ---------------------------------------------------------------------
 
 
+async def no_auto_letters() -> None:
+    """Avtomatik tushuntirish xatini o'chiradi (aks holda kech kelgandan keyingi «Keldim» bloklanadi)."""
+    from sqlalchemy import select
+
+    from app.models.penalties import PenaltyRuleVersion
+
+    async with SessionLocal() as s:
+        v = await s.scalar(select(PenaltyRuleVersion).order_by(PenaltyRuleVersion.version.desc()))
+        v.config = {**v.config, "auto_letters": False}
+        await s.commit()
+
+
 async def test_dashboard_matches_timesheet_and_pdf(new_client, clock):
     hr, pc, ctx = await setup_basic(new_client)
+    await no_auto_letters()
     async with SessionLocal() as s:
         s.add(Employee(last_name="Bekov", first_name="Bek", full_name="Bekov Bek", status="active", branch_id=ctx["branch"]["id"]))
         await s.commit()

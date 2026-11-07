@@ -18,6 +18,8 @@ import { formatDate, formatDateTime } from '../../lib/format'
 import { NotFound } from '../../pages/NotFound'
 import { errorText } from '../auth/errorText'
 import { STATUS_TONE, type LetterDetail } from './api'
+import type { AutoLetter } from './autoApi'
+import { Paper } from './AutoLetterModal'
 
 /** /letters/:id: xat tafsiloti, tarix, ko'rib chiqish (qabul/qaytarish), PDF va skaner. */
 export function LetterDetailPage() {
@@ -108,7 +110,9 @@ export function LetterDetailPage() {
         </div>
       </Card>
 
-      {l.snapshot && (
+      {l.auto && <AutoDocument id={l.id} />}
+
+      {l.snapshot && !l.auto && (
         <Card className="p-6">
           <h2 className="font-semibold">{t('letters.document')}</h2>
           <div className="mt-3 rounded-control border border-border p-5 text-sm">
@@ -190,5 +194,20 @@ function Item({ label, value }: { label: string; value: string }) {
       <dt className="text-xs text-muted">{label}</dt>
       <dd>{value}</dd>
     </div>
+  )
+}
+
+/** Avtomatik xat: imzo, QR va bosqichlar bilan to'liq hujjat ko'rinishi (xodim ko'rgani bilan bir xil). */
+function AutoDocument({ id }: { id: number }) {
+  const { t } = useTranslation()
+  const q = useQuery({ queryKey: ['letters', 'auto', id], queryFn: () => api<AutoLetter>(`/api/v1/letters/${id}/auto`), retry: false })
+  if (!q.data) return <Skeleton className="h-96" />
+  return (
+    <Card className="overflow-hidden p-0">
+      <h2 className="px-6 pt-5 font-semibold">{t('letters.document')}</h2>
+      <div className="bg-surface-2 p-3 sm:p-5">
+        <Paper letter={q.data} />
+      </div>
+    </Card>
   )
 }

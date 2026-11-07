@@ -100,10 +100,12 @@ class ScanIn(BaseModel):
 @router.post("/scan")
 async def scan(body: ScanIn, request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(require_any("penalties.manage"))):
     """O'tgan kunlar uchun davomatdan jarimalarni hisoblaydi (tasdiq kutadi). `dry_run` faqat sanaydi."""
-    result = await svc.scan_range(db, body.start, body.end, dry_run=body.dry_run, moment=now())
+    notes: list = []
+    result = await svc.scan_range(db, body.start, body.end, dry_run=body.dry_run, moment=now(), notes=notes)
     if not body.dry_run:
         await audit(db, request, "penalties.scan", actor=auth.user, entity="penalty", data={"start": str(body.start), "end": str(body.end), **{k: v for k, v in result.items() if k != "dry_run"}})
         await db.commit()
+        await deliver(request.app, notes)
     return result
 
 

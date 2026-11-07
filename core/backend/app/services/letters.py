@@ -220,10 +220,10 @@ def letter_out(letter: ExplanationLetter, emp: Employee, *, today: date, auth: A
         "due_date": letter.due_date, "overdue": overdue, "status": letter.status, "requested_at": letter.requested_at,
         "requested_by": requester, "submitted_at": letter.submitted_at, "reviewed_at": letter.reviewed_at, "review_note": letter.review_note,
         "has_scan": letter.scan_key is not None, "scan_filename": letter.scan_filename, "template_id": letter.template_id,
-        "signed": letter.signature is not None, "content_hash": letter.content_hash,
+        "signed": letter.signature is not None, "content_hash": letter.content_hash, "auto": letter.auto,
     }  # fmt: skip
     if auth is not None:
-        out["can_write"] = emp.user_id == auth.user.id and letter.status in OPEN
+        out["can_write"] = emp.user_id == auth.user.id and letter.status in OPEN and not letter.auto  # avtomatik xat o'z oynasida
         out["can_review"] = can_review(auth, letter, emp)
         out["can_cancel"] = can_cancel(auth, letter)
         out["can_scan"] = letter.status in ("submitted", "accepted") and (emp.user_id == auth.user.id or has(auth, "letters.review"))

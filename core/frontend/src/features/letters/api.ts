@@ -31,6 +31,7 @@ export interface Letter {
   scan_filename: string | null
   template_id: number | null
   signed: boolean
+  auto?: boolean
   content_hash: string | null
   can_write: boolean
   can_review: boolean

@@ -111,20 +111,27 @@ async def escalate_leave_requests(ctx: dict) -> int:
 
 
 async def scan_penalties(ctx: dict) -> dict:
-    """Qoidada `auto_scan` yoqilgan bo'lsa, oxirgi 3 tugagan kun uchun jarimalarni hisoblaydi (takrorlanmaydi)."""
+    """Qoidada `auto_scan` yoki `auto_letters` yoqilgan bo'lsa, oxirgi 3 tugagan kun uchun jarimalarni (va avtomatik
+    tushuntirish xatlarini) hisoblaydi (takrorlanmaydi)."""
     from datetime import timedelta
+    from types import SimpleNamespace
 
+    from app.services.auto_letters import enabled as letters_enabled
+    from app.services.notifications import deliver
     from app.services.penalties import current_rules, scan_range
     from app.timeutil import local_date, now
 
     async with SessionLocal() as session:
         rules = await current_rules(session)
-        if not rules.config.get("auto_scan"):
+        if not rules.config.get("auto_scan") and not letters_enabled(rules.config):
             return {"skipped": True}
         today = local_date(now())
-        result = await scan_range(session, today - timedelta(days=3), today - timedelta(days=1), dry_run=False, moment=now())
+        notes: list = []
+        result = await scan_range(session, today - timedelta(days=3), today - timedelta(days=1), dry_run=False, moment=now(), notes=notes)
         await session.commit()
-        return result
+    app = SimpleNamespace(state=SimpleNamespace(redis=ctx["redis"], queue=_QueueAdapter(ctx["redis"])))
+    await deliver(app, notes)  # type: ignore[arg-type]
+    return result
 
 
 async def release_penalty_blocks(ctx: dict) -> int:

@@ -22,11 +22,13 @@ from app.models.employees import Employee
 from app.models.org import Branch, Department, Position
 from app.models.schedule import ShiftTemplate, WorkGroup
 from app.services import attendance as svc
+from app.services import auto_letters
 from app.services import schedule as sched
 from app.services.answers import approved_leave_days
 from app.services.attendance_pdf import build_pdf
 from app.services.attendance_report import aggregate
 from app.services.audit import audit
+from app.services.notifications import deliver
 from app.services.xlsx_safe import harden
 from app.timeutil import local_date, localize, now, tz
 
@@ -128,6 +130,7 @@ class PunchIn(BaseModel):
 @router.post("/punch")
 async def punch(
     body: PunchIn,
+    request: Request,
     db: AsyncSession = Depends(get_session),
     auth: AuthContext = Depends(require("attendance.punch")),
 ):
@@ -136,12 +139,16 @@ async def punch(
         action, rec = await svc.punch(
             db, emp, method=body.method, token=body.token, lat=body.lat, lng=body.lng, accuracy=body.accuracy
         )
+        itype = "late" if action == "check_in" and rec.late_minutes else "early_leave" if action == "check_out" and rec.early_leave_minutes else None
+        notes = await auto_letters.on_violation(db, emp, itype, rec, rec.check_out_at or rec.check_in_at) if itype else []
     except Exception:
         await db.rollback()
         raise
     await db.commit()
+    await deliver(request.app, notes)
     shift = await db.get(ShiftTemplate, rec.shift_id) if rec.shift_id else None
-    return {"action": action, "record": record_out(rec, shift)}
+    letter = await auto_letters.open_letter(db, emp.id) if notes else None
+    return {"action": action, "record": record_out(rec, shift), "letter_id": letter.id if letter else None}
 
 
 # --- QR ---------------------------------------------------------------------------------

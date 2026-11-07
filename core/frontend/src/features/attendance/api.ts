@@ -69,6 +69,7 @@ export interface MeData {
 export interface PunchResult {
   action: 'check_in' | 'check_out'
   record: AttRecord
+  letter_id?: number | null // qoidabuzarlik aniqlansa: avtomatik tushuntirish xati
 }
 
 export interface DailyItem {
