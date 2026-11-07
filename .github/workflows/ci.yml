@@ -17,14 +17,21 @@ jobs:
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U vaksina" --health-interval 5s --health-timeout 5s --health-retries 10
+      # test_api ilovani to'liq ishga tushiradi (lifespan: Redis + arq navbati); qolgan testlar fakeredis ishlatadi
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       DATABASE_URL: postgresql+asyncpg://vaksina:vaksina@localhost:5432/vaksina_test
+      REDIS_URL: redis://localhost:6379/0
     defaults:
       run:
         working-directory: core/backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -39,8 +46,8 @@ jobs:
       run:
         working-directory: core/frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
@@ -55,6 +62,6 @@ jobs:
   compose:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: make init
       - run: docker compose config -q
