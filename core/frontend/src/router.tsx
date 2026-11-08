@@ -104,6 +104,8 @@ import { SchemeFormPage } from './features/payroll/SchemeFormPage'
 import { SchemesPage } from './features/payroll/SchemesPage'
 import { ClassDetailPage, ClassFormPage, ClassesPage } from './features/internship/ClassesPage'
 import { KadrPage } from './features/internship/KadrPage'
+import { PreboardingAdminPage } from './features/preboarding/AdminPage'
+import { MyPreboardingPage } from './features/preboarding/LessonView'
 import { EnrollmentPage } from './features/internship/EnrollmentPage'
 import { EnrollmentsPage } from './features/internship/EnrollmentsPage'
 import { EnrollPage as InternEnrollPage } from './features/internship/EnrollPage'
@@ -409,6 +411,8 @@ export function createRouter() {
             { path: 'payroll/items/:id/edit', element: <RequirePerm perm="payroll.input"><ItemFormPage /></RequirePerm> },
             { path: 'payroll/my', element: <RequirePerm perm="payroll.own"><MyPayslipsPage /></RequirePerm> },
             { path: 'payroll/my/:id', element: <RequirePerm perm="payroll.own"><MyPayslipPage /></RequirePerm> },
+            { path: 'preboarding', element: <RequirePerm any={['internship.read', 'internship.manage']}><PreboardingAdminPage /></RequirePerm> },
+            { path: 'preboarding/my', element: <MyPreboardingPage /> },
             { path: 'internship', element: <RequirePerm any={['internship.own', 'internship.read', 'internship.manage']}><EnrollmentsPage /></RequirePerm> },
             { path: 'internship/classes', element: <RequirePerm any={['internship.own', 'internship.read', 'internship.manage']}><ClassesPage /></RequirePerm> },
             { path: 'internship/classes/new', element: <RequirePerm perm="internship.manage"><ClassFormPage /></RequirePerm> },
