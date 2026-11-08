@@ -39,26 +39,47 @@ async def test_org_insights_positions_archive_analytics(new_client):
     assert (await hr.get("/api/v1/org/insights", params={"department_id": 999999})).status_code == 404
 
 
-async def test_org_scheme_yqm_head_and_vacancy(new_client):
+async def test_org_scheme_hierarchy_slots_template(new_client):
     await make_user("hrs", "hr_direktor")
     hr = new_client()
     assert (await login(hr, "hrs")).status_code == 200
-    d = (await hr.post("/api/v1/org/departments", json={"name": "Marketing", "yqm": "Ko'p mijoz", "create_default_positions": False})).json()
-    did = d["id"]
-    head_pos = (await hr.post("/api/v1/org/positions", json={"name": "Bo'lim boshlig'i", "department_id": did})).json()["id"]
-    smm = (await hr.post("/api/v1/org/positions", json={"name": "SMM", "department_id": did, "yqm": "Faol kontent"})).json()["id"]
-    await hr.post("/api/v1/org/positions", json={"name": "Brending", "department_id": did})
+    did = (await hr.post("/api/v1/org/departments", json={"name": "Marketing", "yqm": "Ko'p mijoz", "create_default_positions": False})).json()["id"]
+    head = (await hr.post("/api/v1/org/positions", json={"name": "Marketing boshlig'i", "department_id": did, "is_head": True})).json()["id"]
+    smm = (await hr.post("/api/v1/org/positions", json={"name": "SMM", "department_id": did, "parent_id": head, "slots": 3, "yqm": "Faol kontent"})).json()["id"]
+    # aylana bo'ysunish taqiqlanadi
+    assert (await hr.patch(f"/api/v1/org/positions/{head}", json={"parent_id": smm})).json()["detail"]["code"] == "position_cycle"
     async with SessionLocal() as s:
-        s.add_all([
-            Employee(last_name="Bosh", first_name="Ali", full_name="Bosh Ali", department_id=did, position_id=head_pos, hire_date=date.today()),
-            Employee(last_name="Smm", first_name="Vali", full_name="Smm Vali", department_id=did, position_id=smm, hire_date=date.today()),
-        ])  # fmt: skip
+        s.add(Employee(last_name="Smm", first_name="Vali", full_name="Smm Vali", department_id=did, position_id=smm, hire_date=date.today()))
         await s.commit()
     sc = (await hr.get("/api/v1/org/scheme")).json()
-    node = next(n for n in sc["departments"] if n["id"] == did)
-    assert node["yqm"] == "Ko'p mijoz" and node["head"]["full_name"] == "Bosh Ali"
-    rows = {p["name"]: p for p in node["positions"]}
-    assert "Bo'lim boshlig'i" not in rows and rows["SMM"]["yqm"] == "Faol kontent"
-    assert rows["SMM"]["occupants"][0]["full_name"] == "Smm Vali" and rows["Brending"]["occupants"] == []
-    assert (await hr.patch(f"/api/v1/org/positions/{smm}", json={"yqm": "Yangi"})).status_code == 200
-    assert next(p for p in (await hr.get("/api/v1/org/positions", params={"department_id": did})).json() if p["id"] == smm)["yqm"] == "Yangi"
+    node = next(d for d in sc["departments"] if d["id"] == did)
+    assert node["yqm"] == "Ko'p mijoz" and node["headcount"] == 1
+    pos = {p["id"]: p for p in sc["positions"]}
+    assert pos[head]["is_head"] and pos[smm]["parent_id"] == head and pos[smm]["slots"] == 3 and pos[smm]["occupants"][0]["full_name"] == "Smm Vali"
+    # yangi bo'limning standart lavozimlari ham shajaraga bog'lanadi
+    d2 = (await hr.post("/api/v1/org/departments", json={"name": "Sifat"})).json()["id"]
+    ps = [p for p in (await hr.get("/api/v1/org/positions", params={"department_id": d2})).json()]
+    heads = [p for p in ps if p["is_head"]]
+    assert len(heads) == 1 and all(p["parent_id"] == heads[0]["id"] for p in ps if not p["is_head"])
+    # bo'lim boshqa bo'lim lavozimi ostida chiziladi
+    assert (await hr.patch(f"/api/v1/org/departments/{d2}", json={"reports_to_position_id": head})).status_code == 200
+    assert next(d for d in (await hr.get("/api/v1/org/scheme")).json()["departments"] if d["id"] == d2)["reports_to_position_id"] == head
+
+
+async def test_org_template_apply_is_idempotent():
+    from app.services.org_template import VAKSINA_ORG, apply_org_template
+
+    async with SessionLocal() as s:
+        first = await apply_org_template(s)
+        await s.commit()
+    async with SessionLocal() as s:
+        second = await apply_org_template(s)
+        await s.commit()
+        assert first["departments"] == len(VAKSINA_ORG) and second == {"departments": 0, "positions": 0}
+        from sqlalchemy import select
+
+        shafyor = await s.scalar(select(Position).where(Position.name == "Shafyor"))
+        boss = await s.get(Position, shafyor.parent_id)
+        moliya = await s.scalar(select(Department).where(Department.name == "Moliya bo'limi"))
+        tasischi = await s.get(Position, moliya.reports_to_position_id)
+        assert shafyor.slots == 24 and boss.name == "Logistika va mexanik boshlig'i" and boss.is_head and tasischi.name == "Ta'sischi"

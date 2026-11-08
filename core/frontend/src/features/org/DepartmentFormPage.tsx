@@ -55,6 +55,9 @@ function DepartmentForm({ dept, all }: { dept: DepartmentRow | null; all: Depart
   const [head, setHead] = useState<PickedUser | null>(dept?.head ? { id: dept.head.id, name: dept.head.full_name } : null)
   const [active, setActive] = useState(dept?.is_active ?? true)
   const [yqm, setYqm] = useState(dept?.yqm ?? '')
+  const [reportsTo, setReportsTo] = useState(String(dept?.reports_to_position_id ?? ''))
+  const allPos = useQuery({ queryKey: ['org', 'positions', 'all'], queryFn: () => api<PositionRow[]>('/api/v1/org/positions') })
+  const deptNames = new Map<number, string>(all.map((x) => [x.id, x.name]))
   const [defaults, setDefaults] = useState(true)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
@@ -65,7 +68,7 @@ function DepartmentForm({ dept, all }: { dept: DepartmentRow | null; all: Depart
 
   const save = useMutation({
     mutationFn: () => {
-      const body = { name, parent_id: parentId ? Number(parentId) : null, head_user_id: head?.id ?? null, kind, color: noColor ? null : color, yqm: yqm.trim() || null }
+      const body = { name, parent_id: parentId ? Number(parentId) : null, head_user_id: head?.id ?? null, kind, color: noColor ? null : color, yqm: yqm.trim() || null, reports_to_position_id: reportsTo ? Number(reportsTo) : null }
       return dept
         ? send<{ id: number }>('PATCH', `/api/v1/org/departments/${dept.id}`, { ...body, is_active: active })
         : send<{ id: number }>('POST', '/api/v1/org/departments', { ...body, create_default_positions: defaults })
@@ -147,6 +150,18 @@ function DepartmentForm({ dept, all }: { dept: DepartmentRow | null; all: Depart
 
         <FormSection title={t('org.head')} description={t('org.headHint')}>
           <Field label={t('org.head')}>{(id) => <UserPicker id={id} value={head} onChange={setHead} />}</Field>
+          <Field label={t('scheme.reportsTo')} hint={t('scheme.reportsToHint')}>
+            {(id) => (
+              <Select id={id} value={reportsTo} onChange={(e) => setReportsTo(e.target.value)}>
+                <option value="">{t('scheme.reportsToNone')}</option>
+                {(allPos.data ?? []).filter((x) => x.department_id !== dept?.id).map((x) => (
+                  <option key={x.id} value={x.id}>
+                    {x.name} — {deptNames.get(x.department_id ?? 0) ?? t('org.generalPositions')}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
           <Field label={t('scheme.yqmLabel')} hint={t('scheme.yqmHint')}>
             {(id) => <textarea id={id} rows={2} maxLength={1000} value={yqm} onChange={(e) => setYqm(e.target.value)} className="w-full rounded-control bg-surface px-3 py-2 text-[13px] shadow-[inset_0_0_0_1px_var(--border-strong)] outline-none focus:ring-2 focus:ring-primary/30" />}
           </Field>

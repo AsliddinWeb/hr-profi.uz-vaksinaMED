@@ -36,20 +36,6 @@ async def create_admin(login: str, full_name: str) -> str | None:
         return password
 
 
-DEMO_DEPARTMENTS = [  # (nom, ota, rang, turi)
-    ("Rahbariyat", None, "#1e2a78", "office"),
-    ("Ta'minot", "Rahbariyat", "#e8590c", "office"),
-    ("Moliya", "Rahbariyat", "#12a150", "office"),
-    ("HR bo'limi", "Rahbariyat", "#2563eb", "office"),
-    ("AyTi", "Rahbariyat", "#0891b2", "office"),
-    ("Xavfsizlik (SB)", "Rahbariyat", "#6b7280", "office"),
-    ("Reviziya", "Rahbariyat", "#7c3aed", "office"),
-    ("AXO va GPP", "Rahbariyat", "#db2777", "office"),
-    ("Logistika", "Ta'minot", "#f59e0b", "office"),
-    ("Omborxona", "Ta'minot", "#64748b", "warehouse"),
-    ("Distribyutsiya", "Ta'minot", "#dc2626", "office"),
-    ("Dorixona tarmog'i", "Rahbariyat", "#0d9488", "pharmacy"),
-]
 DEMO_BRANCHES = [  # (raqam, nom, tuman, lat, lng)
     (16, "1-gor bolnitsa", "Yunusobod", 41.3606, 69.2862),
     (36, "Ginekologiya-3", "Mirzo Ulug'bek", 41.3394, 69.3342),
@@ -62,27 +48,22 @@ DEMO_BRANCHES = [  # (raqam, nom, tuman, lat, lng)
 
 async def seed_demo_org() -> str:
     """Faqat lokal sinov uchun: bo'sh bazaga namunaviy tuzilma (haqiqiy mijoz ma'lumoti emas)."""
-    from app.models.org import Branch, Department, Position
-    from app.services.org import DEFAULT_POSITIONS
+    from app.models.org import Branch, Department
 
     async with SessionLocal() as session:
         if await session.scalar(select(Department.id).limit(1)):
             return "Tuzilma bo'sh emas, o'tkazib yuborildi"
-        by_name: dict[str, Department] = {}
-        for i, (name, parent, color, kind) in enumerate(DEMO_DEPARTMENTS):
-            d = Department(name=name, color=color, kind=kind, sort_order=i,
-                           parent_id=by_name[parent].id if parent else None)  # fmt: skip
-            session.add(d)
-            await session.flush()
-            by_name[name] = d
-            for j, pn in enumerate(DEFAULT_POSITIONS):
-                session.add(Position(name=pn, department_id=d.id, sort_order=j))
-        net = by_name["Dorixona tarmog'i"]
+        # Kompaniya shajarasi (org.xlsx asosidagi shablon): bo'limlar, lavozimlar, bo'ysunish va shtat
+        from app.services.org_template import apply_org_template
+
+        await apply_org_template(session)
+        by_name = {d.name: d for d in (await session.scalars(select(Department))).all()}
+        net = by_name["Dorixonalar tarmog'i"]
         for number, name, district, lat, lng in DEMO_BRANCHES:
             session.add(Branch(number=number, name=name, district=district, latitude=lat,
                                longitude=lng, department_id=net.id))  # fmt: skip
         await session.commit()
-        return f"Yaratildi: {len(DEMO_DEPARTMENTS)} bo'lim, {len(DEMO_BRANCHES)} filial"
+        return f"Yaratildi: {len(by_name)} bo'lim, {len(DEMO_BRANCHES)} filial"
 
 
 async def seed_demo_schedule() -> str:
@@ -134,6 +115,17 @@ def main() -> int:
         from app.demoseed import seed_demo_all
 
         asyncio.run(seed_demo_all())
+        return 0
+    if args and args[0] == "apply-org-template":
+        from app.services.org_template import apply_org_template
+
+        async def run() -> dict:
+            async with SessionLocal() as s:
+                r = await apply_org_template(s)
+                await s.commit()
+                return r
+
+        print("Tashkiliy tuzilma shabloni qo'llandi:", asyncio.run(run()))
         return 0
     if args and args[0] == "seed-demo-org":
         print(asyncio.run(seed_demo_org()))

@@ -118,55 +118,47 @@ async def insights(
     }  # fmt: skip
 
 
-# --- Sxema (shablon ko'rinishi): bo'lim -> boshliq -> raqamlangan lavozimlar, egalari yoki VAKANSIYA ----------------
-
-
-def _is_head_position(name: str) -> bool:
-    n = name.lower()
-    return "boshlig" in n or "rahbar" in n or "начальник" in n or "руководител" in n
+# --- Shajara (org.xlsx kabi): bo'lim -> boshliq -> bo'ysunuvchi lavozimlar; egasi rasmi bilan yoki VAKANSIYA -----------
 
 
 @router.get("/scheme")
 async def scheme(request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(require("org.read"))):
-    """Tashkiliy tuzilma sxemasi: ma'lumotlar bo'lim, lavozim va xodimlardan avtomatik yig'iladi (qo'lda chizilmaydi)."""
+    """Tashkiliy tuzilma shajarasi. Ma'lumotlar bo'lim, lavozim (kimga bo'ysunadi, shtat soni) va xodimlardan avtomatik
+    yig'iladi; frontend daraxtni shu tekis ro'yxatlardan quradi."""
     see = matches(auth.permissions, "employees.read")
-    depts = await svc.load_departments(db)
+    depts = [d for d in (await svc.load_departments(db)).values() if d.is_active]
     positions = list((await db.scalars(select(Position).where(Position.is_active.is_(True)).order_by(Position.sort_order, Position.id))).all())
     emps = list((await db.scalars(select(Employee).where(Employee.status == "active").order_by(Employee.full_name))).all())
     by_pos: dict[int, list[Employee]] = defaultdict(list)
-    by_user = {e.user_id: e for e in emps if e.user_id}
     for e in emps:
         if e.position_id:
             by_pos[e.position_id].append(e)
+    coord_branches = Counter(uid for (uid,) in (await db.execute(select(Branch.coordinator_user_id).where(Branch.coordinator_user_id.is_not(None), Branch.is_active.is_(True)))).all())
+    users = {u.id: u for u in (await db.scalars(select(User).join(Role).where(Role.key.in_(["tasischi", "direktor"]), User.is_active.is_(True)))).unique().all()}
+    by_role: dict[str, list[User]] = defaultdict(list)
+    for u in users.values():
+        by_role[u.role.key].append(u)
 
     def person(e: Employee) -> dict[str, Any]:
-        return {"id": e.id, "full_name": e.full_name, "photo": bool(e.photo_key) and see}
+        return {"id": e.id, "full_name": e.full_name, "photo": bool(e.photo_key) and see, "branches": coord_branches.get(e.user_id or 0, 0)}
 
-    users = {u.id: u for u in (await db.scalars(select(User).where(User.id.in_([d.head_user_id for d in depts.values() if d.head_user_id])))).unique().all()} if depts else {}
+    def occupants(p: Position) -> list[dict[str, Any]]:
+        occ = [person(e) for e in by_pos.get(p.id, [])]
+        if not occ:  # rahbariyat lavozimlari: tizimdagi Ta'sischi/Direktor hisoblari
+            n = p.name.lower()
+            key = "tasischi" if ("ta'sischi" in n or "tasischi" in n) and "asist" not in n else "direktor" if n.startswith("direktor") else None
+            occ = [{"id": None, "full_name": u.full_name, "photo": False, "branches": 0} for u in by_role.get(key or "", [])]
+        return occ
 
-    def node(d: Any) -> dict[str, Any]:
-        own = [p for p in positions if p.department_id == d.id]
-        head = None
-        if d.head_user_id and d.head_user_id in users:
-            e = by_user.get(d.head_user_id)
-            head = person(e) if e else {"id": None, "full_name": users[d.head_user_id].full_name, "photo": False}
-        rows = []
-        for p in own:
-            occ = by_pos.get(p.id, [])
-            if _is_head_position(p.name):
-                if head is None and occ:
-                    head = person(occ[0])
-                continue
-            rows.append({"id": p.id, "name": p.name, "yqm": p.yqm, "occupants": [person(e) for e in occ]})
-        kids = sorted((c for c in depts.values() if c.parent_id == d.id and c.is_active), key=lambda x: (x.sort_order, x.name.lower()))
-        return {"id": d.id, "name": d.name, "yqm": d.yqm, "color": d.color, "head": head, "positions": rows, "children": [node(k) for k in kids],
-                "headcount": sum(len(by_pos.get(p.id, [])) for p in own)}  # fmt: skip
-
-    roots = sorted((d for d in depts.values() if d.parent_id is None and d.is_active), key=lambda x: (x.sort_order, x.name.lower()))
-    leaders = (await db.scalars(select(User).join(Role).where(Role.key.in_(["tasischi", "direktor"]), User.is_active.is_(True)).order_by(Role.id, User.full_name))).unique().all()
     return {
         "company": request.app.state.client_config.brand["name"],
-        "leadership": [{"role": u.role.name_uz, "role_ru": u.role.name_ru, **(person(by_user[u.id]) if u.id in by_user else {"id": None, "full_name": u.full_name, "photo": False})} for u in leaders],
-        "departments": [node(d) for d in roots],
-        "general": [{"id": p.id, "name": p.name, "yqm": p.yqm, "occupants": [person(e) for e in by_pos.get(p.id, [])]} for p in positions if p.department_id is None],
+        "departments": [
+            {"id": d.id, "name": d.name, "parent_id": d.parent_id, "reports_to_position_id": d.reports_to_position_id, "yqm": d.yqm, "color": d.color, "sort_order": d.sort_order,
+             "headcount": sum(len(by_pos.get(p.id, [])) for p in positions if p.department_id == d.id)}
+            for d in sorted(depts, key=lambda x: (x.sort_order, x.name.lower()))
+        ],
+        "positions": [
+            {"id": p.id, "name": p.name, "department_id": p.department_id, "parent_id": p.parent_id, "slots": p.slots, "is_head": p.is_head, "yqm": p.yqm, "occupants": occupants(p)}
+            for p in positions
+        ],
     }  # fmt: skip

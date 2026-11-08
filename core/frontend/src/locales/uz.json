@@ -6005,6 +6005,25 @@
     "noPositions": "Lavozim qo'shilmagan",
     "yqmLabel": "YaQM (yakuniy qimmatli mahsulot)",
     "yqmHint": "Bo'lim natijasi: masalan \"Vaqtida ishga kelgan xodimlar\". Tashkiliy tuzilma sxemasida ko'rinadi.",
-    "yqmPosHint": "Bu lavozim egasi beradigan natija. Tashkiliy tuzilma sxemasida lavozim ostida ko'rinadi."
+    "yqmPosHint": "Bu lavozim egasi beradigan natija. Tashkiliy tuzilma sxemasida lavozim ostida ko'rinadi.",
+    "pharmacies": "{{n}} ta apteka",
+    "slots": "Band: {{busy}} / {{total}}",
+    "peopleN": "{{n}} xodim",
+    "less": "Yig'ish",
+    "more": "+{{n}} ta yana",
+    "vacancyN": "Vakansiya ×{{n}}",
+    "zoomIn": "Kattalashtirish",
+    "zoomOut": "Kichraytirish",
+    "zoomReset": "Asl holat",
+    "parentPos": "Kimga bo'ysunadi",
+    "parentPosHint": "Shajarada shu lavozim ostida chiziladi. Bo'sh bo'lsa, bo'limning yuqori qatorida turadi.",
+    "noParent": "— Bo'limning yuqori qatori (boshliq) —",
+    "otherDepts": "Boshqa bo'limlar",
+    "slotsLabel": "Shtat soni",
+    "slotsHint": "Bu lavozimda nechta o'rin bor (0 = cheklanmagan)",
+    "isHead": "Bo'lim boshlig'i lavozimi",
+    "reportsTo": "Shajarada qaysi lavozim ostida",
+    "reportsToHint": "Masalan Moliya — Ta'sischi ostida, boshqa bo'limlar — Direktor ostida",
+    "reportsToNone": "— Ota bo'lim ostida —"
   }
 }

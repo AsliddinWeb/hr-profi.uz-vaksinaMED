@@ -116,6 +116,7 @@ def department_out(
         "sort_order": d.sort_order,
         "is_active": d.is_active,
         "yqm": d.yqm,
+        "reports_to_position_id": d.reports_to_position_id,
         "head": heads.get(d.head_user_id) if d.head_user_id else None,
         "positions": c.get("positions", 0),
         "branches": c.get("branches", 0),
@@ -145,10 +146,15 @@ def build_tree(
 async def create_default_positions(
     db: AsyncSession, department: Department, names: list[str]
 ) -> list[Position]:
-    created = []
+    created: list[Position] = []
     for i, name in enumerate(dict.fromkeys(n.strip() for n in names if n.strip())):
-        p = Position(name=name[:120], department_id=department.id, sort_order=i)
+        # birinchisi (Bo'lim boshlig'i) boshliq; qolganlari unga bo'ysunadi (shajarada uning ostida)
+        p = Position(name=name[:120], department_id=department.id, sort_order=i, is_head=i == 0)
         db.add(p)
         created.append(p)
+    if len(created) > 1:
+        await db.flush()
+        for p in created[1:]:
+            p.parent_id = created[0].id
     await db.flush()
     return created

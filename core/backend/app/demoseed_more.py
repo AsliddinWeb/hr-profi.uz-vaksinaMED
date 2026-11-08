@@ -35,13 +35,13 @@ async def more_flows(sd) -> None:  # noqa: C901
 
     # Umumiy lavozimlar (bo'limsiz) — yangi "Lavozimlar" sahifasi uchun
     print("A. Umumiy lavozimlar")
-    for name in ("Kassir", "Farrosh", "Qo'riqchi"):
+    for name in ("Farrosh", "Qo'riqchi"):
         await sd.call(A, "POST", "/api/v1/org/positions", json={"name": name, "department_id": None}, label=f"umumiy lavozim {name}")
     positions = _items(await sd.call(A, "GET", "/api/v1/org/positions", label="lavozimlar"))
     pos = {p["name"]: p["id"] for p in positions}
 
     # Bo'lim boshliqlari (zayafka bera olishi uchun)
-    pharm_dept, log_dept = dept["Dorixona tarmog'i"], dept["Logistika"]
+    pharm_dept, log_dept = dept["Dorixonalar tarmog'i"], dept["Logistika bo'limi"]
     await sd.call(A, "PATCH", f"/api/v1/org/departments/{pharm_dept}", json={"head_user_id": uid(koord)}, label="bo'lim boshlig'i")
     await sd.call(A, "PATCH", f"/api/v1/org/departments/{log_dept}", json={"head_user_id": uid(sd.login_of("Normatova"))}, label="bo'lim boshlig'i")
 
@@ -49,9 +49,9 @@ async def more_flows(sd) -> None:  # noqa: C901
     print("B. Zayafkalar")
     reqs = []
     for who, body in [
-        (koord, {"department_id": dept["Dorixona tarmog'i"], "position_id": pos.get("Farmasevt"), "count": 3, "urgency": "urgent", "needed_from": str(today + timedelta(days=10)), "reason": "Yangi 2 ta filial ochilmoqda", "salary_from": 6_000_000, "salary_to": 8_000_000}),
-        (koord, {"department_id": dept["Dorixona tarmog'i"], "position_id": pos.get("Mudir"), "count": 1, "reason": "Filial 36 mudiri dekretga chiqadi"}),
-        (sd.login_of("Normatova"), {"department_id": dept["Logistika"], "position_id": pos.get("Haydovchi"), "count": 1, "reason": "Qo'shimcha reys"}),
+        (koord, {"department_id": dept["Dorixonalar tarmog'i"], "position_id": pos.get("Farmatsevt"), "count": 3, "urgency": "urgent", "needed_from": str(today + timedelta(days=10)), "reason": "Yangi 2 ta filial ochilmoqda", "salary_from": 6_000_000, "salary_to": 8_000_000}),
+        (koord, {"department_id": dept["Dorixonalar tarmog'i"], "position_id": pos.get("Mudir"), "count": 1, "reason": "Filial 36 mudiri dekretga chiqadi"}),
+        (sd.login_of("Normatova"), {"department_id": dept["Logistika bo'limi"], "position_id": pos.get("Shafyor"), "count": 1, "reason": "Qo'shimcha reys"}),
     ]:
         if body["position_id"]:
             r = await sd.call(who, "POST", "/api/v1/recruit/requests", json=body, label="zayafka")
@@ -91,7 +91,7 @@ async def more_flows(sd) -> None:  # noqa: C901
     print("D. Ishga qabul va Shaxsiy ish")
     offered = _items(await sd.call(hrm, "GET", "/api/v1/recruit/applications?stage=offer", label="offer bosqichi"))
     for a in offered[:1]:
-        await sd.call(hrd, "POST", f"/api/v1/recruit/applications/{a['id']}/hire", json={"hire_date": str(today - timedelta(days=5)), "branch_id": br.get(16), "department_id": dept["Dorixona tarmog'i"], "position_id": pos.get("Farmasevt"), "confirm_duplicate": True}, label="ishga olish")
+        await sd.call(hrd, "POST", f"/api/v1/recruit/applications/{a['id']}/hire", json={"hire_date": str(today - timedelta(days=5)), "branch_id": br.get(16), "department_id": dept["Dorixonalar tarmog'i"], "position_id": pos.get("Farmatsevt"), "confirm_duplicate": True}, label="ishga olish")
     # mehnat shartnomalari (Shaxsiy ish -> Shartnoma)
     for last in ("Soliyeva", "Tursunov", "Umarova", "Ergashev", "Nazarova", "Saidov"):
         if last in eid:
@@ -132,7 +132,7 @@ async def more_flows(sd) -> None:  # noqa: C901
     print("G. Ishdan ketganlar")
     for last, first, months_worked, left_days_ago, reason in [("Karimova", "Nilufar", 14, 40, "own_will"), ("Bakirov", "Islom", 5, 120, "discipline"), ("Sobirova", "Gulchehra", 26, 200, "contract_end")]:
         hired = today - timedelta(days=left_days_ago + months_worked * 30)
-        e = await sd.call(A, "POST", "/api/v1/employees", json={"last_name": last, "first_name": first, "department_id": dept["Dorixona tarmog'i"], "position_id": pos.get("Farmasevt"), "branch_id": br.get(16), "hire_date": str(hired)}, label="sobiq xodim")
+        e = await sd.call(A, "POST", "/api/v1/employees", json={"last_name": last, "first_name": first, "department_id": dept["Dorixonalar tarmog'i"], "position_id": pos.get("Farmatsevt"), "branch_id": br.get(16), "hire_date": str(hired)}, label="sobiq xodim")
         if e:
             await sd.call(A, "POST", f"/api/v1/employees/{e['employee']['id']}/dismiss", json={"date": str(today - timedelta(days=left_days_ago)), "reason": reason, "note": "Demo"}, label="ishdan bo'shatish")
 
@@ -141,27 +141,27 @@ async def more_flows(sd) -> None:  # noqa: C901
     dept_yqm = {
         "Rahbariyat": "Strategik rejalar asosida barqaror rivojlanayotgan kompaniya",
         "HR bo'limi": "O'z o'rnida samarali ishlaydigan, sinov muddatidan muvaffaqiyatli o'tgan xodimlar",
-        "Dorixona tarmog'i": "Mijozga o'z vaqtida va to'g'ri dori yetkazib bergan, rejani bajargan filiallar",
-        "Logistika": "O'z vaqtida va to'liq yetkazilgan yuklar",
-        "Omborxona": "Hisobi to'g'ri yuritilgan, muddati o'tmagan tovar qoldig'i",
-        "AyTi": "Har bir bo'lim uzluksiz ishlayotgan texnologiyalar asosida ishlashi",
-        "Reviziya": "Kamomadsiz, tekshirilgan filiallar",
-        "Moliya": "Hisobi yuritilgan va qiymatini yo'qotmaydigan pul mablag'lari",
+        "Dorixonalar tarmog'i": "Mijozga o'z vaqtida va to'g'ri dori yetkazib bergan, rejani bajargan filiallar",
+        "Logistika bo'limi": "O'z vaqtida va to'liq yetkazilgan yuklar",
+        "Omborxona bo'limi": "Hisobi to'g'ri yuritilgan, muddati o'tmagan tovar qoldig'i",
+        "IT bo'limi": "Har bir bo'lim uzluksiz ishlayotgan texnologiyalar asosida ishlashi",
+        "Reviziya bo'limi": "Kamomadsiz, tekshirilgan filiallar",
+        "Moliya bo'limi": "Hisobi yuritilgan va qiymatini yo'qotmaydigan pul mablag'lari",
     }
     for name, text in dept_yqm.items():
         if name in dept:
             await sd.call(A, "PATCH", f"/api/v1/org/departments/{dept[name]}", json={"yqm": text}, label=f"YaQM {name}")
     pos_yqm = {
-        "Farmasevt": "Mijozga to'g'ri maslahat bilan sotilgan dori va bajarilgan kunlik reja",
+        "Farmatsevt": "Mijozga to'g'ri maslahat bilan sotilgan dori va bajarilgan kunlik reja",
         "Mudir": "Rejani bajargan, kamomadsiz va tartibli filial",
-        "Koordinator": "Barcha filiallarda o'z vaqtida bajarilgan standartlar",
+        "Koordinator (shahar)": "Barcha filiallarda o'z vaqtida bajarilgan standartlar",
         "HR menejer": "Vaqtida yopilgan vakansiyalar va hujjatlari to'liq xodimlar",
-        "HR direktor": "Kompaniya uchun harakat qiladigan samarali jamoa",
+        "HRD (HR direktor)": "Kompaniya uchun harakat qiladigan samarali jamoa",
         "Stajyor": "Sinov muddatidan muvaffaqiyatli o'tgan yangi farmatsevt",
-        "Haydovchi": "O'z vaqtida va xavfsiz bajarilgan reyslar",
-        "Logistika menejeri": "Kechikishsiz rejalashtirilgan yetkazib berish",
+        "Shafyor": "O'z vaqtida va xavfsiz bajarilgan reyslar",
+        "Logistika va mexanik boshlig'i": "Kechikishsiz rejalashtirilgan yetkazib berish",
         "Omborchi": "To'g'ri qabul qilingan va jo'natilgan tovarlar",
-        "AyTi mutaxassisi": "O'z vaqtida yopilgan texnik so'rovlar",
+        "Tarmoq administratori": "O'z vaqtida yopilgan texnik so'rovlar",
         "Kassir": "Kamomadsiz kassa va o'z vaqtida topshirilgan tushum",
     }
     for p in positions:

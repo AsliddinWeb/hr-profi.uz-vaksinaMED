@@ -130,19 +130,20 @@ export function PositionFormPage() {
   const confirm = useConfirm()
   const qc = useQueryClient()
   const deps = useQuery({ queryKey: ['org', 'departments'], queryFn: () => api<DepartmentRow[]>('/api/v1/org/departments') })
-  const all = useQuery({ queryKey: ['org', 'positions', 'all'], queryFn: () => api<PositionRow[]>('/api/v1/org/positions'), enabled: id !== null })
+  const all = useQuery({ queryKey: ['org', 'positions', 'all'], queryFn: () => api<PositionRow[]>('/api/v1/org/positions') })
   const cur = id !== null ? all.data?.find((p) => p.id === id) : undefined
-  if (id !== null && !all.data) return <Skeleton className="mx-auto h-72 max-w-3xl" />
+  if (!all.data) return <Skeleton className="mx-auto h-72 max-w-3xl" />
   if (id !== null && !cur) return <Card className="mx-auto max-w-3xl p-8 text-center text-sm text-muted">{t('common.notFound', { defaultValue: 'Topilmadi' })}</Card>
-  return <PositionForm key={cur?.id ?? 'new'} cur={cur} initialDept={sp.get('department_id') ?? ''} deps={deps.data ?? []} onDone={() => (void qc.invalidateQueries({ queryKey: ['org'] }), navigate('/org/positions'))} toast={toast} confirm={confirm} />
+  return <PositionForm key={cur?.id ?? 'new'} cur={cur} initialDept={sp.get('department_id') ?? ''} deps={deps.data ?? []} allPositions={all.data} onDone={() => (void qc.invalidateQueries({ queryKey: ['org'] }), navigate('/org/positions'))} toast={toast} confirm={confirm} />
 }
 
 function PositionForm({
-  cur, initialDept, deps, onDone, toast, confirm,
+  cur, initialDept, deps, allPositions, onDone, toast, confirm,
 }: {
   cur: PositionRow | undefined
   initialDept: string
   deps: DepartmentRow[]
+  allPositions: PositionRow[]
   onDone: () => void
   toast: ReturnType<typeof useToast>
   confirm: ReturnType<typeof useConfirm>
@@ -154,10 +155,19 @@ function PositionForm({
   const [order, setOrder] = useState(cur?.sort_order ?? 0)
   const [active, setActive] = useState(cur?.is_active ?? true)
   const [yqm, setYqm] = useState(cur?.yqm ?? '')
+  const [parent, setParent] = useState(String(cur?.parent_id ?? ''))
+  const [slots, setSlots] = useState(cur?.slots ?? 1)
+  const [isHead, setIsHead] = useState(cur?.is_head ?? false)
+  const deptName = useMemo(() => new Map(deps.map((d) => [d.id, d.name])), [deps])
+  const parentOptions = useMemo(() => {
+    const own = allPositions.filter((x) => x.id !== cur?.id && (!dept || String(x.department_id ?? '') === dept))
+    const other = allPositions.filter((x) => x.id !== cur?.id && dept && String(x.department_id ?? '') !== dept)
+    return { own, other }
+  }, [allPositions, cur?.id, dept])
   const [more, setMore] = useState(false)
   const save = useMutation({
     mutationFn: () => {
-      const body = { name: name.trim(), department_id: dept ? Number(dept) : null, sort_order: order, yqm: yqm.trim() || null }
+      const body = { name: name.trim(), department_id: dept ? Number(dept) : null, sort_order: order, yqm: yqm.trim() || null, parent_id: parent ? Number(parent) : null, slots, is_head: isHead }
       return cur ? send('PATCH', `/api/v1/org/positions/${cur.id}`, { ...body, is_active: active }) : send('POST', '/api/v1/org/positions', body)
     },
     onSuccess: () => {
@@ -196,6 +206,34 @@ function PositionForm({
             </Select>
           )}
         </Field>
+        <Field label={t('scheme.parentPos')} hint={t('scheme.parentPosHint')}>
+          {(fid) => (
+            <Select id={fid} value={parent} onChange={(e) => setParent(e.target.value)}>
+              <option value="">{t('scheme.noParent')}</option>
+              {parentOptions.own.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.name}
+                </option>
+              ))}
+              {parentOptions.other.length > 0 && (
+                <optgroup label={t('scheme.otherDepts')}>
+                  {parentOptions.other.map((x) => (
+                    <option key={x.id} value={x.id}>
+                      {x.name} — {deptName.get(x.department_id ?? 0) ?? t('org.generalPositions')}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </Select>
+          )}
+        </Field>
+        <div className="flex flex-wrap items-end gap-4">
+          <Field label={t('scheme.slotsLabel')} hint={t('scheme.slotsHint')}>{(fid) => <Input id={fid} type="number" min={0} max={1000} value={slots} onChange={(e) => setSlots(Number(e.target.value))} className="w-32" />}</Field>
+          <label className="flex items-center gap-2 pb-2 text-sm">
+            <input type="checkbox" checked={isHead} onChange={(e) => setIsHead(e.target.checked)} />
+            {t('scheme.isHead')}
+          </label>
+        </div>
         <Field label={t('scheme.yqmLabel')} hint={t('scheme.yqmPosHint')}>
           {(fid) => <textarea id={fid} rows={2} maxLength={1000} value={yqm} onChange={(e) => setYqm(e.target.value)} className="w-full rounded-control bg-surface px-3 py-2 text-[13px] shadow-[inset_0_0_0_1px_var(--border-strong)] outline-none focus:ring-2 focus:ring-primary/30" />}
         </Field>

@@ -32,26 +32,26 @@ H = {"X-Requested-With": "demo"}
 
 # (familiya, ism, rol, bo'lim, lavozim, filial raqami yoki None, telefon oxiri)
 STAFF = [
-    ("Karimov", "Jasur", "direktor", "Rahbariyat", "Direktor", None, "01"),
-    ("Aliyeva", "Dilnoza", "hr_direktor", "HR bo'limi", "HR direktor", None, "02"),
+    ("Karimov", "Jasur", "direktor", "Rahbariyat", "Direktor (CEO)", None, "01"),
+    ("Aliyeva", "Dilnoza", "hr_direktor", "HR bo'limi", "HRD (HR direktor)", None, "02"),
     ("Rustamova", "Malika", "hr_menejer", "HR bo'limi", "HR menejer", None, "03"),
-    ("Yusupov", "Bobur", "koordinator", "Dorixona tarmog'i", "Koordinator", None, "04"),
-    ("Ergashev", "Sherzod", "mudir", "Dorixona tarmog'i", "Mudir", 16, "05"),
-    ("Nazarova", "Madina", "mudir", "Dorixona tarmog'i", "Mudir", 36, "06"),
-    ("Soliyeva", "Nodira", "farmasevt", "Dorixona tarmog'i", "Farmasevt", 16, "07"),
-    ("Tursunov", "Otabek", "farmasevt", "Dorixona tarmog'i", "Farmasevt", 16, "08"),
-    ("Umarova", "Zilola", "farmasevt", "Dorixona tarmog'i", "Farmasevt", 36, "09"),
-    ("Saidov", "Aziz", "farmasevt", "Dorixona tarmog'i", "Farmasevt", 11, "10"),
-    ("Qodirova", "Shahlo", "farmasevt", "Dorixona tarmog'i", "Farmasevt", 6, "11"),
-    ("Hamidov", "Doniyor", "farmasevt", "Dorixona tarmog'i", "Farmasevt", 67, "12"),
-    ("Ismoilova", "Laylo", "stajyor", "Dorixona tarmog'i", "Stajyor", 11, "13"),
-    ("Abdullayev", "Rustam", "stajyor", "Dorixona tarmog'i", "Stajyor", 16, "14"),
-    ("Mirzayev", "Anvar", "omborxona", "Omborxona", "Omborchi", None, "15"),
-    ("Xolmatov", "Sardor", "haydovchi", "Logistika", "Haydovchi", None, "16"),
-    ("Normatova", "Gulnora", "logistik", "Logistika", "Logistika menejeri", None, "17"),
-    ("Orifov", "Behruz", "ayti", "AyTi", "AyTi mutaxassisi", None, "18"),
-    ("Jo'rayeva", "Sevara", "resepshin", "Rahbariyat", "Resepshin", None, "19"),
-    ("Nurmatov", "Eldor", "hr_auditor", "Reviziya", "Auditor", None, "20"),
+    ("Yusupov", "Bobur", "koordinator", "HR bo'limi", "Koordinator (shahar)", None, "04"),
+    ("Ergashev", "Sherzod", "mudir", "Dorixonalar tarmog'i", "Mudir", 16, "05"),
+    ("Nazarova", "Madina", "mudir", "Dorixonalar tarmog'i", "Mudir", 36, "06"),
+    ("Soliyeva", "Nodira", "farmasevt", "Dorixonalar tarmog'i", "Farmatsevt", 16, "07"),
+    ("Tursunov", "Otabek", "farmasevt", "Dorixonalar tarmog'i", "Farmatsevt", 16, "08"),
+    ("Umarova", "Zilola", "farmasevt", "Dorixonalar tarmog'i", "Farmatsevt", 36, "09"),
+    ("Saidov", "Aziz", "farmasevt", "Dorixonalar tarmog'i", "Farmatsevt", 11, "10"),
+    ("Qodirova", "Shahlo", "farmasevt", "Dorixonalar tarmog'i", "Farmatsevt", 6, "11"),
+    ("Hamidov", "Doniyor", "farmasevt", "Dorixonalar tarmog'i", "Farmatsevt", 67, "12"),
+    ("Ismoilova", "Laylo", "stajyor", "Dorixonalar tarmog'i", "Stajyor", 11, "13"),
+    ("Abdullayev", "Rustam", "stajyor", "Dorixonalar tarmog'i", "Stajyor", 16, "14"),
+    ("Mirzayev", "Anvar", "omborxona", "Omborxona bo'limi", "Omborxona mudiri (kirim)", None, "15"),
+    ("Xolmatov", "Sardor", "haydovchi", "Logistika bo'limi", "Shafyor", None, "16"),
+    ("Normatova", "Gulnora", "logistik", "Logistika bo'limi", "Logistika va mexanik boshlig'i", None, "17"),
+    ("Orifov", "Behruz", "ayti", "IT bo'limi", "Tarmoq administratori", None, "18"),
+    ("Jo'rayeva", "Sevara", "resepshin", "Rahbariyat", "Ta'sischining asistenti", None, "19"),
+    ("Nurmatov", "Eldor", "hr_auditor", "HR bo'limi", "HR auditor", None, "20"),
 ]
 LOGIN_OF: dict[str, str] = {}  # "Familiya Ism" -> login
 
@@ -142,13 +142,10 @@ class Seeder:
         brl = br if isinstance(br, list) else (br or {}).get("items", [])
         self.ids["branch"] = {x["number"]: x["id"] for x in brl}
         self.ids["pos"] = {}
-        for name, dept in [(p[4], p[3]) for p in STAFF] + [("Farmasevt", "Dorixona tarmog'i")]:
-            key = (name, dept)
-            if key in self.ids["pos"]:
-                continue
-            r = await self.call("demo_seeder", "POST", "/api/v1/org/positions", json={"name": name, "department_id": self.ids["dept"][dept]}, label=f"lavozim {name}")
-            if r:
-                self.ids["pos"][key] = r["id"]
+        dept_name = {v: k for k, v in self.ids["dept"].items()}
+        allpos = await self.call("demo_seeder", "GET", "/api/v1/org/positions")
+        for p in allpos if isinstance(allpos, list) else []:
+            self.ids["pos"][(p["name"], dept_name.get(p["department_id"]))] = p["id"]
         groups = await self.call("demo_seeder", "GET", "/api/v1/schedule/groups")
         gl = groups if isinstance(groups, list) else (groups or {}).get("items", [])
         self.ids["group"] = {g["category"]: g["id"] for g in gl}
@@ -156,7 +153,7 @@ class Seeder:
     # ---- 2. xodimlar va hisoblar
     async def staff(self) -> None:
         print("2. Xodimlar va hisoblar")
-        cat = {"Dorixona tarmog'i": "pharmacy", "Omborxona": "warehouse"}
+        cat = {"Dorixonalar tarmog'i": "pharmacy", "Omborxona bo'limi": "warehouse"}
         for last, first, role, dept, pos, bno, tail in STAFF:
             body = {
                 "last_name": last, "first_name": first, "phone": f"+99890123{int(tail):04d}",

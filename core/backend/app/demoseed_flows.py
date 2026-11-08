@@ -73,10 +73,10 @@ async def flows(sd) -> None:  # noqa: C901
     # 7. Xodim zayafkasi -> vakansiya -> nomzod -> suhbat -> offer
     print("7. Rekrut: zayafka, vakansiya, nomzodlar")
     pos = sd.ids["pos"]
-    farm_pos = pos.get(("Farmasevt", "Dorixona tarmog'i"))
+    farm_pos = pos.get(("Farmatsevt", "Dorixonalar tarmog'i"))
     for who, b, role, cnt, reason in [(mudir1, 16, "pharmacist", 2, "Xodim ta'tilga chiqdi"), (mudir2, 36, "pharmacist", 1, "Yangi smena ochilmoqda")]:
         await sd.call(who, "POST", "/api/v1/pharmacy/needs", json={"branch_id": br[b], "role": role, "count": cnt, "urgency": "normal", "needed_from": str(today + timedelta(days=10)), "reason": reason, "reason_type": "departure", "position_id": farm_pos}, label="xodim zayafkasi")
-    vac = await sd.call(hrm, "POST", "/api/v1/recruit/vacancies", json={"title": "Farmasevt (Yunusobod)", "branch_id": br[16], "department_id": sd.ids["dept"]["Dorixona tarmog'i"], "position_id": farm_pos,
+    vac = await sd.call(hrm, "POST", "/api/v1/recruit/vacancies", json={"title": "Farmasevt (Yunusobod)", "branch_id": br[16], "department_id": sd.ids["dept"]["Dorixonalar tarmog'i"], "position_id": farm_pos,
                          "description": "Dorixonada mijozlarga xizmat ko'rsatish", "requirements": "O'rta maxsus farmatsevtik ma'lumot, mas'uliyat", "salary_from": 3500000, "salary_to": 5000000, "openings": 2, "recruiter_id": uid(hrm), "deadline": str(today + timedelta(days=20))}, label="vakansiya")
     if vac:
         await sd.call(hrm, "POST", f"/api/v1/recruit/vacancies/{vac['id']}/status", json={"status": "open"}, label="vakansiyani ochish")
@@ -160,11 +160,11 @@ async def flows(sd) -> None:  # noqa: C901
 
     # 16. Ish chek-listlari (lavozim va bo'lim bo'yicha) va ularning bajarilishi
     print("16. Chek-listlar")
-    dept_pharm = sd.ids["dept"]["Dorixona tarmog'i"]
+    dept_pharm = sd.ids["dept"]["Dorixonalar tarmog'i"]
     farm = await sd.call(hrd, "POST", "/api/v1/duty/templates", json={"name": "Farmasevt kunlik chek-listi", "scope": "position", "position_id": farm_pos, "frequency": "daily", "deadline_time": "20:00", "items": [
         {"text": "Kassa va javonlar tozalandi", "kind": "yesno"}, {"text": "Dori yaroqlilik muddatlari tekshirildi", "kind": "yesno"},
         {"text": "Narx yorliqlari to'g'ri joylashtirildi", "kind": "yesno"}, {"text": "Mijozlarga xizmat sifati (o'zini baholash)", "kind": "score"}]}, label="chek-list (lavozim)")
-    await sd.call(hrd, "POST", "/api/v1/duty/templates", json={"name": "Mudir kunlik chek-listi", "scope": "position", "position_id": sd.ids["pos"][("Mudir", "Dorixona tarmog'i")], "frequency": "daily", "deadline_time": "21:00", "items": [
+    await sd.call(hrd, "POST", "/api/v1/duty/templates", json={"name": "Mudir kunlik chek-listi", "scope": "position", "position_id": sd.ids["pos"][("Mudir", "Dorixonalar tarmog'i")], "frequency": "daily", "deadline_time": "21:00", "items": [
         {"text": "Smena boshida xodimlar formada va o'z joyida", "kind": "yesno"}, {"text": "Savdo hisoboti yuborildi", "kind": "yesno"}, {"text": "Kassa qoldig'i hisobga mos", "kind": "yesno"}]}, label="chek-list (mudir)")
     await sd.call(hrd, "POST", "/api/v1/duty/templates", json={"name": "Dorixona haftalik tartib chek-listi", "scope": "department", "department_id": dept_pharm, "frequency": "weekly", "deadline_time": "20:00", "items": [
         {"text": "Haftalik inventarizatsiya o'tkazildi", "kind": "yesno"}, {"text": "Sanitariya holati (1–5)", "kind": "score"}]}, label="chek-list (bo'lim)")
@@ -210,7 +210,7 @@ async def flows(sd) -> None:  # noqa: C901
     # 19. Ommaviy topshiriq: butun bo'limga (har biriga alohida), qabul qilish va bajarish zanjiri
     print("19. Ommaviy topshiriq")
     bulk = await sd.call(hrd, "POST", "/api/v1/tasks/bulk", json={"title": "Yangi narx yorliqlarini joylashtirish", "description": "Barcha filiallarda yangi narx yorliqlari 1-sanagacha joylashtirilsin.", "priority": "high",
-                         "due_at": (now + timedelta(days=4)).isoformat(), "department_id": sd.ids["dept"]["Dorixona tarmog'i"]}, label="ommaviy topshiriq")
+                         "due_at": (now + timedelta(days=4)).isoformat(), "department_id": sd.ids["dept"]["Dorixonalar tarmog'i"]}, label="ommaviy topshiriq")
     if bulk:
         by_user: dict[int, int] = {}
         for tid in bulk["task_ids"]:

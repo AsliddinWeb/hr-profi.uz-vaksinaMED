@@ -31,6 +31,8 @@ class Department(Base, TimestampMixin):
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     yqm: Mapped[str | None] = mapped_column(Text)  # yakuniy qimmatli mahsulot (bo'lim natijasi)
+    # shajarada bo'lim qaysi lavozim ostida chiziladi (masalan Moliya -> Ta'sischi, boshqalar -> Direktor)
+    reports_to_position_id: Mapped[int | None] = mapped_column(ForeignKey("positions.id", ondelete="SET NULL", use_alter=True, name="fk_departments_reports_to_position"))
 
 
 class Position(Base, TimestampMixin):
@@ -46,6 +48,9 @@ class Position(Base, TimestampMixin):
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     yqm: Mapped[str | None] = mapped_column(Text)  # lavozimning yakuniy qimmatli mahsuloti
+    parent_id: Mapped[int | None] = mapped_column(ForeignKey("positions.id", ondelete="SET NULL"))  # kimga bo'ysunadi
+    slots: Mapped[int] = mapped_column(Integer, default=1, server_default="1")  # shtat birligi (o'rinlar soni)
+    is_head: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")  # bo'lim boshlig'i lavozimi
 
 
 class Branch(Base, TimestampMixin):

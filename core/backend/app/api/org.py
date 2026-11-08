@@ -29,6 +29,7 @@ class DepartmentIn(BaseModel):
     color: str | None = Field(default=None, pattern=COLOR)
     sort_order: int = 0
     yqm: str | None = Field(default=None, max_length=1000)
+    reports_to_position_id: int | None = None
     create_default_positions: bool = True
 
 
@@ -41,6 +42,7 @@ class DepartmentPatch(BaseModel):
     sort_order: int | None = None
     is_active: bool | None = None
     yqm: str | None = Field(default=None, max_length=1000)
+    reports_to_position_id: int | None = None
 
 
 class PositionIn(BaseModel):
@@ -48,6 +50,9 @@ class PositionIn(BaseModel):
     department_id: int | None = None
     sort_order: int = 0
     yqm: str | None = Field(default=None, max_length=1000)
+    parent_id: int | None = None
+    slots: int = Field(default=1, ge=0, le=1000)
+    is_head: bool = False
 
 
 class PositionPatch(BaseModel):
@@ -56,6 +61,30 @@ class PositionPatch(BaseModel):
     sort_order: int | None = None
     is_active: bool | None = None
     yqm: str | None = Field(default=None, max_length=1000)
+    parent_id: int | None = None
+    slots: int | None = Field(default=None, ge=0, le=1000)
+    is_head: bool | None = None
+
+
+async def _check_parent(db: AsyncSession, pos_id: int | None, parent_id: int | None) -> None:
+    """Bo'ysunish: rahbar lavozim mavjud bo'lsin va aylana hosil bo'lmasin (A -> B -> A)."""
+    if parent_id is None:
+        return
+    seen: set[int] = set()
+    cur: int | None = parent_id
+    while cur is not None:
+        if cur == pos_id or cur in seen:
+            raise error(400, "position_cycle")
+        seen.add(cur)
+        p = await db.get(Position, cur)
+        if not p:
+            raise error(400, "unknown_position")
+        cur = p.parent_id
+
+
+async def _check_reports_to(db: AsyncSession, position_id: int | None) -> None:
+    if position_id is not None and not await db.get(Position, position_id):
+        raise error(400, "unknown_position")
 
 
 async def _active_user(db: AsyncSession, user_id: int) -> User:
@@ -149,7 +178,9 @@ async def create_department(
         color=body.color,
         sort_order=body.sort_order,
         yqm=(body.yqm or "").strip() or None,
+        reports_to_position_id=body.reports_to_position_id,
     )
+    await _check_reports_to(db, body.reports_to_position_id)
     db.add(dept)
     try:
         await db.flush()
@@ -211,6 +242,10 @@ async def update_department(
                 db, [head.id], "org.head_assigned", params={"name": dept.name}, link="/org"
             )
 
+    if "reports_to_position_id" in sent and body.reports_to_position_id != dept.reports_to_position_id:
+        await _check_reports_to(db, body.reports_to_position_id)
+        changes["reports_to_position_id"] = {"from": dept.reports_to_position_id, "to": body.reports_to_position_id}
+        dept.reports_to_position_id = body.reports_to_position_id
     for field in ("name", "kind", "color", "sort_order", "is_active", "yqm"):
         if field in sent and getattr(body, field) is not None or (field == "color" and field in sent):
             value = getattr(body, field)
@@ -276,6 +311,9 @@ async def list_positions(
             "sort_order": p.sort_order,
             "is_active": p.is_active,
             "yqm": p.yqm,
+            "parent_id": p.parent_id,
+            "slots": p.slots,
+            "is_head": p.is_head,
         }
         for p in rows
     ]
@@ -290,7 +328,9 @@ async def create_position(
 ):
     if body.department_id is not None:
         await _department(db, body.department_id)
-    pos = Position(name=body.name.strip(), department_id=body.department_id, sort_order=body.sort_order, yqm=(body.yqm or "").strip() or None)
+    await _check_parent(db, None, body.parent_id)
+    pos = Position(name=body.name.strip(), department_id=body.department_id, sort_order=body.sort_order, yqm=(body.yqm or "").strip() or None,
+                   parent_id=body.parent_id, slots=body.slots, is_head=body.is_head)  # fmt: skip
     db.add(pos)
     try:
         await db.flush()
@@ -321,7 +361,11 @@ async def update_position(
             await _department(db, body.department_id)
         changes["department_id"] = {"from": pos.department_id, "to": body.department_id}
         pos.department_id = body.department_id
-    for field in ("name", "sort_order", "is_active", "yqm"):
+    if "parent_id" in sent and body.parent_id != pos.parent_id:
+        await _check_parent(db, pos.id, body.parent_id)
+        changes["parent_id"] = {"from": pos.parent_id, "to": body.parent_id}
+        pos.parent_id = body.parent_id
+    for field in ("name", "sort_order", "is_active", "yqm", "slots", "is_head"):
         value = getattr(body, field)
         if field in sent and value is not None:
             value = value.strip() if isinstance(value, str) else value

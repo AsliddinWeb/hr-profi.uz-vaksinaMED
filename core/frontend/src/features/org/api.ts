@@ -34,6 +34,7 @@ export interface DepartmentRow {
   sort_order: number
   is_active: boolean
   yqm?: string | null
+  reports_to_position_id?: number | null
   head: HeadRef | null
   positions: number
   branches: number
@@ -48,6 +49,9 @@ export interface PositionRow {
   sort_order: number
   is_active: boolean
   yqm?: string | null
+  parent_id?: number | null
+  slots?: number
+  is_head?: boolean
 }
 
 export const KINDS = ['office', 'pharmacy', 'warehouse', 'other'] as const
