@@ -64,7 +64,10 @@
     },
     "sub": {
       "preboarding": "Prebording",
-      "recruit": "Rekruting"
+      "recruit": "Rekruting",
+      "structure": "Tuzilma",
+      "kadrdocs": "Kadr hujjatlari",
+      "growth": "Rivojlanish"
     }
   },
   "theme": {
@@ -622,7 +625,8 @@
     "manage": "Boshqarish",
     "view": {
       "tree": "Daraxt",
-      "list": "Ro'yxat"
+      "list": "Ro'yxat",
+      "scheme": "Sxema"
     },
     "emptyTree": "Hali bo'limlar yo'q",
     "addFirst": "Birinchi bo'limni qo'shing",
@@ -5688,7 +5692,9 @@
     "note": "Izoh (rad etishda majburiy)",
     "approve": "Tasdiqlash va vakansiya ochish",
     "reject": "Rad etish",
-    "cancel": "Zayafkani bekor qilish"
+    "cancel": "Zayafkani bekor qilish",
+    "needsHint": "Filiallar xodimni \"Xodim kerak\" orqali so'raydi. Ular ham HR tasdig'idan keyin shu yerdagi kabi vakansiyaga aylanadi, havolalar va e'lon avtomatik chiqadi.",
+    "needsLink": "Filial so'rovlari (Xodim kerak) →"
   },
   "rdash": {
     "applicants": "Nomzodlar",
@@ -5930,5 +5936,75 @@
     "subtitle": "O'zingizga mos lavozimni tanlang va onlayn anketani to'ldiring.",
     "empty": "Hozircha ochiq vakansiya yo'q",
     "apply": "Ariza qoldirish"
+  },
+  "help": {
+    "about": "Bu bo'lim haqida",
+    "allFlows": "Barcha jarayonlar qo'llanmasi →",
+    "title": "Jarayonlar qo'llanmasi",
+    "subtitle": "Platformadagi asosiy jarayonlar bir-biriga qanday bog'langani va har bir bo'lim nima uchun ekani",
+    "flowsTitle": "Bog'langan jarayonlar",
+    "sectionsTitle": "Bo'limlar va ular nima qiladi",
+    "noAccess": "Bu papkada sizga ochiq bo'lim yo'q",
+    "subHint": {
+      "structure": "Kompaniya tuzilmasi: bo'limlar, lavozimlar, filiallar va o'tkazishlar",
+      "kadrdocs": "Kadrlar hujjatlari: kutubxona, ariza va buyruqlar, kadrovik ishi",
+      "growth": "Xodimni rivojlantirish, baholash, ushlab qolish va ishdan ketish"
+    }
+  },
+  "orgx": {
+    "headcount": "Ishlayotganlar",
+    "positions": "Lavozimlar",
+    "hired12": "12 oyda kelgan",
+    "left12": "12 oyda ketgan",
+    "turnover": "Aylanma (12 oy)",
+    "avgTenure": "O'rtacha staj",
+    "tenureYM": "{{y}} yil {{m}} oy",
+    "tenureM": "{{m}} oy",
+    "flow12": "Oyma-oy kelish va ketish (12 oy)",
+    "hired": "Kelgan",
+    "left": "Ketgan",
+    "tenureDist": "Staj bo'yicha",
+    "tb": {
+      "lt3": "3 oygacha",
+      "m3_12": "3-12 oy",
+      "y1_3": "1-3 yil",
+      "gt3y": "3 yildan ko'p"
+    },
+    "avgAge": "O'rtacha yosh: {{n}}",
+    "g": {
+      "m": "Erkak",
+      "f": "Ayol",
+      "?": "Ko'rsatilmagan"
+    },
+    "joined": "Kelgan: {{d}}",
+    "leftOn": "Ketgan: {{d}}",
+    "tab": {
+      "positions": "Lavozimlar va xodimlar",
+      "new": "Yangi kelganlar (90 kun)",
+      "left": "Ishdan ketganlar arxivi",
+      "analytics": "Tahlil"
+    },
+    "noPeopleAccess": "Xodimlar ro'yxatini ko'rish uchun ruxsat kerak (employees.read).",
+    "general": "Umumiy lavozim",
+    "people": "{{n}} kishi",
+    "vacant": "Bo'sh",
+    "noPosition": "Lavozimi belgilanmagan xodimlar: {{n}}",
+    "noPositions": "Lavozim yo'q",
+    "noNew": "So'nggi 90 kunda yangi xodim yo'q",
+    "noLeft": "Ishdan ketganlar yo'q",
+    "byBranch": "Filiallar bo'yicha",
+    "allCompany": "Butun kompaniya",
+    "peopleShort": "{{n}} xodim"
+  },
+  "scheme": {
+    "vacancy": "Vakansiya",
+    "yqm": "YaQM",
+    "head": "Bo'lim boshlig'i",
+    "company": "kompaniyasi",
+    "general": "Umumiy lavozimlar",
+    "noPositions": "Lavozim qo'shilmagan",
+    "yqmLabel": "YaQM (yakuniy qimmatli mahsulot)",
+    "yqmHint": "Bo'lim natijasi: masalan \"Vaqtida ishga kelgan xodimlar\". Tashkiliy tuzilma sxemasida ko'rinadi.",
+    "yqmPosHint": "Bu lavozim egasi beradigan natija. Tashkiliy tuzilma sxemasida lavozim ostida ko'rinadi."
   }
 }

@@ -13,6 +13,7 @@ import { Field, Input, Select } from '../../components/ui/Input'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { useToast } from '../../components/ui/toastContext'
 import { api, send } from '../../lib/api'
+import { useCan } from '../auth/useAuth'
 import { formatDate, formatDateTime } from '../../lib/format'
 import { errorText } from '../auth/errorText'
 
@@ -54,6 +55,8 @@ const area = 'w-full rounded-control bg-surface px-3 py-2 text-[13px] shadow-[in
 export function RequestsPage() {
   const { t, i18n } = useTranslation()
   const [status, setStatus] = useState<'' | RStatus>('')
+  const can = useCan()
+  const seeNeeds = can('pharmacy.read') || can('pharmacy.manage') || can('pharmacy.own')
   const meta = useQuery({ queryKey: ['recruit', 'requests', 'meta'], queryFn: () => api<Meta>('/api/v1/recruit/requests/meta') })
   const q = useQuery({ queryKey: ['recruit', 'requests', status], queryFn: () => api<{ items: HireRequest[] }>(`/api/v1/recruit/requests${status ? `?status=${status}` : ''}`) })
   return (
@@ -72,6 +75,14 @@ export function RequestsPage() {
           )
         }
       />
+      {seeNeeds && (
+        <Card className="flex flex-wrap items-center gap-3 border-l-4 border-l-primary p-4 text-sm">
+          <span className="flex-1 text-muted">{t('rreq.needsHint')}</span>
+          <Link to="/pharmacy/needs" className="font-semibold text-primary hover:underline">
+            {t('rreq.needsLink')}
+          </Link>
+        </Card>
+      )}
       <div className="flex flex-wrap gap-2">
         {(['', 'pending', 'approved', 'rejected', 'cancelled'] as const).map((s) => (
           <button key={s} type="button" onClick={() => setStatus(s)} className={`rounded-full px-3 py-1.5 text-xs font-semibold ${status === s ? 'bg-primary text-primary-fg' : 'border border-border bg-surface hover:bg-surface-2'}`}>

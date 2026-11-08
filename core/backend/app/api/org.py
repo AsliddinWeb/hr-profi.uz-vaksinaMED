@@ -28,6 +28,7 @@ class DepartmentIn(BaseModel):
     kind: str = Field(default="office", pattern=KINDS)
     color: str | None = Field(default=None, pattern=COLOR)
     sort_order: int = 0
+    yqm: str | None = Field(default=None, max_length=1000)
     create_default_positions: bool = True
 
 
@@ -39,12 +40,14 @@ class DepartmentPatch(BaseModel):
     color: str | None = Field(default=None, pattern=COLOR)
     sort_order: int | None = None
     is_active: bool | None = None
+    yqm: str | None = Field(default=None, max_length=1000)
 
 
 class PositionIn(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     department_id: int | None = None
     sort_order: int = 0
+    yqm: str | None = Field(default=None, max_length=1000)
 
 
 class PositionPatch(BaseModel):
@@ -52,6 +55,7 @@ class PositionPatch(BaseModel):
     department_id: int | None = None
     sort_order: int | None = None
     is_active: bool | None = None
+    yqm: str | None = Field(default=None, max_length=1000)
 
 
 async def _active_user(db: AsyncSession, user_id: int) -> User:
@@ -144,6 +148,7 @@ async def create_department(
         kind=body.kind,
         color=body.color,
         sort_order=body.sort_order,
+        yqm=(body.yqm or "").strip() or None,
     )
     db.add(dept)
     try:
@@ -206,7 +211,7 @@ async def update_department(
                 db, [head.id], "org.head_assigned", params={"name": dept.name}, link="/org"
             )
 
-    for field in ("name", "kind", "color", "sort_order", "is_active"):
+    for field in ("name", "kind", "color", "sort_order", "is_active", "yqm"):
         if field in sent and getattr(body, field) is not None or (field == "color" and field in sent):
             value = getattr(body, field)
             if isinstance(value, str) and field == "name":
@@ -270,6 +275,7 @@ async def list_positions(
             "department_id": p.department_id,
             "sort_order": p.sort_order,
             "is_active": p.is_active,
+            "yqm": p.yqm,
         }
         for p in rows
     ]
@@ -284,7 +290,7 @@ async def create_position(
 ):
     if body.department_id is not None:
         await _department(db, body.department_id)
-    pos = Position(name=body.name.strip(), department_id=body.department_id, sort_order=body.sort_order)
+    pos = Position(name=body.name.strip(), department_id=body.department_id, sort_order=body.sort_order, yqm=(body.yqm or "").strip() or None)
     db.add(pos)
     try:
         await db.flush()
@@ -315,7 +321,7 @@ async def update_position(
             await _department(db, body.department_id)
         changes["department_id"] = {"from": pos.department_id, "to": body.department_id}
         pos.department_id = body.department_id
-    for field in ("name", "sort_order", "is_active"):
+    for field in ("name", "sort_order", "is_active", "yqm"):
         value = getattr(body, field)
         if field in sent and value is not None:
             value = value.strip() if isinstance(value, str) else value

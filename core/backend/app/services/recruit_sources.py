@@ -11,7 +11,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.models.org import Branch
 from app.models.pharmacy import StaffNeed
-from app.models.recruit import Application, Candidate, PositionRequirement, SourceLink, Vacancy
+from app.models.recruit import (
+    Application,
+    Candidate,
+    PositionRequirement,
+    SourceLink,
+    Vacancy,
+    VacancyChannel,
+)
 from app.services import recruit as rsvc
 from app.services.answers import users_with_permission
 from app.services.notifications import notify, register_template
@@ -146,3 +153,28 @@ async def submit_application(db: AsyncSession, lk: SourceLink, v: Vacancy, *, fu
     targets = {t for t in (v.recruiter_id, lk.owner_user_id) if t} or set(await users_with_permission(db, "recruit.manage"))
     notes = await notify(db, targets, "recruit.new_application", link=f"/recruit/vacancies/{v.id}", params={"candidate": cand.full_name, "vacancy": v.title})
     return "ok", cand, notes
+
+
+AUTO_LINKS = (("telegram", "Telegram kanal (avto)"), ("site", "Veb-sayt (avto)"))
+
+
+async def auto_publish(db: AsyncSession, v: Vacancy, branch: Branch | None, owner_id: int | None, actor_id: int) -> tuple[int, str] | None:
+    """Vakansiya ochilganda (zayafka yoki «Xodim kerak» tasdig'i): Telegram va veb-sayt havolalarini yaratadi; kanal
+    sozlangan bo'lsa e'lon matnini qaytaradi (commit'dan keyin `send_post` bilan yuboriladi)."""
+    links: dict[str, SourceLink] = {}
+    for ch, label in AUTO_LINKS:
+        links[ch] = SourceLink(code=await unique_code(db), vacancy_id=v.id, channel=ch, owner_user_id=owner_id, label=label)
+        db.add(links[ch])
+    await db.flush()
+    s = get_settings()
+    chat = s.telegram_vacancy_chat_id.strip()
+    if not (chat and s.telegram_bot_token):
+        return None
+    card = await requirement_for(db, v.position_id)
+    db.add(VacancyChannel(vacancy_id=v.id, channel="telegram", note="avto e'lon", posted_by=actor_id))
+    return int(chat), ad_text(v, branch, card, apply_url(links["telegram"].code))
+
+
+async def send_post(app: Any, post: tuple[int, str] | None) -> None:
+    if post and getattr(app.state, "queue", None):
+        await app.state.queue.enqueue("deliver_candidate_telegram", *post)

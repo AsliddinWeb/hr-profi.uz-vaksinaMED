@@ -14,6 +14,7 @@ export interface DepartmentNode {
   head: HeadRef | null
   positions: number
   branches: number
+  employees: number
   children: DepartmentNode[]
   children_count: number
 }
@@ -32,6 +33,7 @@ export interface DepartmentRow {
   color: string | null
   sort_order: number
   is_active: boolean
+  yqm?: string | null
   head: HeadRef | null
   positions: number
   branches: number
@@ -45,6 +47,7 @@ export interface PositionRow {
   department_id: number | null
   sort_order: number
   is_active: boolean
+  yqm?: string | null
 }
 
 export const KINDS = ['office', 'pharmacy', 'warehouse', 'other'] as const

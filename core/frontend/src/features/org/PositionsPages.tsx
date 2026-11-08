@@ -153,10 +153,11 @@ function PositionForm({
   const [dept, setDept] = useState(cur ? String(cur.department_id ?? '') : initialDept)
   const [order, setOrder] = useState(cur?.sort_order ?? 0)
   const [active, setActive] = useState(cur?.is_active ?? true)
+  const [yqm, setYqm] = useState(cur?.yqm ?? '')
   const [more, setMore] = useState(false)
   const save = useMutation({
     mutationFn: () => {
-      const body = { name: name.trim(), department_id: dept ? Number(dept) : null, sort_order: order }
+      const body = { name: name.trim(), department_id: dept ? Number(dept) : null, sort_order: order, yqm: yqm.trim() || null }
       return cur ? send('PATCH', `/api/v1/org/positions/${cur.id}`, { ...body, is_active: active }) : send('POST', '/api/v1/org/positions', body)
     },
     onSuccess: () => {
@@ -194,6 +195,9 @@ function PositionForm({
               ))}
             </Select>
           )}
+        </Field>
+        <Field label={t('scheme.yqmLabel')} hint={t('scheme.yqmPosHint')}>
+          {(fid) => <textarea id={fid} rows={2} maxLength={1000} value={yqm} onChange={(e) => setYqm(e.target.value)} className="w-full rounded-control bg-surface px-3 py-2 text-[13px] shadow-[inset_0_0_0_1px_var(--border-strong)] outline-none focus:ring-2 focus:ring-primary/30" />}
         </Field>
         <Field label={t('org.sortOrder')}>{(fid) => <Input id={fid} type="number" min={0} max={9999} value={order} onChange={(e) => setOrder(Number(e.target.value))} className="w-32" />}</Field>
         {cur ? (

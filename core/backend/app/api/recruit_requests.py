@@ -9,7 +9,6 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import get_settings
 from app.db import get_session
 from app.deps import AuthContext, error, get_auth
 from app.models.auth import User
@@ -23,7 +22,6 @@ from app.models.recruit import (
     RecruitCall,
     SourceLink,
     Vacancy,
-    VacancyChannel,
 )
 from app.rbac import matches
 from app.services import growth
@@ -207,18 +205,8 @@ async def decide(rid: int, body: DecideIn, request: Request, db: AsyncSession = 
         db.add(v)
         await db.flush()
         r.status, r.vacancy_id = "approved", v.id
-        # Avtomatik nomzod havolalari: Telegram kanal va veb-sayt (har biri o'z manbasi bilan hisoblanadi)
-        owner = body.recruiter_id or auth.user.id
-        auto = {}
-        for ch, label in (("telegram", "Telegram kanal (avto)"), ("site", "Veb-sayt (avto)")):
-            auto[ch] = SourceLink(code=await src.unique_code(db), vacancy_id=v.id, channel=ch, owner_user_id=owner, label=label)
-            db.add(auto[ch])
-        await db.flush()
-        chat = get_settings().telegram_vacancy_chat_id.strip()
-        if chat and get_settings().telegram_bot_token:
-            card = await src.requirement_for(db, v.position_id)
-            post = (int(chat), src.ad_text(v, br, card, src.apply_url(auto["telegram"].code)))
-            db.add(VacancyChannel(vacancy_id=v.id, channel="telegram", note="avto e'lon (zayafka)", posted_by=auth.user.id))
+        # Avtomatik nomzod havolalari (Telegram + sayt) va kanal sozlangan bo'lsa e'lon
+        post = await src.auto_publish(db, v, br, body.recruiter_id or auth.user.id, auth.user.id)
         notes += await notify(db, [r.created_by] if r.created_by else [], "recruit.request_approved", link=f"/recruit/requests/{r.id}", params={"number": r.number, "position": pos.name if pos else ""})
         targets = [body.recruiter_id] if body.recruiter_id else await users_with_permission(db, "recruit.manage")
         notes += await notify(db, [t for t in targets if t and t != auth.user.id], "need.vacancy", params={"title": v.title}, link=f"/recruit/vacancies/{v.id}/promo")
@@ -228,8 +216,7 @@ async def decide(rid: int, body: DecideIn, request: Request, db: AsyncSession = 
     await audit(db, request, f"recruit.request_{r.status}", actor=auth.user, entity="hire_request", entity_id=r.id, data={"vacancy_id": r.vacancy_id, "auto_post": bool(post)})
     await db.commit()
     await deliver(request.app, notes)
-    if post and getattr(request.app.state, "queue", None):
-        await request.app.state.queue.enqueue("deliver_candidate_telegram", *post)
+    await src.send_post(request.app, post)
     return await _out(db, r, auth)
 
 

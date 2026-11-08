@@ -30,6 +30,7 @@ class Department(Base, TimestampMixin):
     color: Mapped[str | None] = mapped_column(String(7))
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    yqm: Mapped[str | None] = mapped_column(Text)  # yakuniy qimmatli mahsulot (bo'lim natijasi)
 
 
 class Position(Base, TimestampMixin):
@@ -44,6 +45,7 @@ class Position(Base, TimestampMixin):
     )
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    yqm: Mapped[str | None] = mapped_column(Text)  # lavozimning yakuniy qimmatli mahsuloti
 
 
 class Branch(Base, TimestampMixin):

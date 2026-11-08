@@ -11,14 +11,17 @@ import { Skeleton } from '../../components/ui/Skeleton'
 import { api } from '../../lib/api'
 import { initials } from '../../lib/format'
 import { useCan } from '../auth/useAuth'
-import { type DepartmentNode, type OrgTree, type PositionRow } from './api'
+import { type DepartmentNode, type OrgTree } from './api'
+import { InsightCharts, InsightKpis, InsightTabs, InsightsLoading } from './OrgInsights'
+import { useInsights } from './orgInsightsApi'
+import { SchemeView } from './SchemeView'
 
 const AUTO_EXPAND_DEPTH = 2
 
 export function OrgChartPage() {
   const { t, i18n } = useTranslation()
   const can = useCan()
-  const [view, setView] = useState<'tree' | 'list'>('tree')
+  const [view, setView] = useState<'scheme' | 'tree' | 'list'>('scheme')
   const [selected, setSelected] = useState<DepartmentNode | null>(null)
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set())
 
@@ -51,7 +54,7 @@ export function OrgChartPage() {
         </div>
         <div className="flex items-center gap-2">
           <div className="flex rounded-control bg-(--seg-bg) p-0.5 text-[13px]">
-            {(['tree', 'list'] as const).map((v) => (
+            {(['scheme', 'tree', 'list'] as const).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
@@ -72,6 +75,8 @@ export function OrgChartPage() {
         </div>
       </div>
 
+      <CompanyOverview />
+
       {tree.isLoading && <Skeleton className="h-64" />}
 
       {data && data.roots.length === 0 && (
@@ -85,7 +90,9 @@ export function OrgChartPage() {
         </Card>
       )}
 
-      {data && data.roots.length > 0 && (
+      {data && data.roots.length > 0 && view === 'scheme' && <SchemeView />}
+
+      {data && data.roots.length > 0 && view !== 'scheme' && (
         <div className="flex flex-col gap-5">
           <Card className="p-6">
             <div ref={scroller} className="overflow-x-auto pb-2">
@@ -200,6 +207,7 @@ function NodeCard({ node, selected, onSelect }: { node: DepartmentNode; selected
         )}
         <div className="mt-2 flex gap-2 text-[11px] text-muted">
           <span>{t('org.positionsCount', { count: node.positions })}</span>
+          <span>{t('orgx.peopleShort', { n: node.employees ?? 0 })}</span>
           {node.branches > 0 && <span>· {t('org.branchesCount', { count: node.branches })}</span>}
         </div>
       </div>
@@ -251,53 +259,55 @@ function NodeCardWide({ node, selected, onSelect }: { node: DepartmentNode; sele
   )
 }
 
+function CompanyOverview() {
+  const q = useInsights(null)
+  if (!q.data) return <InsightsLoading />
+  return (
+    <div className="flex flex-col gap-4">
+      <InsightKpis d={q.data} />
+      <InsightCharts d={q.data} />
+    </div>
+  )
+}
+
 function DetailPanel({ node, canManage }: { node: DepartmentNode | null; canManage: boolean }) {
   const { t } = useTranslation()
-  const positions = useQuery({
-    queryKey: ['org', 'positions', node?.id],
-    queryFn: () => api<PositionRow[]>(`/api/v1/org/positions?department_id=${node?.id}`),
-    enabled: !!node,
-  })
-
-  if (!node) {
-    return <p className="text-center text-sm text-muted">{t('org.selectHint')}</p>
-  }
+  const q = useInsights(node?.id ?? null)
   return (
-    <Card className="mx-auto w-full max-w-xl p-6">
-      <div className="flex items-start justify-between gap-3">
+    <Card className="flex flex-col gap-4 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="truncate text-lg font-semibold">{node.name}</h2>
-          <p className="mt-0.5 text-sm text-muted">{t(`org.kinds.${node.kind}`)}</p>
+          <h2 className="truncate text-lg font-semibold">{node ? node.name : t('orgx.allCompany')}</h2>
+          <p className="mt-0.5 text-sm text-muted">
+            {node ? (
+              <>
+                {t(`org.kinds.${node.kind}`)} · {t('org.head')}: {node.head?.full_name ?? <span className="text-warning">{t('org.noHead')}</span>}
+                {node.branches > 0 && <> · {t('branches.title')}: {node.branches}</>}
+              </>
+            ) : (
+              t('org.selectHint')
+            )}
+          </p>
         </div>
-        {!node.is_active && <Badge tone="warning">{t('users.blocked')}</Badge>}
+        <div className="flex items-center gap-2">
+          {node && !node.is_active && <Badge tone="warning">{t('users.blocked')}</Badge>}
+          {node && canManage && (
+            <Link to={`/org/departments/${node.id}/edit`}>
+              <Button variant="outline">
+                <Pencil className="size-4" />
+                {t('common.edit')}
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
-
-      <dl className="mt-4 flex flex-col gap-3 text-sm">
-        <div>
-          <dt className="text-xs text-muted">{t('org.head')}</dt>
-          <dd className="mt-0.5 font-medium">{node.head?.full_name ?? <span className="text-warning">{t('org.noHead')}</span>}</dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted">{t('org.positions')}</dt>
-          <dd className="mt-1 flex flex-wrap gap-1.5">
-            {positions.data?.filter((p) => p.is_active).map((p) => <Badge key={p.id}>{p.name}</Badge>)}
-            {positions.data?.length === 0 && <span className="text-muted">—</span>}
-          </dd>
-        </div>
-        {node.branches > 0 && (
-          <div>
-            <dt className="text-xs text-muted">{t('branches.title')}</dt>
-            <dd className="mt-0.5 font-medium">{node.branches}</dd>
-          </div>
-        )}
-      </dl>
-      {canManage && (
-        <Link to={`/org/departments/${node.id}/edit`} className="mt-5 inline-block">
-          <Button variant="outline">
-            <Pencil className="size-4" />
-            {t('common.edit')}
-          </Button>
-        </Link>
+      {!q.data ? (
+        <InsightsLoading />
+      ) : (
+        <>
+          {node && <InsightKpis d={q.data} />}
+          <InsightTabs key={node?.id ?? 'all'} d={q.data} />
+        </>
       )}
     </Card>
   )

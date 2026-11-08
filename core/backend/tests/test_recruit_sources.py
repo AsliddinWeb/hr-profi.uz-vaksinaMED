@@ -82,7 +82,9 @@ async def test_channels_links_public_apply_and_report(new_client):
     code = link["code"]
 
     promo = (await ctx["hr"].get(f"{RC}/vacancies/{vid}/promo")).json()
-    assert len(promo["channels"]) == 1 and promo["links"][0]["code"] == code and code in promo["ad"]
+    # Tasdiqlangan "Xodim kerak" uchun Telegram va sayt havolalari avtomatik yaratiladi; qo'lda qo'shilgan ham ro'yxatda
+    assert len(promo["channels"]) == 1 and code in [lk["code"] for lk in promo["links"]] and len(promo["links"]) == 3
+    assert {lk["label"] for lk in promo["links"]} >= {"Telegram kanal (avto)", "Veb-sayt (avto)"} and promo["links"][0]["code"] in promo["ad"]
 
     anon = new_client()
     info = await anon.get(f"{PUB}/{code}")

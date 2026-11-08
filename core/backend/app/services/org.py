@@ -56,7 +56,7 @@ async def counts(db: AsyncSession) -> dict[int, dict[str, int]]:
     out: dict[int, dict[str, int]] = {}
 
     def bucket(i: int) -> dict[str, int]:
-        return out.setdefault(i, {"positions": 0, "branches": 0, "children": 0})
+        return out.setdefault(i, {"positions": 0, "branches": 0, "children": 0, "employees": 0})
 
     for dept_id, n in (
         await db.execute(
@@ -82,6 +82,16 @@ async def counts(db: AsyncSession) -> dict[int, dict[str, int]]:
         )
     ).all():
         bucket(parent_id)["children"] = n
+    from app.models.employees import Employee  # noqa: PLC0415
+
+    for dept_id, n in (
+        await db.execute(
+            select(Employee.department_id, func.count())
+            .where(Employee.department_id.is_not(None), Employee.status == "active")
+            .group_by(Employee.department_id)
+        )
+    ).all():
+        bucket(dept_id)["employees"] = n
     return out
 
 
@@ -105,10 +115,12 @@ def department_out(
         "color": d.color,
         "sort_order": d.sort_order,
         "is_active": d.is_active,
+        "yqm": d.yqm,
         "head": heads.get(d.head_user_id) if d.head_user_id else None,
         "positions": c.get("positions", 0),
         "branches": c.get("branches", 0),
         "children": c.get("children", 0),
+        "employees": c.get("employees", 0),
     }
 
 

@@ -54,6 +54,7 @@ function DepartmentForm({ dept, all }: { dept: DepartmentRow | null; all: Depart
   const [noColor, setNoColor] = useState(dept ? dept.color === null : false)
   const [head, setHead] = useState<PickedUser | null>(dept?.head ? { id: dept.head.id, name: dept.head.full_name } : null)
   const [active, setActive] = useState(dept?.is_active ?? true)
+  const [yqm, setYqm] = useState(dept?.yqm ?? '')
   const [defaults, setDefaults] = useState(true)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
@@ -64,7 +65,7 @@ function DepartmentForm({ dept, all }: { dept: DepartmentRow | null; all: Depart
 
   const save = useMutation({
     mutationFn: () => {
-      const body = { name, parent_id: parentId ? Number(parentId) : null, head_user_id: head?.id ?? null, kind, color: noColor ? null : color }
+      const body = { name, parent_id: parentId ? Number(parentId) : null, head_user_id: head?.id ?? null, kind, color: noColor ? null : color, yqm: yqm.trim() || null }
       return dept
         ? send<{ id: number }>('PATCH', `/api/v1/org/departments/${dept.id}`, { ...body, is_active: active })
         : send<{ id: number }>('POST', '/api/v1/org/departments', { ...body, create_default_positions: defaults })
@@ -146,6 +147,9 @@ function DepartmentForm({ dept, all }: { dept: DepartmentRow | null; all: Depart
 
         <FormSection title={t('org.head')} description={t('org.headHint')}>
           <Field label={t('org.head')}>{(id) => <UserPicker id={id} value={head} onChange={setHead} />}</Field>
+          <Field label={t('scheme.yqmLabel')} hint={t('scheme.yqmHint')}>
+            {(id) => <textarea id={id} rows={2} maxLength={1000} value={yqm} onChange={(e) => setYqm(e.target.value)} className="w-full rounded-control bg-surface px-3 py-2 text-[13px] shadow-[inset_0_0_0_1px_var(--border-strong)] outline-none focus:ring-2 focus:ring-primary/30" />}
+          </Field>
         </FormSection>
 
         <FormSection title={t('org.sectionStatus')}>

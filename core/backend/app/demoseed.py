@@ -232,6 +232,9 @@ class Seeder:
         from app.demoseed_flows import flows
 
         await flows(self)
+        from app.demoseed_more import more_flows
+
+        await more_flows(self)
         # vaqtinchalik seeder foydalanuvchisini o'chirish
         async with SessionLocal() as s:
             await s.execute(text("TRUNCATE audit_log, user_sessions"))

@@ -55,6 +55,7 @@ export function MyPage() {
     },
     onSuccess: () => setSosSent(true),
   })
+  if (q.isError) return <Card className="mx-auto max-w-xl p-6 text-center text-sm text-muted">{errorText(t, q.error)}</Card>
   if (!q.data) return <Skeleton className="mx-auto h-96 max-w-xl" />
   const m = q.data
   const s = m.session

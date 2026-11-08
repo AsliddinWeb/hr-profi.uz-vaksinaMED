@@ -391,12 +391,15 @@ async def create_need(body: NeedIn, request: Request, db: AsyncSession = Depends
     if approval == "pending_hrd":  # HR yaratgan: HRD tasdig'i kerak
         hrd = [u for u in await users_with_permission(db, "pharmacy.approve") if u != auth.user.id]
         notes += await notify(db, hrd, "need.review", link=f"/pharmacy/needs/{n.id}", params={"branch": label, "role": body.role, "count": body.count})
+    post = None
     if approval == "approved":
-        _, vnotes = await rsvc.vacancy_from_need(db, n, b, auth.user.id, now())
+        v, vnotes = await rsvc.vacancy_from_need(db, n, b, auth.user.id, now())
         notes += vnotes
+        post = await rsvc.auto_publish(db, v, b, auth.user.id, auth.user.id)
     await audit(db, request, "pharmacy.need_create", actor=auth.user, entity="staff_need", entity_id=n.id, data={"branch_id": b.id, "role": n.role, "count": n.count})
     await db.commit()
     await deliver(request.app, notes)
+    await rsvc.send_post(request.app, post)
     return _need_out(n, b, {auth.user.id: auth.user.full_name})
 
 
@@ -464,6 +467,7 @@ async def decide_need(need_id: int, body: DecideIn, request: Request, db: AsyncS
     if body.action == "reject" and not note:
         raise error(400, "note_required")
     moment, label, notes = now(), rsvc.branch_label(b), []
+    post = None
     params = {"branch": label, "role": n.role, "count": n.count}
     if body.action == "forward":
         n.approval, n.reviewed_by, n.reviewed_at = "pending_hrd", auth.user.id, moment
@@ -472,7 +476,8 @@ async def decide_need(need_id: int, body: DecideIn, request: Request, db: AsyncS
         if body.recruiter_id is not None and body.recruiter_id not in set(await users_with_permission(db, "recruit.manage")):
             raise error(400, "unknown_recruiter")
         n.approval, n.approved_by, n.approved_at, n.decision_note = "approved", auth.user.id, moment, note
-        _, notes = await rsvc.vacancy_from_need(db, n, b, auth.user.id, moment, body.recruiter_id)
+        v, notes = await rsvc.vacancy_from_need(db, n, b, auth.user.id, moment, body.recruiter_id)
+        post = await rsvc.auto_publish(db, v, b, body.recruiter_id or auth.user.id, auth.user.id)
         if n.created_by and n.created_by != auth.user.id:
             notes += await notify(db, [n.created_by], "need.decided", link=f"/pharmacy/needs/{n.id}", params={**params, "result": "tasdiqlandi", "note": note or ""})
     else:
@@ -483,6 +488,7 @@ async def decide_need(need_id: int, body: DecideIn, request: Request, db: AsyncS
     await audit(db, request, f"pharmacy.need_{body.action}", actor=auth.user, entity="staff_need", entity_id=n.id, data={"vacancy_id": n.vacancy_id}, note=note)
     await db.commit()
     await deliver(request.app, notes)
+    await rsvc.send_post(request.app, post)
     return _need_out(n, b, {})
 
 
