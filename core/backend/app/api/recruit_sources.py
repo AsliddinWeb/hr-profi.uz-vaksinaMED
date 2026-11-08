@@ -281,7 +281,15 @@ async def apply(code: str, body: ApplyIn, request: Request, db: AsyncSession = D
         phone = emp_svc.normalize_phone(body.phone)
     except ValueError:
         raise error(400, "phone_invalid") from None
-    status, _, notes = await svc.submit_application(db, lk, v, full_name=body.full_name, phone=phone, note=body.note, chat_id=None, moment=now())
+    existed = await db.scalar(select(Candidate.id).where(Candidate.phone == phone))
+    status, cand, notes = await svc.submit_application(db, lk, v, full_name=body.full_name, phone=phone, note=body.note, chat_id=None, moment=now())
+    # Yangi nomzodga to'liq anketa va rezyume havolasi (mavjud nomzodga berilmaydi: begona raqam bilan boshqaning anketasini ochib bo'lmasin)
+    profile = None
+    if cand is not None and existed is None:
+        from app.services import recruit_core as core  # noqa: PLC0415
+
+        cand.profile_token = cand.profile_token or core.new_token()
+        profile = f"/profile/{cand.profile_token}"
     await db.commit()
     await deliver(request.app, notes)
-    return {"ok": True, **({"duplicate": True} if status == "duplicate" else {})}
+    return {"ok": True, **({"duplicate": True} if status == "duplicate" else {}), **({"profile_url": profile} if profile else {})}

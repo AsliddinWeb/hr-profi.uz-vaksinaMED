@@ -208,6 +208,7 @@ class RecruitCall(Base):
     candidate_id: Mapped[int | None] = mapped_column(ForeignKey("candidates.id", ondelete="SET NULL"))
     vacancy_id: Mapped[int | None] = mapped_column(ForeignKey("vacancies.id", ondelete="SET NULL"))
     outcome: Mapped[str] = mapped_column(String(10))  # suitable | unsuitable | no_answer | callback
+    direction: Mapped[str] = mapped_column(String(3), default="out", server_default="out")  # in (kiruvchi) | out (chiquvchi)
     note: Mapped[str | None] = mapped_column(String(300))
     callback_date: Mapped[date | None] = mapped_column(Date)  # «qayta qo'ng'iroq» natijasida: qachon qo'ng'iroq qilish kerak
     called_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
@@ -334,3 +335,29 @@ class BackgroundCheck(Base, TimestampMixin):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
 
+
+
+class HireRequest(Base):
+    """Bo'lim zayafkasi: bo'lim boshlig'i lavozim bo'yicha xodim so'raydi -> HR tasdiqlaydi -> vakansiya avtomatik ochiladi."""
+
+    __tablename__ = "hire_requests"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    number: Mapped[str] = mapped_column(String(20), unique=True)
+    department_id: Mapped[int | None] = mapped_column(ForeignKey("departments.id", ondelete="SET NULL"))
+    branch_id: Mapped[int | None] = mapped_column(ForeignKey("branches.id", ondelete="SET NULL"))
+    position_id: Mapped[int] = mapped_column(ForeignKey("positions.id", ondelete="SET NULL"))
+    count: Mapped[int] = mapped_column(Integer, default=1)
+    urgency: Mapped[str] = mapped_column(String(8), default="normal")
+    needed_from: Mapped[date | None] = mapped_column(Date)
+    reason: Mapped[str | None] = mapped_column(Text)
+    requirements: Mapped[str | None] = mapped_column(Text)
+    salary_from: Mapped[int | None] = mapped_column(Integer)
+    salary_to: Mapped[int | None] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(10), default="pending")  # pending | approved | rejected | cancelled
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    decided_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    decision_note: Mapped[str | None] = mapped_column(Text)
+    vacancy_id: Mapped[int | None] = mapped_column(ForeignKey("vacancies.id", ondelete="SET NULL"))
