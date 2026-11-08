@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     # Telegram: bo'sh token = Telegram o'chirilgan (bot va yuborish ishlamaydi)
     telegram_bot_token: str = ""
     telegram_bot_username: str = ""  # ixtiyoriy; bo'sh bo'lsa bot getMe orqali aniqlaydi
+    telegram_archive_chat_id: str = ""  # prebording yozuv/suratlari nusxasi yuboriladigan yopiq kanal (bot admin)
     # Bildirishnomalardagi havolalar uchun, masalan https://client1.vaksinahr.uz
     public_url: str = ""
 

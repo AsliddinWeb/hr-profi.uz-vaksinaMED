@@ -151,3 +151,47 @@ async def test_no_track_no_camera_and_helpers(new_client):
     assert svc.drive_id("https://drive.google.com/file/d/1AbCdEfGhIjKlMnOp/view?usp=sharing") == "1AbCdEfGhIjKlMnOp"
     assert (await hr.delete(f"{P}/tracks/{track['id']}")).status_code == 204  # stajyori bor: nofaol qilinadi
     assert all(t["id"] != track["id"] for t in (await hr.get(f"{P}/tracks")).json()["items"])
+
+
+class FakeTg:
+    def __init__(self, fail_after: int | None = None):
+        self.calls: list[tuple[str, int, str | None]] = []
+        self.fail_after = fail_after
+
+    def _maybe_fail(self):
+        from app.telegram import TelegramError
+
+        if self.fail_after is not None and len(self.calls) >= self.fail_after:
+            raise TelegramError("Too Many Requests", 429, retry_after=30)
+
+    async def send_photo_group(self, chat_id, photos, caption=None):
+        self._maybe_fail()
+        self.calls.append(("photos", len(photos), caption))
+
+    async def send_video(self, chat_id, filename, data, caption=None):
+        self._maybe_fail()
+        self.calls.append(("video", 1, caption))
+
+
+async def test_telegram_archive(new_client, app):
+    from app.timeutil import now
+
+    hr, intern, track, *_ = await setup(new_client)
+    sid = (await intern.get(f"{P}/my")).json()["stages"][0]["id"]
+    await intern.post(f"{P}/my/consent")
+    mid = (await intern.post(f"{P}/my/stages/{sid}/start")).json()["monitor_id"]
+    jpg = b"\xff\xd8\xff\xe0" + b"\x00" * 300
+    for _ in range(12):
+        await intern.post(f"{P}/my/monitor/{mid}/snapshot", files={"file": ("s.jpg", jpg, "image/jpeg")})
+    await intern.post(f"{P}/my/monitor/{mid}/clip", files={"file": ("c.webm", b"\x1a\x45\xdf\xa3" + b"\x00" * 500, "video/webm")})
+    storage = app.state.storage
+    async with SessionLocal() as s:
+        tg = FakeTg(fail_after=1)  # 1-xabardan keyin limit: qolgani keyingi safar
+        assert await svc.archive_pending(s, storage, tg, "-100", now()) == 1
+        await s.commit()
+        tg2 = FakeTg()
+        assert await svc.archive_pending(s, storage, tg2, "-100", now()) == 2  # qolgan 2 surat + 1 video
+        await s.commit()
+        assert await svc.archive_pending(s, storage, FakeTg(), "-100", now()) == 0  # takror yuborilmaydi
+    assert tg.calls[0][:2] == ("photos", 10) and "Aliyeva Laylo" in tg.calls[0][2] and "Farmasevt" in tg.calls[0][2]
+    assert [c[:2] for c in tg2.calls] == [("photos", 2), ("video", 1)]

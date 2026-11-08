@@ -234,3 +234,54 @@ async def purge_recordings(db: AsyncSession, storage, moment: datetime) -> int:
             n += 1
         m.clips, m.snapshots = [], []
     return n
+
+
+# --- Telegram arxiv (yopiq kanal) ------------------------------------------------------
+
+ARCHIVE_BUDGET = 12  # bitta ishga tushishda ko'pi bilan shuncha xabar (kanal limiti ~20/daq)
+
+
+async def _read(storage, key: str) -> bytes:
+    return b"".join([chunk async for chunk in storage.stream(key)])
+
+
+async def archive_pending(db: AsyncSession, storage, tg, chat_id: str, moment: datetime) -> int:
+    """Yangi yozuv va suratlarni yopiq Telegram kanalga nusxalaydi (asosiy nusxa serverda qoladi).
+    Suratlar 10 tadan albom bo'lib, videolar alohida yuboriladi; yuborilgani `tg` belgisi bilan qayd etiladi.
+    Telegram «retry_after» qaytarsa, shu ishga tushish to'xtaydi va keyingisida davom etadi."""
+    from app.telegram import TelegramError  # noqa: PLC0415
+
+    sent = 0
+    monitors = (await db.scalars(select(InternshipMonitor).where(InternshipMonitor.started_at >= moment - timedelta(days=RETENTION_DAYS)).order_by(InternshipMonitor.id))).all()
+    for m in monitors:
+        snaps = [i for i, x in enumerate(m.snapshots or []) if not x.get("tg")]
+        clips = [i for i, x in enumerate(m.clips or []) if not x.get("tg")]
+        if not snaps and not clips:
+            continue
+        e = await db.get(InternshipEnrollment, m.enrollment_id)
+        emp = await db.get(Employee, e.employee_id) if e else None
+        pos = await db.get(Position, emp.position_id) if emp and emp.position_id else None
+        step = await db.get(InternshipStep, m.step_id) if m.step_id else None
+        head = f"🎓 {emp.full_name if emp else '—'}{' · ' + pos.name if pos else ''}\n📚 {step.title if step else '—'}"
+        try:
+            while snaps and sent < ARCHIVE_BUDGET:
+                batch, snaps = snaps[:10], snaps[10:]
+                photos = [(f"s{i}.jpg", await _read(storage, m.snapshots[i]["key"])) for i in batch]
+                first = m.snapshots[batch[0]]["at"][:16].replace("T", " ")
+                await tg.send_photo_group(chat_id, photos, caption=f"{head}\n📷 Suratlar: {first} dan, {len(batch)} ta")
+                m.snapshots = [{**x, "tg": True} if i in batch else x for i, x in enumerate(m.snapshots)]
+                sent += 1
+            while clips and sent < ARCHIVE_BUDGET:
+                i = clips.pop(0)
+                c = m.clips[i]
+                ext = "mp4" if c.get("mime") == "video/mp4" else "webm"
+                await tg.send_video(chat_id, f"clip-{m.id}-{i}.{ext}", await _read(storage, c["key"]), caption=f"{head}\n🎥 Yozuv {i + 1}: {c['at'][:16].replace('T', ' ')}")
+                m.clips = [{**x, "tg": True} if j == i else x for j, x in enumerate(m.clips)]
+                sent += 1
+        except TelegramError:
+            await db.flush()
+            break  # limit yoki tarmoq: keyingi ishga tushishda davom etadi
+        await db.flush()
+        if sent >= ARCHIVE_BUDGET:
+            break
+    return sent

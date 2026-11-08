@@ -313,6 +313,22 @@ async def explanation_deadlines(ctx: dict) -> int:
     return len(notes)
 
 
+async def archive_preboarding_telegram(ctx: dict) -> int:
+    """Prebording yozuv va suratlari nusxasini yopiq Telegram kanalga yuboradi (TELEGRAM_ARCHIVE_CHAT_ID)."""
+    from app.services.preboarding import archive_pending
+    from app.timeutil import now
+
+    chat = settings.telegram_archive_chat_id
+    tg = ctx.get("telegram")
+    storage = ctx.get("storage")
+    if not chat or tg is None or storage is None:
+        return 0
+    async with SessionLocal() as session:
+        n = await archive_pending(session, storage, tg, chat, now())
+        await session.commit()
+    return n
+
+
 async def purge_preboarding_recordings(ctx: dict) -> int:
     """Prebording kamera yozuvlari va suratlari 90 kundan keyin o'chiriladi."""
     from app.services.preboarding import purge_recordings
@@ -604,7 +620,7 @@ async def shutdown(ctx: dict) -> None:
 
 
 _registry = WorkerRegistry(
-    functions=[ping, deliver_telegram, cleanup_notifications, purge_face_templates, escalate_leave_requests, scan_penalties, release_penalty_blocks, task_deadlines, need_deadlines, fire_reminders, logistics_expiry, warehouse_watch, mobile_watch, desk_watch, calls_watch, report_scheduler, deliver_report_telegram, deliver_statement_telegram, coord_report_job, explanation_deadlines, auto_letter_reminders, purge_preboarding_recordings, deliver_candidate_telegram, attestation_job, retention_scan_job, rotation_job, duty_overdue_job, recruit_scan_job, control_digest_job],
+    functions=[ping, deliver_telegram, cleanup_notifications, purge_face_templates, escalate_leave_requests, scan_penalties, release_penalty_blocks, task_deadlines, need_deadlines, fire_reminders, logistics_expiry, warehouse_watch, mobile_watch, desk_watch, calls_watch, report_scheduler, deliver_report_telegram, deliver_statement_telegram, coord_report_job, explanation_deadlines, auto_letter_reminders, purge_preboarding_recordings, archive_preboarding_telegram, deliver_candidate_telegram, attestation_job, retention_scan_job, rotation_job, duty_overdue_job, recruit_scan_job, control_digest_job],
     cron_jobs=[
         cron(heartbeat, second={0, 30}),
         cron(cleanup_notifications, hour={3}, minute={15}),
@@ -623,6 +639,7 @@ _registry = WorkerRegistry(
         cron(explanation_deadlines, minute={10, 40}),
         cron(auto_letter_reminders, minute={2, 17, 32, 47}),
         cron(purge_preboarding_recordings, hour={4}, minute={20}),
+        cron(archive_preboarding_telegram),
         cron(attestation_job, minute={20}),
         cron(retention_scan_job, minute={25}),
         cron(rotation_job, minute=set(range(3, 60, 10))),

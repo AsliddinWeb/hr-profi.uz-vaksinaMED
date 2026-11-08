@@ -81,5 +81,33 @@ class TelegramClient:
             raise TelegramError(body.get("description", "error"), body.get("error_code", r.status_code), retry)
 
 
+    async def _multipart(self, method: str, data: dict[str, str], files: dict[str, tuple[str, bytes]]) -> Any:
+        try:
+            r = await self._http.post(f"{API}/bot{self._token}/{method}", data=data, files=files)
+        except httpx.HTTPError as exc:
+            raise TelegramError(f"network: {type(exc).__name__}") from exc
+        try:
+            body = r.json()
+        except ValueError:
+            raise TelegramError(f"bad response {r.status_code}", r.status_code) from None
+        if not body.get("ok"):
+            retry = (body.get("parameters") or {}).get("retry_after")
+            raise TelegramError(body.get("description", "error"), body.get("error_code", r.status_code), retry)
+        return body["result"]
+
+    async def send_video(self, chat_id: int | str, filename: str, data: bytes, caption: str | None = None) -> Any:
+        """Video (pleyer bilan ko'rinadi). Bot yuklash limiti 50 MB."""
+        return await self._multipart("sendVideo", {"chat_id": str(chat_id), "supports_streaming": "true", **({"caption": caption[:1000]} if caption else {})}, {"video": (filename, data)})
+
+    async def send_photo_group(self, chat_id: int | str, photos: list[tuple[str, bytes]], caption: str | None = None) -> Any:
+        """Albom: 2-10 ta surat bitta xabarda (kanal tezlik limitini tejaydi). Bitta surat bo'lsa sendPhoto."""
+        if len(photos) == 1:
+            return await self._multipart("sendPhoto", {"chat_id": str(chat_id), **({"caption": caption[:1000]} if caption else {})}, {"photo": photos[0]})
+        import json  # noqa: PLC0415
+
+        media = [{"type": "photo", "media": f"attach://p{i}", **({"caption": caption[:1000]} if caption and i == 0 else {})} for i in range(len(photos))]
+        return await self._multipart("sendMediaGroup", {"chat_id": str(chat_id), "media": json.dumps(media)}, {f"p{i}": p for i, p in enumerate(photos)})
+
+
 def esc(text: str | None) -> str:
     return html.escape(text or "", quote=False)
