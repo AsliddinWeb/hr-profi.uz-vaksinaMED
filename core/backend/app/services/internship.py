@@ -19,7 +19,7 @@ from app.rbac import matches
 from app.services.answers import users_with_permission
 from app.services.notifications import notify, register_template
 
-KINDS = ("video", "document", "text", "test")
+KINDS = ("video", "document", "text", "test", "lesson")
 
 register_template("internship.enrolled", {"uz": "Stajirovka boshlandi", "ru": "Стажировка началась"}, {"uz": "{program}: {intern}", "ru": "{program}: {intern}"}, "info")
 register_template("internship.ready", {"uz": "Stajyor ishga tayyor", "ru": "Стажёр готов к работе"}, {"uz": "{intern}: {score}", "ru": "{intern}: {score}"}, "success")
@@ -100,10 +100,19 @@ async def progress_of(db: AsyncSession, enrollment_id: int) -> dict[int, Interns
     return {p.step_id: p for p in (await db.scalars(select(InternshipProgress).where(InternshipProgress.enrollment_id == enrollment_id))).all()}
 
 
+def live_steps(steps: list[InternshipStep]) -> list[InternshipStep]:
+    """Stajyor yo'lidagi bosqichlar: e'lon qilingan va xodim/stajyorlar uchun (qoralama va «faqat o'quvchilar» kirmaydi)."""
+    return [s for s in steps if s.published and s.audience != "students"]
+
+
+def has_test(s: InternshipStep) -> bool:
+    return s.kind == "test" or (s.kind == "lesson" and bool(s.questions))
+
+
 def step_states(program: InternshipProgram, steps: list[InternshipStep], prog: dict[int, InternshipProgress]) -> list[dict[str, Any]]:
     """Har bosqich: done | available | locked (ketma-ket dasturda oldingi majburiy bosqich bajarilmagan)."""
     out, blocked = [], False
-    for s in steps:
+    for s in live_steps(steps):
         p = prog.get(s.id)
         done = bool(p and p.done)
         state = "done" if done else ("locked" if program.sequential and blocked else "available")
@@ -114,9 +123,10 @@ def step_states(program: InternshipProgram, steps: list[InternshipStep], prog: d
 
 
 def summarize(steps: list[InternshipStep], prog: dict[int, InternshipProgress]) -> dict[str, Any]:
+    steps = live_steps(steps)
     req = [s for s in steps if s.required]
     done = [s for s in req if prog.get(s.id) and prog[s.id].done]
-    scores = [prog[s.id].score for s in steps if s.kind == "test" and prog.get(s.id) and prog[s.id].score is not None]
+    scores = [prog[s.id].score for s in steps if has_test(s) and prog.get(s.id) and prog[s.id].score is not None]
     return {
         "required": len(req), "done": len(done), "percent": round(len(done) / len(req) * 100) if req else 0,
         "avg_score": round(sum(scores) / len(scores), 1) if scores else None,
@@ -159,4 +169,6 @@ def step_out(s: InternshipStep, *, reveal: bool) -> dict[str, Any]:
         "id": s.id, "program_id": s.program_id, "position": s.position, "kind": s.kind, "title": s.title, "description": s.description, "url": s.url, "required": s.required,
         "pass_score": s.pass_score, "max_attempts": s.max_attempts, "file": {"name": s.file_name, "mime": s.file_mime, "size": s.file_size} if s.file_key else None,
         "questions": s.questions if reveal else public_questions(s), "question_count": len(s.questions or []),
+        "slides_url": s.slides_url, "audience": s.audience, "published": s.published,
+        "min_video_seconds": s.min_video_seconds, "min_slides_seconds": s.min_slides_seconds,
     }  # fmt: skip

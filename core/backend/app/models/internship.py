@@ -34,10 +34,12 @@ class InternshipProgram(Base, TimestampMixin):
     phase: Mapped[str] = mapped_column(String(12), default="preboarding", server_default="preboarding")  # preboarding (7 kun) | onboarding (90 kun)
     position_id: Mapped[int | None] = mapped_column(ForeignKey("positions.id", ondelete="SET NULL"))  # onboarding: lavozim bo'yicha dastur
     duration_days: Mapped[int | None] = mapped_column(Integer)
+    # Prebording nazorati: {camera, live, record, snapshots}
+    monitoring: Mapped[dict] = mapped_column(JSONB, default=lambda: {"camera": True, "live": True, "record": True, "snapshots": True})
 
 
 class InternshipStep(Base, TimestampMixin):
-    """kind: video | document | text | test. `questions`: [{id, text, options[], correct[]}]."""
+    """kind: video | document | text | test | lesson (video + slayd + test). `questions`: [{id, text, options[], correct[]}]."""
 
     __tablename__ = "internship_steps"
     __table_args__ = (Index("ix_internship_steps_program", "program_id", "position"),)
@@ -57,6 +59,11 @@ class InternshipStep(Base, TimestampMixin):
     pass_score: Mapped[int | None] = mapped_column(Integer)
     max_attempts: Mapped[int] = mapped_column(Integer, default=3)  # 0 = cheksiz
     required: Mapped[bool] = mapped_column(Boolean, default=True)
+    slides_url: Mapped[str | None] = mapped_column(String(500))  # dars: Google Drive PDF slayd
+    audience: Mapped[str] = mapped_column(String(10), default="all", server_default="all")  # all | students | staff
+    published: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")  # qoralama stajyorga ko'rinmaydi
+    min_video_seconds: Mapped[int | None] = mapped_column(Integer)  # Drive video: kamida shuncha soniya ko'rilsin
+    min_slides_seconds: Mapped[int | None] = mapped_column(Integer)  # slaydni kamida shuncha soniya o'qisin
 
 
 class InternshipEnrollment(Base, TimestampMixin):
@@ -83,7 +90,8 @@ class InternshipEnrollment(Base, TimestampMixin):
     day7_note: Mapped[str | None] = mapped_column(Text)
     day7_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     day7_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    next_enrollment_id: Mapped[int | None] = mapped_column(BigInteger)  # qaror "mos" bo'lsa avtomatik ochilgan onboarding
+    next_enrollment_id: Mapped[int | None] = mapped_column(BigInteger)
+    monitor_consent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # kamera/mikrofon kuzatuviga rozilik  # qaror "mos" bo'lsa avtomatik ochilgan onboarding
 
 
 class InternshipProgress(Base):
@@ -165,3 +173,37 @@ class HireDocs(Base, TimestampMixin):
     order_ready_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     order_ready_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     order_no: Mapped[str | None] = mapped_column(String(40))
+
+
+class InternshipView(Base):
+    """Dars videosi / slaydi qancha ko'rilgani (faqat faol oynada va 1x tezlikda hisoblanadi)."""
+
+    __tablename__ = "internship_views"
+    __table_args__ = (UniqueConstraint("enrollment_id", "step_id", "kind", name="uq_internship_views"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    enrollment_id: Mapped[int] = mapped_column(ForeignKey("internship_enrollments.id", ondelete="CASCADE"))
+    step_id: Mapped[int] = mapped_column(ForeignKey("internship_steps.id", ondelete="CASCADE"))
+    kind: Mapped[str] = mapped_column(String(8))  # video | slides
+    seconds: Mapped[int] = mapped_column(Integer, default=0)
+    duration: Mapped[int | None] = mapped_column(Integer)
+    max_pos: Mapped[int] = mapped_column(Integer, default=0)
+    done: Mapped[bool] = mapped_column(Boolean, default=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class InternshipMonitor(Base):
+    """Dars paytidagi kamera/mikrofon kuzatuvi: jonli xona (LiveKit), yozuv bo'laklari va suratlar (MinIO)."""
+
+    __tablename__ = "internship_monitor"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    enrollment_id: Mapped[int] = mapped_column(ForeignKey("internship_enrollments.id", ondelete="CASCADE"), index=True)
+    step_id: Mapped[int | None] = mapped_column(ForeignKey("internship_steps.id", ondelete="SET NULL"))
+    room: Mapped[str] = mapped_column(String(80))
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    clips: Mapped[list] = mapped_column(JSONB, default=list)
+    snapshots: Mapped[list] = mapped_column(JSONB, default=list)
+    events: Mapped[list] = mapped_column(JSONB, default=list)
