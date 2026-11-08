@@ -25,6 +25,7 @@ import { CalendarPage } from './features/answers/CalendarPage'
 import { InboxPage } from './features/answers/InboxPage'
 import { LeaveVerifyPage } from './features/answers/LeaveVerifyPage'
 import { InvitePage } from './features/public/InvitePage'
+import { JobsPage } from './features/public/JobsPage'
 import { CandidateProfilePage } from './features/public/ProfilePage'
 import { FunnelPage, RecruiterTodayPage } from './features/recruit/TodayFunnelPages'
 import { ScorecardPage, TestBankFormPage, TestBankPage } from './features/recruit/TestBankPages'
@@ -190,6 +191,7 @@ import { BulkPage } from './features/employees/BulkPage'
 import { BulkResultPage } from './features/employees/BulkResultPage'
 import { DocumentFormPage } from './features/employees/DocumentFormPage'
 import { DuplicatesPage } from './features/employees/DuplicatesPage'
+import { DossierPage } from './features/employees/DossierPage'
 import { EmployeeCardPage } from './features/employees/EmployeeCardPage'
 import { EmployeeFormPage } from './features/employees/EmployeeFormPage'
 import { EmployeesPage } from './features/employees/EmployeesPage'
@@ -252,6 +254,7 @@ export function createRouter() {
     // Ochiq: QR orqali hujjatni tekshirish (kirish shart emas)
     { path: '/verify', element: <VerifyPage /> },
     { path: '/profile/:token', element: <CandidateProfilePage /> },
+    { path: '/jobs', element: <JobsPage /> },
     { path: '/invite/:token', element: <InvitePage /> },
     { path: '/test/:token', element: <TestPage /> },
     { path: '/consent/:token', element: <BackgroundConsentPage /> },
@@ -282,6 +285,7 @@ export function createRouter() {
             { path: 'employees/bulk/:action', element: <RequirePerm perm="employees.read"><BulkPage /></RequirePerm> },
             { path: 'employees/bulk-result', element: <RequirePerm perm="employees.read"><BulkResultPage /></RequirePerm> },
             { path: 'employees/:id', element: <RequirePerm perm="employees.read"><EmployeeCardPage /></RequirePerm> },
+            { path: 'employees/:id/dossier', element: <RequirePerm perm="employees.read"><DossierPage /></RequirePerm> },
             { path: 'employees/:id/edit', element: <RequirePerm perm="employees.update"><EmployeeFormPage /></RequirePerm> },
             { path: 'employees/:id/transfer', element: <RequirePerm perm="employees.transfer"><TransferPage /></RequirePerm> },
             { path: 'employees/:id/dismiss', element: <RequirePerm perm="employees.dismiss"><DismissPage /></RequirePerm> },

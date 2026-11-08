@@ -12,6 +12,7 @@ import { api, send } from '../../lib/api'
 import { errorText } from '../auth/errorText'
 import { useCan } from '../auth/useAuth'
 import { addDays, todayLocal } from '../attendance/api'
+import { RecruiterDaily } from './RecruiterDaily'
 import { RecruitTabs } from './RecruitTabs'
 
 interface Report {
@@ -114,6 +115,7 @@ export function RecruiterPage() {
           </table>
         </Card>
       )}
+      <RecruiterDaily from={from} to={to} />
     </div>
   )
 }

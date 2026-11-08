@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     telegram_bot_token: str = ""
     telegram_bot_username: str = ""  # ixtiyoriy; bo'sh bo'lsa bot getMe orqali aniqlaydi
     telegram_archive_chat_id: str = ""  # prebording yozuv/suratlari nusxasi yuboriladigan yopiq kanal (bot admin)
+    telegram_vacancy_chat_id: str = ""  # zayafka tasdiqlanganda vakansiya e'loni avtomatik chiqadigan kanal (bot admin)
     # Bildirishnomalardagi havolalar uchun, masalan https://client1.vaksinahr.uz
     public_url: str = ""
 

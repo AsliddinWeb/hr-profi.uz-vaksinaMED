@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.db import get_session
 from app.deps import AuthContext, error, get_auth
 from app.models.auth import User
@@ -22,9 +23,11 @@ from app.models.recruit import (
     RecruitCall,
     SourceLink,
     Vacancy,
+    VacancyChannel,
 )
 from app.rbac import matches
 from app.services import growth
+from app.services import recruit_sources as src
 from app.services.answers import users_with_permission
 from app.services.audit import audit
 from app.services.notifications import deliver, notify, register_template
@@ -190,6 +193,7 @@ async def decide(rid: int, body: DecideIn, request: Request, db: AsyncSession = 
     pos = await db.get(Position, r.position_id)
     r.decided_by, r.decided_at, r.decision_note = auth.user.id, moment, note
     notes: list = []
+    post: tuple[int, str] | None = None
     if body.action == "approve":
         dep = await db.get(Department, r.department_id) if r.department_id else None
         br = await db.get(Branch, r.branch_id) if r.branch_id else None
@@ -203,15 +207,29 @@ async def decide(rid: int, body: DecideIn, request: Request, db: AsyncSession = 
         db.add(v)
         await db.flush()
         r.status, r.vacancy_id = "approved", v.id
+        # Avtomatik nomzod havolalari: Telegram kanal va veb-sayt (har biri o'z manbasi bilan hisoblanadi)
+        owner = body.recruiter_id or auth.user.id
+        auto = {}
+        for ch, label in (("telegram", "Telegram kanal (avto)"), ("site", "Veb-sayt (avto)")):
+            auto[ch] = SourceLink(code=await src.unique_code(db), vacancy_id=v.id, channel=ch, owner_user_id=owner, label=label)
+            db.add(auto[ch])
+        await db.flush()
+        chat = get_settings().telegram_vacancy_chat_id.strip()
+        if chat and get_settings().telegram_bot_token:
+            card = await src.requirement_for(db, v.position_id)
+            post = (int(chat), src.ad_text(v, br, card, src.apply_url(auto["telegram"].code)))
+            db.add(VacancyChannel(vacancy_id=v.id, channel="telegram", note="avto e'lon (zayafka)", posted_by=auth.user.id))
         notes += await notify(db, [r.created_by] if r.created_by else [], "recruit.request_approved", link=f"/recruit/requests/{r.id}", params={"number": r.number, "position": pos.name if pos else ""})
         targets = [body.recruiter_id] if body.recruiter_id else await users_with_permission(db, "recruit.manage")
         notes += await notify(db, [t for t in targets if t and t != auth.user.id], "need.vacancy", params={"title": v.title}, link=f"/recruit/vacancies/{v.id}/promo")
     else:
         r.status = "rejected"
         notes += await notify(db, [r.created_by] if r.created_by else [], "recruit.request_rejected", link=f"/recruit/requests/{r.id}", params={"number": r.number, "note": note or ""})
-    await audit(db, request, f"recruit.request_{r.status}", actor=auth.user, entity="hire_request", entity_id=r.id, data={"vacancy_id": r.vacancy_id})
+    await audit(db, request, f"recruit.request_{r.status}", actor=auth.user, entity="hire_request", entity_id=r.id, data={"vacancy_id": r.vacancy_id, "auto_post": bool(post)})
     await db.commit()
     await deliver(request.app, notes)
+    if post and getattr(request.app.state, "queue", None):
+        await request.app.state.queue.enqueue("deliver_candidate_telegram", *post)
     return await _out(db, r, auth)
 
 
@@ -325,3 +343,91 @@ async def compare(ids: str = Query(min_length=1, max_length=200), vacancy_id: in
             "tests": [{"score": x.score_pct, "status": x.status} for x in tests],
         })  # fmt: skip
     return {"items": out}
+
+
+# --- Ochiq vakansiyalar (veb-sayt) ------------------------------------------------------
+
+public_router = APIRouter(prefix="/v1/public", tags=["public"])
+
+
+@public_router.get("/jobs")
+async def public_jobs(db: AsyncSession = Depends(get_session)):
+    """Saytdagi ochiq vakansiyalar: har biri "site" havolasi orqali ariza qabul qiladi (manba hisobi uchun)."""
+    rows = (await db.execute(
+        select(Vacancy, SourceLink.code, Branch.name)
+        .join(SourceLink, (SourceLink.vacancy_id == Vacancy.id) & (SourceLink.channel == "site") & SourceLink.is_active.is_(True))
+        .outerjoin(Branch, Branch.id == Vacancy.branch_id)
+        .where(Vacancy.status == "open").order_by(Vacancy.opened_at.desc().nullslast(), Vacancy.id.desc()).limit(200)
+    )).all()  # fmt: skip
+    seen: set[int] = set()
+    items = []
+    for v, code, branch in rows:
+        if v.id in seen:
+            continue
+        seen.add(v.id)
+        items.append({"id": v.id, "title": v.title, "branch": branch, "salary_from": v.salary_from, "salary_to": v.salary_to, "requirements": (v.requirements or "")[:600] or None, "code": code, "opened_at": v.opened_at})
+    return {"items": items}
+
+
+# --- Rekruter kunlik nazorati -------------------------------------------------------------
+
+
+@router.get("/daily")
+async def daily(
+    start: date = Query(), end: date = Query(), recruiter_id: int | None = None, vacancy_id: int | None = None,
+    db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth),
+):  # fmt: skip
+    """Kunma-kun: nechta rezyume keldi (havola/bot orqali), nechtasi qo'lda biriktirildi, nechta qo'ng'iroq,
+    nechtasi suhbatga chaqirildi va nechtasi keldi; qaysi e'lon (manba) orqali kelgani."""
+    if not (has(auth, "recruit.read") or can_manage(auth)):
+        raise error(403, "forbidden")
+    if end < start or (end - start).days > 92:
+        raise error(400, "range_invalid")
+    s_dt = datetime.combine(start, datetime.min.time(), tzinfo=tz())
+    e_dt = datetime.combine(end + timedelta(days=1), datetime.min.time(), tzinfo=tz())
+    days = {start + timedelta(days=i): {"received": 0, "attached": 0, "calls": 0, "invited": 0, "came": 0, "hired": 0} for i in range((end - start).days + 1)}
+    by_source: dict[str, int] = {}
+    stmt = select(Application, SourceLink.channel, SourceLink.label).outerjoin(SourceLink, SourceLink.id == Application.source_link_id).where(Application.applied_at >= s_dt, Application.applied_at < e_dt)
+    if recruiter_id:
+        stmt = stmt.where(Application.recruiter_id == recruiter_id)
+    if vacancy_id:
+        stmt = stmt.where(Application.vacancy_id == vacancy_id)
+    for a, channel, label in (await db.execute(stmt)).all():
+        d = local_date(a.applied_at)
+        if d not in days:
+            continue
+        if a.source_link_id:
+            days[d]["received"] += 1
+            key = label or channel or "link"
+        else:
+            days[d]["attached"] += 1
+            key = "qo'lda"
+        by_source[key] = by_source.get(key, 0) + 1
+    cstmt = select(RecruitCall.called_at).where(RecruitCall.called_at >= s_dt, RecruitCall.called_at < e_dt)
+    if recruiter_id:
+        cstmt = cstmt.where(RecruitCall.recruiter_id == recruiter_id)
+    if vacancy_id:
+        cstmt = cstmt.where(RecruitCall.vacancy_id == vacancy_id)
+    for (at,) in (await db.execute(cstmt)).all():
+        d = local_date(at)
+        if d in days:
+            days[d]["calls"] += 1
+    istmt = select(Application.interview_at, Application.stage, Application.hired_at).where(
+        or_(Application.interview_at.between(s_dt, e_dt), Application.hired_at.between(s_dt, e_dt))
+    )  # fmt: skip
+    if recruiter_id:
+        istmt = istmt.where(Application.recruiter_id == recruiter_id)
+    if vacancy_id:
+        istmt = istmt.where(Application.vacancy_id == vacancy_id)
+    for at, stage, hired_at in (await db.execute(istmt)).all():
+        if at and s_dt <= at < e_dt and local_date(at) in days:
+            d = local_date(at)
+            days[d]["invited"] += 1
+            if stage in ("interview", "offer", "hired") or hired_at:
+                days[d]["came"] += 1  # suhbat bosqichidan o'tgan yoki undan ilgarilagan = kelgan
+        if hired_at and s_dt <= hired_at < e_dt and local_date(hired_at) in days:
+            days[local_date(hired_at)]["hired"] += 1
+    rows = [{"date": d, **x} for d, x in days.items()]
+    total = {k: sum(r[k] for r in rows) for k in ("received", "attached", "calls", "invited", "came", "hired")}
+    recruiters = (await db.execute(select(User.id, User.full_name).where(User.id.in_(select(Application.recruiter_id).where(Application.recruiter_id.is_not(None)).distinct())))).all()
+    return {"days": rows, "total": total, "by_source": sorted(({"source": k, "count": n} for k, n in by_source.items()), key=lambda x: -x["count"]), "recruiters": [{"id": i, "name": n} for i, n in recruiters]}

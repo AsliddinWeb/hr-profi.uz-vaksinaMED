@@ -167,7 +167,38 @@ async def merge_candidates(db: AsyncSession, primary: Candidate, secondary_ids: 
 
 # --- Birlashgan profil va moslik bali --------------------------------------------------
 
-PROFILE_FIELDS = ("full_name", "phone", "birth_date", "address", "email", "region", "experience", "expected_salary", "languages", "skills", "about")
+# 8 bosqichli anketa (Shaxsiy, Ta'lim, Tajriba, Qo'shimcha, Motivatsiya, Hujjatlar, Bilimlar, Yuborish) maydonlari
+ANKETA_KEYS = (
+    "education_place", "graduation_year", "specialty", "diploma_no",
+    "last_job", "last_position", "experience_years", "leave_reason",
+    "computer_skill", "pharm_software", "gmp_certificate", "drug_knowledge", "personal_qualities",
+    "motivation", "shift", "salary_text",
+)
+PROFILE_FIELDS = ("full_name", "phone", "birth_date", "address", "email", "region", "experience", "expected_salary", "languages", "skills", "about", *ANKETA_KEYS)
+
+
+
+register_template(
+    "recruit.anketa_new",
+    {"uz": "📋 Yangi anketa: {position}", "ru": "📋 Новая анкета: {position}"},
+    {
+        "uz": "👤 {name}\n📞 {phone}\n✉️ {email}\n💊 {specialty}\n🗓 Staj: {years}\n💰 Maosh: {salary}",
+        "ru": "👤 {name}\n📞 {phone}\n✉️ {email}\n💊 {specialty}\n🗓 Стаж: {years}\n💰 Зарплата: {salary}",
+    },
+    "info",
+)
+
+
+def anketa_card(c: Any, position: str | None) -> dict[str, str]:
+    """Telegram xabari uchun anketa kartochkasi parametrlari (bo'sh maydonlar "—")."""
+    p = c.profile or {}
+    years = p.get("experience_years") or p.get("experience")
+    years_txt = f"{years} yil" if years and str(years).strip().isdigit() else (str(years) if years else "—")
+    salary = p.get("salary_text") or (f"{int(p['expected_salary']):,}".replace(",", " ") if p.get("expected_salary") else None)
+    return {
+        "position": position or "nomzod", "name": c.full_name, "phone": c.phone or "—", "email": c.email or "—",
+        "specialty": p.get("specialty") or "—", "years": years_txt, "salary": salary or "Kelishiladi",
+    }  # fmt: skip
 
 
 async def build_profile(db: AsyncSession, c: Candidate) -> dict[str, Any]:

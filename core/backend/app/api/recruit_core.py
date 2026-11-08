@@ -17,6 +17,7 @@ from app.models.recruit import (
     Application,
     Candidate,
     CandidateFile,
+    CandidateTest,
     InterviewInvite,
     Vacancy,
     VacancyChannel,
@@ -128,6 +129,7 @@ class ProfileIn(BaseModel):
     languages: list[str] = Field(default_factory=list, max_length=10)
     skills: list[str] = Field(default_factory=list, max_length=30)
     about: str | None = Field(default=None, max_length=2000)
+    anketa: dict[str, str | int | None] = Field(default_factory=dict)  # 8 bosqichli anketa javoblari (core.ANKETA_KEYS)
 
 
 async def _by_token(db: AsyncSession, token: str, *, lock: bool = False) -> Candidate:
@@ -141,7 +143,12 @@ async def _by_token(db: AsyncSession, token: str, *, lock: bool = False) -> Cand
 async def _public_profile(db: AsyncSession, c: Candidate) -> dict[str, Any]:
     prof = await core.build_profile(db, c)
     files = (await db.scalars(select(CandidateFile).where(CandidateFile.candidate_id == c.id, CandidateFile.uploaded_by.is_(None)).order_by(CandidateFile.id))).all()
-    return {"full_name": c.full_name, "fields": prof["fields"], "sources": prof["sources"], "confirmed_at": c.profile_confirmed_at, "files": [{"id": f.id, "filename": f.filename, "size": f.size} for f in files], "max_files": MAX_PUBLIC_FILES}
+    tests = (await db.execute(select(CandidateTest.token, CandidateTest.status, Vacancy.title).join(Application, Application.id == CandidateTest.application_id).join(Vacancy, Vacancy.id == Application.vacancy_id).where(Application.candidate_id == c.id).order_by(CandidateTest.id.desc()).limit(5))).all()
+    return {
+        "full_name": c.full_name, "phone": c.phone, "fields": prof["fields"], "sources": prof["sources"], "confirmed_at": c.profile_confirmed_at,
+        "files": [{"id": f.id, "filename": f.filename, "size": f.size} for f in files], "max_files": MAX_PUBLIC_FILES,
+        "anketa": {k: (c.profile or {}).get(k) for k in core.ANKETA_KEYS}, "tests": [{"url": f"/test/{tk}", "status": st, "vacancy": vt} for tk, st, vt in tests],
+    }  # fmt: skip
 
 
 @public_router.get("/profile/{token}")
@@ -157,7 +164,13 @@ async def public_profile_update(token: str, body: ProfileIn, request: Request, d
     c.full_name = " ".join(body.full_name.split())
     c.birth_date, c.address, c.email = body.birth_date, (body.address or "").strip() or None, (body.email or "").strip().lower() or None
     c.skills = list(dict.fromkeys(s.strip()[:40] for s in body.skills if s.strip()))
-    c.profile = {"region": body.region, "experience": body.experience, "expected_salary": body.expected_salary, "languages": [x.strip()[:40] for x in body.languages if x.strip()], "about": body.about}
+    extra = {k: (str(v).strip()[:500] or None) if v is not None else None for k, v in body.anketa.items() if k in core.ANKETA_KEYS}
+    old = c.profile or {}
+    c.profile = {
+        **{k: old.get(k) for k in core.ANKETA_KEYS}, **extra,
+        "region": body.region, "experience": body.experience or (f"{extra['experience_years']} yil" if extra.get("experience_years") else None),
+        "expected_salary": body.expected_salary, "languages": [x.strip()[:40] for x in body.languages if x.strip()], "about": body.about,
+    }  # fmt: skip
     c.profile_confirmed_at = None  # o'zgartirilgan profil qayta tasdiqlanadi
     await db.commit()
     return await _public_profile(db, c)
@@ -185,14 +198,25 @@ async def public_profile_confirm(token: str, request: Request, db: AsyncSession 
     """Nomzod birlashgan profilini tasdiqlaydi: ariza(lar)ning moslik bali hisoblanadi, mos bo'lsa rekruterga taklif tavsiyasi boradi."""
     await _rate(request, "profile_confirm", 20, 600)
     c = await _by_token(db, token, lock=True)
+    first = c.profile_confirmed_at is None
     c.profile_confirmed_at = now()
     cfg = await growth.get_setting(db, "recruit")
     notes: list = []
+    recruiters: set[int] = set()
+    vac_title = None
     for a in (await db.scalars(select(Application).where(Application.candidate_id == c.id, Application.stage.in_(("new", "screening"))))).all():
         score = await core.rescore(db, a)
         v = await db.get(Vacancy, a.vacancy_id)
+        if a.recruiter_id:
+            recruiters.add(a.recruiter_id)
+        vac_title = vac_title or (v.title if v else None)
         if score is not None and score >= cfg["invite_threshold"] and a.recruiter_id and v:
             notes += await notify(db, [a.recruiter_id], "recruit.match_ok", params={"candidate": c.full_name, "score": score, "vacancy": v.title}, link=f"/recruit/applications/{a.id}")
+    if first:  # to'liq anketa keldi: rekruterlar va HR'ga Telegram'da qisqa kartochka
+        from app.services.answers import users_with_permission  # noqa: PLC0415
+
+        targets = recruiters | set(await users_with_permission(db, "recruit.manage"))
+        notes += await notify(db, sorted(targets), "recruit.anketa_new", link=f"/recruit/candidates/{c.id}", params=core.anketa_card(c, vac_title))
     await db.commit()
     await deliver(request.app, notes)
     return await _public_profile(db, c)
