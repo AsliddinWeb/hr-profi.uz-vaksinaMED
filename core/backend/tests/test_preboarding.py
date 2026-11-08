@@ -195,3 +195,38 @@ async def test_telegram_archive(new_client, app):
         assert await svc.archive_pending(s, storage, FakeTg(), "-100", now()) == 0  # takror yuborilmaydi
     assert tg.calls[0][:2] == ("photos", 10) and "Aliyeva Laylo" in tg.calls[0][2] and "Farmasevt" in tg.calls[0][2]
     assert [c[:2] for c in tg2.calls] == [("photos", 2), ("video", 1)]
+
+
+async def test_video_events_stats_and_report(new_client):
+    hr, intern, track, *_ = await setup(new_client)
+    st = track["stages"]
+    await hr.put(f"{P}/stages/{st[0]['id']}", json=stage_body(st[0]["title"], url=YT, questions=QS))
+    my = (await intern.get(f"{P}/my")).json()
+    assert my["me"]["full_name"] == "Aliyeva Laylo" and my["me"]["position"] == "Farmasevt"
+    sid = my["stages"][0]["id"]
+    E = f"{P}/my/stages/{sid}/event"
+    assert (await intern.post(E, json={"kind": "pause", "pos": 35})).status_code == 201
+    assert (await intern.post(E, json={"kind": "pause", "pos": 40})).status_code == 201
+    assert (await intern.post(E, json={"kind": "rewind", "pos": 70, "to_pos": 32})).status_code == 201
+    assert (await intern.post(E, json={"kind": "rewind", "pos": 30, "to_pos": 50})).json()["detail"]["code"] == "rewind_invalid"
+    assert (await intern.post(E, json={"kind": "confused", "pos": 38, "note": "Retsept muddati tushunarsiz"})).status_code == 201
+    ogg = b"OggS" + b"\x00" * 400
+    v = await intern.post(f"{P}/my/stages/{sid}/voice?pos=44", files={"file": ("v.ogg", ogg, "audio/ogg")})
+    assert v.status_code == 201
+    assert (await intern.post(f"{P}/my/stages/{sid}/voice?pos=1", files={"file": ("v.exe", b"MZ" * 300, "audio/ogg")})).status_code == 415
+    # stajyor statistika va audio ko'ra olmaydi
+    assert (await intern.get(f"{P}/tracks/{track['id']}/stats")).status_code == 403
+
+    stats = (await hr.get(f"{P}/tracks/{track['id']}/stats")).json()["items"][0]
+    b = next(x for x in stats["timeline"] if x["from"] == 30)  # 30-60 s bo'lagi
+    assert (b["pause"], b["rewind"], b["confused"], b["voice"]) == (2, 1, 1, 1)
+    assert stats["hotspots"][0]["from"] == 30
+    notes = {n["kind"]: n for n in stats["notes"]}
+    assert notes["confused"]["note"] == "Retsept muddati tushunarsiz" and notes["voice"]["audio"] and notes["voice"]["who"] == "Aliyeva Laylo"
+    audio = await hr.get(f"{P}/events/{notes['voice']['id']}/audio")
+    assert audio.status_code == 200 and audio.content == ogg and audio.headers["content-type"].startswith("audio/ogg")
+
+    rep = (await hr.get(f"{P}/tracks/{track['id']}/report")).json()["items"][0]
+    assert (rep["employee"], rep["pauses"], rep["rewinds"], rep["confused"], rep["required"]) == ("Aliyeva Laylo", 2, 1, 2, 5)
+    x = await hr.get(f"{P}/tracks/{track['id']}/report.xlsx")
+    assert x.status_code == 200 and x.content[:2] == b"PK"

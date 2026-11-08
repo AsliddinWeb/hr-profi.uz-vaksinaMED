@@ -419,7 +419,9 @@
     "track_exists": "Bu lavozim uchun yo'nalish allaqachon bor",
     "no_preboarding": "Sizga prebording biriktirilmagan",
     "not_live": "Stajyor hozir jonli emas",
-    "requirements_pending": "Avval video, slayd va testni bajaring"
+    "requirements_pending": "Avval video, slayd va testni bajaring",
+    "too_many_events": "Juda ko'p belgi qo'yildi",
+    "rewind_invalid": "Noto'g'ri qaytish"
   },
   "auth": {
     "heroTitle": "Kadrlar va filiallar — bitta tizimda",
@@ -5430,7 +5432,9 @@
       "stages": "Bosqich",
       "preview": "Ko'rish",
       "results": "Natijalar",
-      "settings": "Sozlamalar"
+      "settings": "Sozlamalar",
+      "stats": "Statistika",
+      "report": "Hisobot"
     },
     "published": "E'lon",
     "draft": "Qoralama",
@@ -5541,7 +5545,63 @@
       "passed": "Tabriklaymiz! Natija {{score}}%: keyingi bosqich ochildi.",
       "failed": "Natija {{score}}% (kerak {{th}}%). Xato savollar belgilandi, qayta urinib ko'ring.",
       "attemptsLeft": "Qolgan urinishlar: {{n}}",
-      "monitored": "Kamera va mikrofon yoqiq"
+      "monitored": "Kamera va mikrofon yoqiq",
+      "profile": "Mening ma'lumotlarim",
+      "position": "Lavozim",
+      "branch": "Filial",
+      "mentor": "Ustoz",
+      "phone": "Telefon",
+      "started": "Boshlangan",
+      "due": "Muddat",
+      "confused": "Tushunmadim",
+      "confusedAt": "Tushunmagan joyingiz: {{time}}",
+      "confusedPlaceholder": "Nimani tushunmadingiz? Yozing yoki ovoz yozib yuboring",
+      "recordVoice": "Ovoz yozish",
+      "reRecord": "Qayta yozish",
+      "stopRec": "To'xtatish",
+      "send": "Yuborish",
+      "confusedSent": "Yuborildi: ustoz va HR ko'radi",
+      "micDenied": "Mikrofonga ruxsat berilmadi"
+    },
+    "stats": {
+      "empty": "Hali videoli bosqich yo'q",
+      "noEvents": "Hali pauza, orqaga qaytish yoki «tushunmadim» yo'q",
+      "pause": "Pauza",
+      "rewind": "Orqaga qaytish",
+      "confused": "Tushunmadim",
+      "hot": "Eng qiyin joylar",
+      "notes": "Tushunmagan joylar (izohlar)"
+    },
+    "rep": {
+      "interns": "Stajyorlar",
+      "ready": "Tayyor",
+      "avgProgress": "O'rtacha progress",
+      "avgScore": "O'rtacha ball",
+      "employee": "Xodim",
+      "progress": "Bosqichlar",
+      "score": "Ball",
+      "attempts": "Urinish",
+      "watched": "Video / slayd",
+      "min": "daq",
+      "started": "Boshlagan"
+    },
+    "hub": {
+      "title": "Prebording",
+      "subtitle": "Yangi xodimni tayyorlashning barcha bo'limlari bitta joyda: darslar, stajirovka, oflayn darslar, attestatsiya va dasturlar.",
+      "my": "Mening prebordingim",
+      "myDesc": "Ma'lumotlarim, video darslar, slayd va testlar",
+      "lessons": "Prebording darslari",
+      "lessonsDesc": "Lavozim bo'yicha darslar, natijalar, statistika va hisobot",
+      "tracksN": "{{n}} yo'nalish · {{i}} stajyor",
+      "internship": "Stajirovka",
+      "internshipDesc": "Biriktirilgan stajyorlar va ularning progressi",
+      "classes": "Oflayn darslar",
+      "classesDesc": "Trener bilan darslar va qatnashuv",
+      "attestation": "Attestatsiya",
+      "attestationDesc": "Oylik attestatsiya, ball va qaror",
+      "programs": "Stajirovka dasturlari",
+      "programsDesc": "Dasturlar, bosqichlar va testlar",
+      "liveHint": "Jonli darsdagi stajyorlarni «Prebording darslari → Natijalar» bo'limida ko'rasiz."
     }
   }
 }

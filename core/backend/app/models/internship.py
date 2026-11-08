@@ -207,3 +207,20 @@ class InternshipMonitor(Base):
     clips: Mapped[list] = mapped_column(JSONB, default=list)
     snapshots: Mapped[list] = mapped_column(JSONB, default=list)
     events: Mapped[list] = mapped_column(JSONB, default=list)
+
+
+class InternshipVideoEvent(Base):
+    """Video hodisasi: pauza, orqaga qaytish, «tushunmadim» (matn) yoki ovozli izoh — tushunilmagan joylar statistikasi uchun."""
+
+    __tablename__ = "internship_video_events"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    enrollment_id: Mapped[int] = mapped_column(ForeignKey("internship_enrollments.id", ondelete="CASCADE"))
+    step_id: Mapped[int] = mapped_column(ForeignKey("internship_steps.id", ondelete="CASCADE"))
+    kind: Mapped[str] = mapped_column(String(10))  # pause | rewind | confused | voice
+    pos: Mapped[int] = mapped_column(Integer)
+    to_pos: Mapped[int | None] = mapped_column(Integer)
+    note: Mapped[str | None] = mapped_column(Text)
+    audio_key: Mapped[str | None] = mapped_column(String(300))
+    audio_mime: Mapped[str | None] = mapped_column(String(40))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

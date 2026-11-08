@@ -285,3 +285,77 @@ async def archive_pending(db: AsyncSession, storage, tg, chat_id: str, moment: d
         if sent >= ARCHIVE_BUDGET:
             break
     return sent
+
+
+# --- Video hodisalari va statistika ----------------------------------------------------
+
+EVENT_KINDS = ("pause", "rewind", "confused", "voice")
+BUCKET_S = 30  # vaqt shkalasi: 30 soniyalik bo'laklar
+MAX_EVENTS_PER_STAGE = 500  # bitta stajyor, bitta bosqich: spamdan himoya
+MAX_VOICE_BYTES = 5 * 1024 * 1024
+
+
+def audio_mime(data: bytes) -> str | None:
+    if data[:4] == b"\x1a\x45\xdf\xa3":
+        return "audio/webm"
+    if data[:4] == b"OggS":
+        return "audio/ogg"
+    if data[4:8] == b"ftyp":
+        return "audio/mp4"
+    if data[:3] == b"ID3" or data[:2] == b"\xff\xfb":
+        return "audio/mpeg"
+    if data[:4] == b"RIFF" and data[8:12] == b"WAVE":
+        return "audio/wav"
+    return None
+
+
+async def stage_stats(db: AsyncSession, step: InternshipStep) -> dict[str, Any]:
+    """Bosqich videosi bo'yicha: 30 s lik bo'laklarda pauza / orqaga qaytish / tushunmadim soni va izohlar ro'yxati."""
+    from app.models.internship import InternshipVideoEvent  # noqa: PLC0415
+
+    events = (await db.scalars(select(InternshipVideoEvent).where(InternshipVideoEvent.step_id == step.id).order_by(InternshipVideoEvent.id))).all()
+    buckets: dict[int, dict[str, int]] = {}
+    per: dict[int, dict[str, int]] = {}
+    notes = []
+    names: dict[int, str] = {}
+    for ev in events:
+        target = ev.to_pos if ev.kind == "rewind" and ev.to_pos is not None else ev.pos
+        b = buckets.setdefault(int(target // BUCKET_S), {k: 0 for k in EVENT_KINDS})
+        b[ev.kind] = b.get(ev.kind, 0) + 1
+        pe = per.setdefault(ev.enrollment_id, {k: 0 for k in EVENT_KINDS})
+        pe[ev.kind] = pe.get(ev.kind, 0) + 1
+        if ev.kind in ("confused", "voice"):
+            if ev.enrollment_id not in names:
+                e = await db.get(InternshipEnrollment, ev.enrollment_id)
+                emp = await db.get(Employee, e.employee_id) if e else None
+                names[ev.enrollment_id] = emp.full_name if emp else "—"
+            notes.append({"id": ev.id, "kind": ev.kind, "pos": ev.pos, "note": ev.note, "audio": bool(ev.audio_key), "who": names[ev.enrollment_id], "at": ev.created_at})
+    timeline = [{"from": k * BUCKET_S, "to": (k + 1) * BUCKET_S, **v} for k, v in sorted(buckets.items())]
+    hot = sorted(timeline, key=lambda x: -(x["confused"] * 3 + x["voice"] * 3 + x["rewind"] * 2 + x["pause"]))[:5]
+    return {"step_id": step.id, "title": step.title, "bucket": BUCKET_S, "timeline": timeline, "hotspots": [h for h in hot if any(h[k] for k in EVENT_KINDS)], "notes": notes[-200:], "per_enrollment": per}
+
+
+async def report_rows(db: AsyncSession, program: InternshipProgram) -> list[dict[str, Any]]:
+    """Umumiy hisobot: har stajyor bo'yicha progress, ballar, ko'rilgan vaqt va video hodisalari."""
+    from sqlalchemy import func as sfunc  # noqa: PLC0415
+
+    from app.models.internship import InternshipVideoEvent  # noqa: PLC0415
+
+    steps = await isvc.steps_of(db, program.id)
+    rows = []
+    for e in (await db.scalars(select(InternshipEnrollment).where(InternshipEnrollment.program_id == program.id).order_by(InternshipEnrollment.id))).all():
+        emp = await db.get(Employee, e.employee_id)
+        prog = await isvc.progress_of(db, e.id)
+        views = await views_of(db, e.id)
+        ev = dict((await db.execute(select(InternshipVideoEvent.kind, sfunc.count()).where(InternshipVideoEvent.enrollment_id == e.id).group_by(InternshipVideoEvent.kind))).all())
+        s = isvc.summarize(steps, prog)
+        tests = [p for p in prog.values() if p.score is not None]
+        rows.append({
+            "enrollment_id": e.id, "employee": emp.full_name if emp else "—", "status": e.status, "started_at": e.started_at, "ready_at": e.ready_at,
+            "done": s["done"], "required": s["required"], "percent": s["percent"], "avg_score": s["avg_score"],
+            "attempts": sum(p.attempts for p in prog.values()), "best_scores": [p.score for p in tests],
+            "video_min": round(sum(v.seconds for (_, k), v in views.items() if k == "video") / 60, 1),
+            "slides_min": round(sum(v.seconds for (_, k), v in views.items() if k == "slides") / 60, 1),
+            "pauses": ev.get("pause", 0), "rewinds": ev.get("rewind", 0), "confused": ev.get("confused", 0) + ev.get("voice", 0),
+        })  # fmt: skip
+    return rows

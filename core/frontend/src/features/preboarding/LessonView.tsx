@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CameraOff, CheckCircle2, FileText, Lock, Mic, PlayCircle, ShieldCheck, Video } from 'lucide-react'
+import { CameraOff, CheckCircle2, FileText, HelpCircle, Lock, Mic, PlayCircle, ShieldCheck, Square, Video } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -8,8 +8,9 @@ import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { useToast } from '../../components/ui/toastContext'
-import { api, send } from '../../lib/api'
+import { api, send, upload } from '../../lib/api'
 import { cn } from '../../lib/cn'
+import { formatDate } from '../../lib/format'
 import { errorText } from '../auth/errorText'
 import { fmtSec, type LiveToken, type Monitoring, type MyData, type MyStage, type Stage } from './api'
 import { useMonitor } from './useMonitor'
@@ -86,6 +87,24 @@ export function MyPreboardingPage() {
         {d.enrollment.status === 'ready' && <p className="mt-2 text-sm font-semibold text-emerald-300">{t('preboarding.my.ready')}</p>}
       </section>
 
+      <Card className="grid gap-3 p-5 sm:grid-cols-[auto_1fr]">
+        <div className="grid size-16 place-items-center overflow-hidden rounded-full bg-[#1f3a68] text-xl font-bold text-white">
+          {d.me.photo ? <img src="/api/v1/preboarding/my/photo" alt="" className="size-full object-cover" /> : d.me.full_name.slice(0, 1)}
+        </div>
+        <div className="min-w-0">
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted">{t('preboarding.my.profile')}</div>
+          <div className="text-lg font-semibold">{d.me.full_name}</div>
+          <dl className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+            <Row k={t('preboarding.my.position')} v={d.me.position} />
+            <Row k={t('preboarding.my.branch')} v={[d.me.branch, d.me.branch_address].filter(Boolean).join(', ') || null} />
+            <Row k={t('preboarding.my.mentor')} v={[d.me.mentor, d.me.mentor_phone].filter(Boolean).join(' · ') || null} />
+            <Row k={t('preboarding.my.phone')} v={d.me.phone} />
+            <Row k={t('preboarding.my.started')} v={formatDate(d.enrollment.started_at, 'uz')} />
+            <Row k={t('preboarding.my.due')} v={d.enrollment.due_date ? formatDate(d.enrollment.due_date, 'uz') : null} />
+          </dl>
+        </div>
+      </Card>
+
       {needConsent && (
         <Card className="flex flex-col gap-3 border border-warning/40 p-5">
           <div className="flex items-center gap-2 font-semibold">
@@ -126,6 +145,15 @@ export function MyPreboardingPage() {
       </div>
 
       {current && <Lesson key={current.id} stage={current} data={d} blocked={needConsent} />}
+    </div>
+  )
+}
+
+function Row({ k, v }: { k: string; v: string | null }) {
+  return (
+    <div className="flex gap-2">
+      <dt className="text-muted">{k}:</dt>
+      <dd className="font-medium">{v ?? '—'}</dd>
     </div>
   )
 }
@@ -263,6 +291,7 @@ function VideoPane({ stage, running, onTick }: { stage: MyStage; running: boolea
   const player = useRef<YTPlayer | null>(null)
   const acc = useRef(0)
   const maxPos = useRef(stage.req.video?.seen ?? 0)
+  const last = useRef<{ state: number; pos: number; forced: boolean }>({ state: -1, pos: 0, forced: false })
   const runRef = useRef(running)
   const tickRef = useRef(onTick)
   useEffect(() => {
@@ -297,8 +326,18 @@ function VideoPane({ stage, running, onTick }: { stage: MyStage; running: boolea
         const p = player.current
         if (!p?.getPlayerState) return
         const pos = p.getCurrentTime()
-        if (pos > maxPos.current + 3) p.seekTo(maxPos.current, true)
-        if (!runRef.current && p.getPlayerState() === 1) p.pauseVideo()
+        const state = p.getPlayerState()
+        const prev = last.current
+        if (pos > maxPos.current + 3) {
+          p.seekTo(maxPos.current, true)
+          last.current = { state, pos: maxPos.current, forced: true }
+          return
+        }
+        // Hodisalar: pauza (o'ynab turgan edi -> to'xtadi), orqaga qaytish (>3 s orqaga, majburiy qaytarish emas)
+        if (prev.state === 1 && state === 2 && runRef.current) void sendEvent(stage.id, { kind: 'pause', pos: Math.floor(pos) })
+        if (!prev.forced && pos < prev.pos - 3 && runRef.current) void sendEvent(stage.id, { kind: 'rewind', pos: Math.floor(prev.pos), to_pos: Math.floor(pos) })
+        last.current = { state, pos, forced: false }
+        if (!runRef.current && state === 1) p.pauseVideo()
         if (p.getPlayerState() === 1 && visible && runRef.current && p.getPlaybackRate() <= 1) {
           acc.current += 1
           maxPos.current = Math.max(maxPos.current, pos)
@@ -317,7 +356,7 @@ function VideoPane({ stage, running, onTick }: { stage: MyStage; running: boolea
       window.clearInterval(send_)
       if (acc.current > 0) tickRef.current(acc.current)
     }
-  }, [yt])
+  }, [yt, stage.id])
 
   const r = stage.req.video
   return (
@@ -325,6 +364,100 @@ function VideoPane({ stage, running, onTick }: { stage: MyStage; running: boolea
       {yt ? <div className="aspect-video w-full overflow-hidden rounded-card bg-black [&>iframe]:size-full"><div ref={el} /></div> : <iframe src={stage.media.video.embed ?? stage.media.video.url ?? ''} title={stage.title} className="aspect-video w-full rounded-card border border-border" allow="autoplay" />}
       {r && <Progress label={t('preboarding.my.watched')} seen={r.seen} need={r.need} />}
       {yt && <p className="text-[11px] text-muted">{t('preboarding.my.noSkip')}</p>}
+      <ConfusedBox stageId={stage.id} getPos={() => Math.floor(player.current?.getCurrentTime?.() ?? 0)} pause={() => player.current?.pauseVideo?.()} />
+    </div>
+  )
+}
+
+function sendEvent(stageId: number, body: { kind: 'pause' | 'rewind' | 'confused'; pos: number; to_pos?: number; note?: string }) {
+  return send('POST', `/api/v1/preboarding/my/stages/${stageId}/event`, body).catch(() => undefined)
+}
+
+/** «Tushunmadim»: video to'xtaydi, joyi yoziladi; matn yoki ovozli izoh qoldiriladi (HR statistikasida ko'rinadi). */
+function ConfusedBox({ stageId, getPos, pause }: { stageId: number; getPos: () => number; pause: () => void }) {
+  const { t } = useTranslation()
+  const toast = useToast()
+  const [open, setOpen] = useState<number | null>(null)
+  const [note, setNote] = useState('')
+  const [rec, setRec] = useState<MediaRecorder | null>(null)
+  const [blob, setBlob] = useState<Blob | null>(null)
+  const [busy, setBusy] = useState(false)
+  const start = async () => {
+    try {
+      const st = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const chunks: Blob[] = []
+      const r = new MediaRecorder(st)
+      r.ondataavailable = (e) => e.data.size && chunks.push(e.data)
+      r.onstop = () => {
+        st.getTracks().forEach((x) => x.stop())
+        setBlob(new Blob(chunks, { type: r.mimeType || 'audio/webm' }))
+        setRec(null)
+      }
+      r.start()
+      setRec(r)
+      window.setTimeout(() => r.state === 'recording' && r.stop(), 120_000)
+    } catch {
+      toast.push({ title: t('preboarding.my.micDenied'), tone: 'danger' })
+    }
+  }
+  const submit = async () => {
+    if (open == null) return
+    setBusy(true)
+    try {
+      if (blob) {
+        const fd = new FormData()
+        fd.append('file', blob, blob.type.includes('ogg') ? 'voice.ogg' : blob.type.includes('mp4') ? 'voice.mp4' : 'voice.webm')
+        await upload('POST', `/api/v1/preboarding/my/stages/${stageId}/voice?pos=${open}`, fd)
+      }
+      if (note.trim() || !blob) await send('POST', `/api/v1/preboarding/my/stages/${stageId}/event`, { kind: 'confused', pos: open, note: note.trim() || null })
+      toast.push({ title: t('preboarding.my.confusedSent'), tone: 'success' })
+      setOpen(null)
+      setNote('')
+      setBlob(null)
+    } catch (e) {
+      toast.push({ title: errorText(t, e), tone: 'danger' })
+    } finally {
+      setBusy(false)
+    }
+  }
+  if (open == null)
+    return (
+      <Button
+        variant="outline"
+        className="self-start"
+        onClick={() => {
+          pause()
+          setOpen(getPos())
+        }}
+      >
+        <HelpCircle className="size-4" />
+        {t('preboarding.my.confused')}
+      </Button>
+    )
+  return (
+    <div className="flex flex-col gap-2 rounded-card border border-warning/40 bg-warning/5 p-3">
+      <div className="text-sm font-semibold">{t('preboarding.my.confusedAt', { time: fmtSec(open) })}</div>
+      <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} maxLength={1000} placeholder={t('preboarding.my.confusedPlaceholder')} className="w-full rounded-control border border-border bg-surface px-3 py-2 text-sm" />
+      <div className="flex flex-wrap items-center gap-2">
+        {rec ? (
+          <Button variant="outline" className="text-danger" onClick={() => rec.stop()}>
+            <Square className="size-4" />
+            {t('preboarding.my.stopRec')}
+          </Button>
+        ) : (
+          <Button variant="outline" onClick={() => void start()}>
+            <Mic className="size-4" />
+            {blob ? t('preboarding.my.reRecord') : t('preboarding.my.recordVoice')}
+          </Button>
+        )}
+        {blob && <audio src={URL.createObjectURL(blob)} controls className="h-8" />}
+        <Button className="ml-auto" disabled={busy || !!rec || (!note.trim() && !blob)} onClick={() => void submit()}>
+          {t('preboarding.my.send')}
+        </Button>
+        <Button variant="ghost" onClick={() => setOpen(null)}>
+          {t('common.cancel')}
+        </Button>
+      </div>
     </div>
   )
 }

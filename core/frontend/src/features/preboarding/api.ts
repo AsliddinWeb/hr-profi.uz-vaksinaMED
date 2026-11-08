@@ -67,6 +67,7 @@ export interface MyStage extends Stage {
 }
 
 export interface MyData {
+  me: { full_name: string; phone: string | null; position: string | null; branch: string | null; branch_address: string | null; mentor: string | null; mentor_phone: string | null; hire_date: string | null; photo: boolean; employee_id: number }
   enrollment: { id: number; status: string; started_at: string; due_date: string | null; consent: string | null }
   program: { id: number; name: string; description: string | null; position: string | null; pass_score: number }
   monitoring: Monitoring

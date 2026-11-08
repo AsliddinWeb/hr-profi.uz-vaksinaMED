@@ -1,7 +1,7 @@
 import { ChevronRight, FolderOpen, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, NavLink, useLocation } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 
 import { BrandLogo } from './BrandLogo'
 import { getExtensionNavItems, type NavItem } from '../../extensions/registry'
@@ -56,6 +56,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
   const { t, i18n } = useTranslation()
   const lang = i18n.language === 'ru' ? 'ru' : 'uz'
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const { data: meta } = useMeta()
   const can = useCan()
   const inbox = useInboxCount()
@@ -194,7 +195,11 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
                           <div key={key}>
                             <button
                               type="button"
-                              onClick={() => toggleSub(key, isOpen)}
+                              onClick={() => {
+                                if (!isOpen || pathname === `/hub/${c.sub}`) toggleSub(key, isOpen)
+                                navigate(`/hub/${c.sub}`)
+                                onClose()
+                              }}
                               aria-expanded={isOpen}
                               style={colorVars(groupColor(s.group as NavItem['group']))}
                               className={cn('flex h-10 w-full items-center gap-3 rounded-[10px] px-1.5 text-sm font-medium text-text transition-colors hover:bg-surface-2', hasActive && !isOpen && 'bg-[color-mix(in_oklab,var(--gc)_10%,transparent)]')}

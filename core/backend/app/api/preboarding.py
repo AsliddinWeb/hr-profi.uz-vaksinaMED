@@ -17,6 +17,7 @@ from app.models.internship import (
     InternshipMonitor,
     InternshipProgram,
     InternshipStep,
+    InternshipVideoEvent,
 )
 from app.models.org import Position
 from app.services import calls as calls_svc
@@ -309,7 +310,17 @@ async def _my_out(db: AsyncSession, e: InternshipEnrollment, p: InternshipProgra
     prog = await isvc.progress_of(db, e.id)
     views = await svc.views_of(db, e.id)
     pos = await db.get(Position, p.position_id) if p.position_id else None
+    from app.models.auth import User  # noqa: PLC0415
+    from app.models.org import Branch  # noqa: PLC0415
+
+    branch = await db.get(Branch, emp.branch_id) if emp.branch_id else None
+    mentor = await db.get(User, e.mentor_id) if e.mentor_id else None
     return {
+        "me": {
+            "full_name": emp.full_name, "phone": emp.phone, "position": pos.name if pos else None, "branch": branch.name if branch else None,
+            "branch_address": branch.address if branch else None, "mentor": mentor.full_name if mentor else None, "mentor_phone": mentor.phone if mentor else None,
+            "hire_date": emp.hire_date, "photo": bool(emp.photo_key), "employee_id": emp.id,
+        },
         "enrollment": {"id": e.id, "status": e.status, "started_at": e.started_at, "due_date": e.due_date, "consent": e.monitor_consent_at},
         "program": {"id": p.id, "name": p.name, "description": p.description, "position": pos.name if pos else None, "pass_score": p.pass_score},
         "monitoring": svc.monitoring_of(p), "livekit": calls_svc.enabled(), "summary": isvc.summarize(steps, prog),
@@ -481,3 +492,108 @@ async def end_session(mid: int, db: AsyncSession = Depends(get_session), auth: A
     m = await _my_monitor(db, auth, mid)
     m.ended_at = now()
     await db.commit()
+
+
+# --- Video hodisalari, statistika va hisobot ------------------------------------------
+
+
+class EventIn(BaseModel):
+    kind: str = Field(pattern="^(pause|rewind|confused)$")
+    pos: int = Field(ge=0, le=360000)
+    to_pos: int | None = Field(default=None, ge=0, le=360000)
+    note: str | None = Field(default=None, max_length=1000)
+
+
+async def _event_quota(db: AsyncSession, e: InternshipEnrollment, s: InternshipStep) -> None:
+    n = await db.scalar(select(func.count()).select_from(InternshipVideoEvent).where(InternshipVideoEvent.enrollment_id == e.id, InternshipVideoEvent.step_id == s.id))
+    if (n or 0) >= svc.MAX_EVENTS_PER_STAGE:
+        raise error(429, "too_many_events")
+
+
+@router.post("/my/stages/{sid}/event", status_code=201)
+async def video_event(sid: int, body: EventIn, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
+    """Pauza, orqaga qaytish yoki «tushunmadim» (ixtiyoriy matn bilan)."""
+    e, _, _, s, _ = await _my_stage(db, auth, sid)
+    await _event_quota(db, e, s)
+    if body.kind == "rewind" and (body.to_pos is None or body.to_pos >= body.pos):
+        raise error(400, "rewind_invalid")
+    db.add(InternshipVideoEvent(enrollment_id=e.id, step_id=s.id, kind=body.kind, pos=body.pos, to_pos=body.to_pos if body.kind == "rewind" else None, note=(body.note or "").strip() or None))
+    await db.commit()
+    return {"ok": True}
+
+
+@router.post("/my/stages/{sid}/voice", status_code=201)
+async def voice_note(sid: int, request: Request, pos: int = 0, file: UploadFile = File(), db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
+    """Ovozli izoh: «shu joyini tushunmadim» (video qaysi joyda to'xtatilgani bilan)."""
+    e, _, _, s, _ = await _my_stage(db, auth, sid)
+    await _event_quota(db, e, s)
+    data = await file.read(svc.MAX_VOICE_BYTES + 1)
+    if not data or len(data) > svc.MAX_VOICE_BYTES:
+        raise error(413, "file_too_large")
+    mime = svc.audio_mime(data)
+    if not mime:
+        raise error(415, "unsupported_type")
+    ev = InternshipVideoEvent(enrollment_id=e.id, step_id=s.id, kind="voice", pos=max(0, min(pos, 360000)))
+    db.add(ev)
+    await db.flush()
+    key = storage_key(f"preboarding/{e.id}/voice", f"v{ev.id}.{mime.split('/')[1]}")
+    await request.app.state.storage.put(key, data, mime)
+    ev.audio_key, ev.audio_mime = key, mime
+    await db.commit()
+    return {"id": ev.id}
+
+
+@router.get("/events/{eid}/audio")
+async def event_audio(eid: int, request: Request, db: AsyncSession = Depends(get_session), _: AuthContext = Depends(Viewer)):
+    ev = await db.get(InternshipVideoEvent, eid)
+    if not ev or not ev.audio_key:
+        raise error(404, "not_found")
+    return StreamingResponse(request.app.state.storage.stream(ev.audio_key), media_type=ev.audio_mime or "audio/webm", headers={"Cache-Control": "private, max-age=3600"})
+
+
+@router.get("/tracks/{pid}/stats")
+async def stats(pid: int, db: AsyncSession = Depends(get_session), _: AuthContext = Depends(Viewer)):
+    """Har bosqich videosi: qayerda ko'p to'xtashgan, orqaga qaytishgan va tushunmaganlar (izohlar bilan)."""
+    p = await _track(db, pid)
+    return {"items": [await svc.stage_stats(db, s) for s in await isvc.steps_of(db, p.id) if s.url]}
+
+
+@router.get("/tracks/{pid}/report")
+async def report(pid: int, db: AsyncSession = Depends(get_session), _: AuthContext = Depends(Viewer)):
+    p = await _track(db, pid)
+    return {"items": await svc.report_rows(db, p)}
+
+
+@router.get("/tracks/{pid}/report.xlsx")
+async def report_xlsx(pid: int, request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(Viewer)):
+    import io  # noqa: PLC0415
+
+    from openpyxl import Workbook  # noqa: PLC0415
+
+    from app.services.xlsx_safe import harden  # noqa: PLC0415
+
+    p = await _track(db, pid)
+    rows = await svc.report_rows(db, p)
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Prebording"
+    ws.append(["Xodim", "Holat", "Boshlagan", "Bosqich", "Jami", "%", "O'rtacha ball", "Urinishlar", "Video (daq)", "Slayd (daq)", "Pauza", "Orqaga", "Tushunmadim"])
+    for r in rows:
+        ws.append([r["employee"], r["status"], r["started_at"].strftime("%d.%m.%Y") if r["started_at"] else "", r["done"], r["required"], r["percent"], r["avg_score"], r["attempts"], r["video_min"], r["slides_min"], r["pauses"], r["rewinds"], r["confused"]])
+    harden(wb)
+    buf = io.BytesIO()
+    wb.save(buf)
+    await audit(db, request, "preboarding.report_export", actor=auth.user, entity="internship_program", entity_id=p.id)
+    await db.commit()
+    from fastapi.responses import Response  # noqa: PLC0415
+
+    return Response(buf.getvalue(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f'attachment; filename="preboarding-{p.id}.xlsx"'})
+
+
+@router.get("/my/photo")
+async def my_photo(request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
+    """Stajyorning o'z rasmi (xodimlar ro'yxatini ko'rish huquqisiz)."""
+    emp = await _me(db, auth)
+    if not emp.photo_key:
+        raise error(404, "not_found")
+    return StreamingResponse(request.app.state.storage.stream(emp.photo_key), media_type=emp.photo_mime or "image/jpeg", headers={"Cache-Control": "private, max-age=3600"})

@@ -17,11 +17,12 @@ import { errorText } from '../auth/errorText'
 import { useCan } from '../auth/useAuth'
 import { usePositionOptions } from '../org/usePositionOptions'
 import type { Monitoring, Track } from './api'
+import { TrackReport, VideoStats } from './Insights'
 import { LessonPreview } from './LessonView'
 import { Results } from './Results'
 import { StageEditor } from './StageEditor'
 
-type Tab = 'stages' | 'preview' | 'results' | 'settings'
+type Tab = 'stages' | 'preview' | 'results' | 'stats' | 'report' | 'settings'
 
 /** /preboarding: lavozim yo'nalishlari (Farmasevt, Mudir...), har birida dars bosqichlari, ko'rish, natijalar va sozlamalar. */
 export function PreboardingAdminPage() {
@@ -75,7 +76,7 @@ export function PreboardingAdminPage() {
       ) : (
         <>
           <div className="flex flex-wrap gap-2">
-            {(['stages', 'preview', 'results', ...(manage ? (['settings'] as const) : [])] as Tab[]).map((k) => (
+            {(['stages', 'preview', 'results', 'stats', 'report', ...(manage ? (['settings'] as const) : [])] as Tab[]).map((k) => (
               <button key={k} type="button" onClick={() => setTab(k)} className={cn('rounded-full px-3.5 py-1.5 text-xs font-semibold', tab === k ? 'bg-[#1f3a68] text-white' : 'border border-border bg-surface hover:bg-surface-2')}>
                 {t(`preboarding.tab.${k}`)}
               </button>
@@ -120,6 +121,8 @@ export function PreboardingAdminPage() {
             ))}
           {tab === 'preview' && stages[stageIdx] && <LessonPreview stage={stages[stageIdx]} />}
           {tab === 'results' && <Results trackId={track.id} />}
+          {tab === 'stats' && <VideoStats trackId={track.id} />}
+          {tab === 'report' && <TrackReport trackId={track.id} />}
           {tab === 'settings' && <TrackSettings key={track.id} track={track} livekit={q.data.livekit} onDeleted={() => setTrackId(null)} />}
         </>
       )}
