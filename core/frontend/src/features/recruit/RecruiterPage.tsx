@@ -29,9 +29,12 @@ export function RecruiterPage() {
   const [to, setTo] = useState(todayLocal)
   const [phone, setPhone] = useState('')
   const [outcome, setOutcome] = useState('suitable')
+  const [direction, setDirection] = useState<'in' | 'out'>('out')
+  const [vacancyId, setVacancyId] = useState('')
+  const vacs = useQuery({ queryKey: ['recruit', 'vacancies', 'open-min'], queryFn: () => api<{ items: { id: number; title: string }[] }>('/api/v1/recruit/vacancies?status=open&size=100'), enabled: manage })
   const q = useQuery({ queryKey: ['recruit', 'recruiter-report', from, to], queryFn: () => api<Report>(`/api/v1/recruit/recruiter-report?start=${from}&end=${to}`) })
   const log = useMutation({
-    mutationFn: () => send('POST', '/api/v1/recruit/calls', { outcome, phone: phone || null }),
+    mutationFn: () => send('POST', '/api/v1/recruit/calls', { outcome, phone: phone || null, direction, vacancy_id: vacancyId ? Number(vacancyId) : null }),
     onSuccess: () => {
       setPhone('')
       void qc.invalidateQueries({ queryKey: ['recruit', 'recruiter-report'] })
@@ -45,6 +48,18 @@ export function RecruiterPage() {
       {manage && (
         <Card className="flex flex-wrap items-end gap-3 p-4">
           <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+998…" aria-label={t('recruit.candidate.phone')} className="w-48" />
+          <Select value={direction} onChange={(e) => setDirection(e.target.value as 'in' | 'out')} aria-label={t('rdash.direction')} className="w-auto">
+            <option value="out">{t('rdash.out')}</option>
+            <option value="in">{t('rdash.in')}</option>
+          </Select>
+          <Select value={vacancyId} onChange={(e) => setVacancyId(e.target.value)} aria-label={t('rdash.vacancy')} className="w-56">
+            <option value="">{t('rdash.noVacancy')}</option>
+            {(vacs.data?.items ?? []).map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.title}
+              </option>
+            ))}
+          </Select>
           <Select value={outcome} onChange={(e) => setOutcome(e.target.value)} aria-label={t('pipeline.callOutcome')} className="w-auto">
             {['suitable', 'unsuitable', 'no_answer', 'callback'].map((o) => (
               <option key={o} value={o}>

@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
+import { Columns3, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
@@ -24,6 +24,9 @@ export function CandidatesPage() {
   const [text, setText] = useState('')
   const [source, setSource] = useState('')
   const [page, setPage] = useState(1)
+  const [picked, setPicked] = useState<number[]>([])
+  const navigate = useNavigate()
+  const toggle = (id: number) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length >= 10 ? p : [...p, id]))
   const params = new URLSearchParams({ page: String(page), size: String(SIZE) })
   if (text.trim()) params.set('q', text.trim())
   if (source) params.set('source', source)
@@ -56,6 +59,11 @@ export function CandidatesPage() {
             </option>
           ))}
         </Select>
+        <span className="ml-auto text-xs text-muted">{t('rcmp.picked', { n: picked.length })}</span>
+        <Button variant="outline" disabled={picked.length < 2} onClick={() => navigate(`/recruit/compare?ids=${picked.join(',')}`)}>
+          <Columns3 className="size-4" />
+          {t('rcmp.btn')}
+        </Button>
       </div>
       {q.isLoading ? (
         <Skeleton className="h-48" />
@@ -65,6 +73,7 @@ export function CandidatesPage() {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-border text-xs text-muted">
                 <tr>
+                  <th className="w-10 px-3 py-2.5" />
                   <th className="px-5 py-2.5 font-medium">{t('recruit.candidate.name')}</th>
                   <th className="hidden px-5 py-2.5 font-medium sm:table-cell">{t('recruit.candidate.phone')}</th>
                   <th className="hidden px-5 py-2.5 font-medium md:table-cell">{t('recruit.candidate.source')}</th>
@@ -73,7 +82,10 @@ export function CandidatesPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {q.data?.items.map((c) => (
-                  <tr key={c.id}>
+                  <tr key={c.id} className={picked.includes(c.id) ? 'bg-primary/5' : ''}>
+                    <td className="px-3 py-2.5">
+                      <input type="checkbox" checked={picked.includes(c.id)} disabled={!picked.includes(c.id) && picked.length >= 10} onChange={() => toggle(c.id)} aria-label={t('rcmp.select', { name: c.full_name })} />
+                    </td>
                     <td className="px-5 py-2.5">
                       <Link to={`/recruit/candidates/${c.id}`} className="font-medium hover:text-primary hover:underline">
                         {c.full_name}
@@ -87,7 +99,7 @@ export function CandidatesPage() {
                 ))}
                 {q.data && q.data.items.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-5 py-10 text-center text-muted">
+                    <td colSpan={5} className="px-5 py-10 text-center text-muted">
                       {t('common.empty')}
                     </td>
                   </tr>

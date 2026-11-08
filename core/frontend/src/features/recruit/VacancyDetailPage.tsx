@@ -13,6 +13,7 @@ import { formatDate, formatDateTime } from '../../lib/format'
 import { NotFound } from '../../pages/NotFound'
 import { errorText } from '../auth/errorText'
 import { useCan } from '../auth/useAuth'
+import { VacancyDashboard } from './VacancyDashboard'
 import { STAGE_TONE, STAGES, salaryText, VSTATUS_TONE, type Board, type Vacancy, type VStatus } from './api'
 
 function daysLeft(deadline: string): number {
@@ -71,6 +72,7 @@ export function VacancyDetailPage() {
           )
         }
       />
+      <VacancyDashboard id={v.id} />
       <Card className="flex flex-col gap-4 p-6">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={VSTATUS_TONE[v.status]}>{t(`recruit.vacancy.status.${v.status}`)}</Badge>

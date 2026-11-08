@@ -227,6 +227,9 @@ import { ShiftFormPage } from './features/schedule/ShiftFormPage'
 import { ShiftsPage } from './features/schedule/ShiftsPage'
 import { ApplyPage as PublicApplyPage } from './features/public/ApplyPage'
 import { RecruiterPage } from './features/recruit/RecruiterPage'
+import { ComparePage as RecruitComparePage } from './features/recruit/ComparePage'
+import { RecruitHubPage } from './features/recruit/HubPage'
+import { RequestDetailPage as HireRequestDetailPage, RequestFormPage as HireRequestFormPage, RequestsPage as HireRequestsPage } from './features/recruit/RequestsPages'
 import { PromoPage } from './features/recruit/sources/PromoPage'
 import { RequirementFormPage, RequirementsPage } from './features/recruit/sources/RequirementsPage'
 import { SourcesPage } from './features/recruit/sources/SourcesPage'
@@ -458,6 +461,11 @@ export function createRouter() {
             { path: 'recruit/tests/new', element: <RequirePerm perm="recruit.manage"><TestBankFormPage /></RequirePerm> },
             { path: 'recruit/tests/:id/edit', element: <RequirePerm perm="recruit.manage"><TestBankFormPage /></RequirePerm> },
             { path: 'recruit/applications/:id/scorecard', element: <RequirePerm any={['recruit.manage', 'recruit.interview']}><ScorecardPage /></RequirePerm> },
+            { path: 'recruit/requests', element: <HireRequestsPage /> },
+            { path: 'recruit/requests/new', element: <HireRequestFormPage /> },
+            { path: 'recruit/requests/:id', element: <HireRequestDetailPage /> },
+            { path: 'recruit/compare', element: <RequirePerm any={['recruit.read', 'recruit.manage']}><RecruitComparePage /></RequirePerm> },
+            { path: 'hub/recruit', element: <RecruitHubPage /> },
             { path: 'recruit/today', element: <RequirePerm any={['recruit.read', 'recruit.manage']}><RecruiterTodayPage /></RequirePerm> },
             { path: 'recruit/funnel', element: <RequirePerm any={['recruit.read', 'recruit.manage']}><FunnelPage /></RequirePerm> },
             { path: 'recruit/recruiter', element: <RequirePerm any={['recruit.read', 'recruit.manage']}><RecruiterPage /></RequirePerm> },

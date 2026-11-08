@@ -26,7 +26,13 @@ export function ApplyPage() {
   const [phone, setPhone] = useState('+998')
   const [note, setNote] = useState('')
   const [trap, setTrap] = useState('')
-  const sendIt = useMutation({ mutationFn: () => send('POST', `/api/v1/public/apply/${code}`, { full_name: name, phone, note: note || null, website: trap || null }) })
+  const sendIt = useMutation({
+    mutationFn: () => send<{ ok: boolean; profile_url?: string }>('POST', `/api/v1/public/apply/${code}`, { full_name: name, phone, note: note || null, website: trap || null }),
+    // Yangi nomzod: to'liq anketa va rezyume yuklash sahifasiga o'tkazamiz (ma'lumotlar nomzodlar bazasiga tushadi)
+    onSuccess: (r) => {
+      if (r?.profile_url?.startsWith('/profile/')) window.location.assign(r.profile_url)
+    },
+  })
   const submit = (e: FormEvent) => {
     e.preventDefault()
     sendIt.mutate()
