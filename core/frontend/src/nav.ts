@@ -11,6 +11,7 @@ export const coreNav: NavItem[] = [
   { id: 'employees', group: 'people', label: { uz: 'Xodimlar', ru: 'Сотрудники' }, to: '/employees', icon: Contact, permission: 'employees.read', module: 'employees' },
   { id: 'org', group: 'hr', label: { uz: 'Tashkiliy tuzilma', ru: 'Оргструктура' }, to: '/org', icon: Network, permission: 'org.read', module: 'org' },
   { id: 'departments', group: 'hr', label: { uz: "Bo'limlar va lavozimlar", ru: 'Отделы и должности' }, to: '/org/departments', icon: Building2, permission: 'org.read', module: 'org' },
+  { id: 'positions', group: 'hr', label: { uz: 'Lavozimlar', ru: 'Должности' }, to: '/org/positions', icon: Briefcase, permission: 'org.read', module: 'org' },
   { id: 'branches', group: 'hr', label: { uz: 'Filiallar', ru: 'Филиалы' }, to: '/branches', icon: Store, permission: 'branches.read', module: 'pharmacy' },
   { id: 'rotations', group: 'hr', label: { uz: 'Rotatsiya', ru: 'Ротация' }, to: '/org/rotations', icon: Repeat, anyPermission: ['rotations.read', 'rotations.request', 'rotations.manage'], module: 'org' },
   { id: 'hr-library', group: 'hr', label: { uz: 'Hujjatlar kutubxonasi', ru: 'Библиотека документов' }, to: '/hr/library', icon: BookOpen, permission: 'hrdocs.read', module: 'employees' },

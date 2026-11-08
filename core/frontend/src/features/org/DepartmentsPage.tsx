@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Pencil, Plus, Split } from 'lucide-react'
+import { Briefcase, Pencil, Plus, Split } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -27,14 +27,30 @@ export function DepartmentsPage() {
         title={t('org.departmentsTitle')}
         subtitle={t('org.departmentsSubtitle')}
         actions={
-          manage && (
-            <Link to="/org/departments/new">
-              <Button>
-                <Plus className="size-4" />
-                {t('org.addDepartment')}
+          <>
+            <Link to="/org/positions">
+              <Button variant="outline">
+                <Briefcase className="size-4" />
+                {t('org.positionsTitle')}
               </Button>
             </Link>
-          )
+            {manage && (
+              <Link to="/org/positions/new">
+                <Button variant="outline">
+                  <Plus className="size-4" />
+                  {t('org.addPosition')}
+                </Button>
+              </Link>
+            )}
+            {manage && (
+              <Link to="/org/departments/new">
+                <Button>
+                  <Plus className="size-4" />
+                  {t('org.addDepartment')}
+                </Button>
+              </Link>
+            )}
+          </>
         }
       />
 
