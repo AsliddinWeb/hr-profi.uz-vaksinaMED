@@ -57,13 +57,22 @@ export interface AttRecord {
 }
 
 export interface MeData {
-  employee: { id: number; full_name: string }
+  employee: { id: number; full_name: string; position?: string | null }
   today: string
   now: string
-  schedule: { working: boolean; reason: string; shift: Shift | null }
+  schedule: {
+    working: boolean
+    reason: string
+    holiday?: string | null
+    shift: Shift | null
+    planned_start?: string | null
+    planned_end?: string | null
+  }
   open_record: AttRecord | null
+  today_record?: AttRecord | null
   recent: AttRecord[]
-  branch: { id: number; name: string; has_geo: boolean; radius: number } | null
+  branch: { id: number; name: string; has_geo: boolean; radius: number; lat?: number | null; lng?: number | null; max_accuracy?: number } | null
+  letter_pending?: { id: number; number: string } | null
 }
 
 export interface PunchResult {

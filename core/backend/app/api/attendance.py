@@ -100,22 +100,36 @@ async def me(
     ).all()
     branch = await db.get(Branch, emp.branch_id) if emp.branch_id else None
     shift = shifts.get(cell.shift_id) if cell.shift_id else None
+    pos = await db.get(Position, emp.position_id) if emp.position_id else None
+    today_rec = open_rec or next((r for r in recent if r.work_date == today), None)
+    planned_start, planned_end = svc.planned_window(shift, today) if shift and cell.working else (None, None)
+    letter = await auto_letters.open_letter(db, emp.id)
     return {
-        "employee": {"id": emp.id, "full_name": emp.full_name},
+        "employee": {"id": emp.id, "full_name": emp.full_name, "position": pos.name if pos else None},
         "today": today,
         "now": moment,
         "schedule": {
             "working": cell.working,
             "reason": cell.reason,
+            "holiday": cell.holiday,
             "shift": sched.shift_out(shift) if shift else None,
+            "planned_start": planned_start,
+            "planned_end": planned_end,
         },
         "open_record": record_out(open_rec, shifts.get(open_rec.shift_id)) if open_rec else None,
+        "today_record": record_out(today_rec, shifts.get(today_rec.shift_id)) if today_rec else None,
         "recent": [record_out(r, shifts.get(r.shift_id)) for r in recent],
         "branch": (
-            {"id": branch.id, "name": branch.name, "has_geo": branch.latitude is not None, "radius": branch.geofence_radius_m}
+            {
+                "id": branch.id, "name": branch.name, "has_geo": branch.latitude is not None, "radius": branch.geofence_radius_m,
+                "lat": float(branch.latitude) if branch.latitude is not None else None,
+                "lng": float(branch.longitude) if branch.longitude is not None else None,
+                "max_accuracy": svc.MAX_ACCURACY_M,
+            }  # fmt: skip
             if branch
             else None
         ),
+        "letter_pending": {"id": letter.id, "number": letter.number} if letter else None,
     }
 
 
