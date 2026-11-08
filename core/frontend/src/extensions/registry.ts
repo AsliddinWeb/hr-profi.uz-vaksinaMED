@@ -16,6 +16,8 @@ export interface NavItem {
   /** Shu ruxsatlardan kamida bittasi bo'lsa ko'rinadi */
   anyPermission?: string[]
   /** Yon paneldagi bo'lim sarlavhasi (bir xil `group` ketma-ket joylashadi) */
+  /** Bo'lim ichidagi yig'iladigan papka (ketma-ket bir xil `sub` lar bitta papkada), masalan 'preboarding' */
+  sub?: string
   group?: 'main' | 'people' | 'org' | 'hr' | 'schedule' | 'attendance' | 'requests' | 'tasks' | 'needs' | 'checklists' | 'recruit' | 'internship' | 'payroll' | 'canteen' | 'logistics' | 'warehouse' | 'mobile' | 'reception' | 'helpdesk' | 'calls' | 'ai' | 'reports' | 'migration' | 'pharmacy' | 'admin' | 'system'
 }
 

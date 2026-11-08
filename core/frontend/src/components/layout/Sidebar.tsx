@@ -1,4 +1,4 @@
-import { PanelLeftClose, PanelLeftOpen, X } from 'lucide-react'
+import { ChevronRight, FolderOpen, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, NavLink, useLocation } from 'react-router-dom'
@@ -17,6 +17,7 @@ import { colorVars, groupColor } from '../../lib/navTheme'
 import { coreNav } from '../../nav'
 
 const RAIL_KEY = 'hrprofi.nav.rail'
+const SUB_KEY = 'hrprofi.nav.sub'
 
 function load<T>(key: string, fallback: T): T {
   try {
@@ -39,6 +40,17 @@ interface Section {
   items: NavItem[]
 }
 
+/** Bo'lim elementlarini ketma-ket bir xil `sub` papkalariga ajratadi. */
+function chunks(items: NavItem[]): { sub?: string; items: NavItem[] }[] {
+  const out: { sub?: string; items: NavItem[] }[] = []
+  for (const it of items) {
+    const last = out[out.length - 1]
+    if (last && last.sub === it.sub) last.items.push(it)
+    else out.push({ sub: it.sub, items: [it] })
+  }
+  return out
+}
+
 /** Yon panel: barcha bo'limlar doim ochiq (sarlavha + elementlar), "rail" (faqat ikonkalar) rejimi. */
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t, i18n } = useTranslation()
@@ -52,6 +64,13 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
   const needCount = useNeedCount()
   const pendingPenalties = usePendingPenalties()
   const [rail, setRail] = useState<boolean>(() => load(RAIL_KEY, false))
+  const [subOpen, setSubOpen] = useState<Record<string, boolean>>(() => load(SUB_KEY, {}))
+  const toggleSub = (k: string, cur: boolean) =>
+    setSubOpen((m) => {
+      const next = { ...m, [k]: !cur }
+      save(SUB_KEY, next)
+      return next
+    })
 
   const enabled = (module?: string) => !module || !meta || meta.modules.includes(module)
   const items = [...coreNav, ...getExtensionNavItems()].filter((i) => enabled(i.module) && (!i.permission || can(i.permission)) && (!i.anyPermission || i.anyPermission.some(can)))
@@ -161,7 +180,38 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
             return (
               <div key={s.group} className="mt-4">
                 <div className="mb-1 truncate px-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted">{t(`nav.group.${s.group}`)}</div>
-                <div className="flex flex-col gap-0.5">{s.items.map((it) => link(it, false))}</div>
+                <div className="flex flex-col gap-0.5">
+                  {chunks(s.items).map((c) =>
+                    !c.sub ? (
+                      c.items.map((it) => link(it, false))
+                    ) : (
+                      (() => {
+                        const key = `${s.group}.${c.sub}`
+                        const hasActive = c.items.some((it) => it.id === activeId)
+                        const isOpen = subOpen[key] ?? hasActive
+                        const Icon = c.items[0]?.icon ?? FolderOpen
+                        return (
+                          <div key={key}>
+                            <button
+                              type="button"
+                              onClick={() => toggleSub(key, isOpen)}
+                              aria-expanded={isOpen}
+                              style={colorVars(groupColor(s.group as NavItem['group']))}
+                              className={cn('flex h-10 w-full items-center gap-3 rounded-[10px] px-1.5 text-sm font-medium text-text transition-colors hover:bg-surface-2', hasActive && !isOpen && 'bg-[color-mix(in_oklab,var(--gc)_10%,transparent)]')}
+                            >
+                              <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-[color-mix(in_oklab,var(--gc)_13%,transparent)] text-(--gc)">
+                                <Icon className="size-[17px] stroke-[1.9]" />
+                              </span>
+                              <span className="truncate">{t(`nav.sub.${c.sub}`)}</span>
+                              <ChevronRight className={cn('ml-auto size-4 text-muted transition-transform', isOpen && 'rotate-90')} />
+                            </button>
+                            {isOpen && <div className="ml-4 flex flex-col gap-0.5 border-l border-border pl-1.5">{c.items.map((it) => link(it, false))}</div>}
+                          </div>
+                        )
+                      })()
+                    ),
+                  )}
+                </div>
               </div>
             )
           })}
