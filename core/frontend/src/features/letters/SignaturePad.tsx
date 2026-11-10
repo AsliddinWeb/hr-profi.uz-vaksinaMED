@@ -38,15 +38,18 @@ export function SignaturePad({ onSave, onCancel, busy }: { onSave: (png: string)
     last.current = point(e)
   }
   const move = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!drawing.current || !last.current) return
+    const prev = last.current
+    if (!drawing.current || !prev) return
     const ctx = e.currentTarget.getContext('2d')
     const p = point(e)
     if (!ctx) return
     ctx.beginPath()
-    ctx.moveTo(last.current.x, last.current.y)
+    ctx.moveTo(prev.x, prev.y)
     ctx.lineTo(p.x, p.y)
     ctx.stroke()
-    setLength((l) => l + Math.hypot(p.x - last.current!.x, p.y - last.current!.y))
+    // Masofa shu yerda hisoblanadi: setState yangilovchisi keyinroq ishlaydi, u paytda last.current null bo'lishi mumkin (pointerup)
+    const d = Math.hypot(p.x - prev.x, p.y - prev.y)
+    setLength((l) => l + d)
     last.current = p
   }
   const up = () => {
