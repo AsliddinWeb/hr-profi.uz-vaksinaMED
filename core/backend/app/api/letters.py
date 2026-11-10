@@ -20,7 +20,7 @@ from app.deps import AuthContext, error, get_auth
 from app.models.auth import User
 from app.models.employees import Employee
 from app.models.letters import ExplanationLetter, LetterEvent, LetterTemplate
-from app.security import verify_password
+from app.security import verify_password_async
 from app.services import auto_letters as auto_svc
 from app.services import letters as svc
 from app.services.audit import audit, client_ip
@@ -408,7 +408,7 @@ async def submit(
         raise error(429, "too_many_attempts", retry_after=max(await redis.ttl(key), 1))
     if emp.user_id != auth.user.id:
         raise error(403, "forbidden")
-    if not verify_password(body.password, auth.user.password_hash):
+    if not await verify_password_async(body.password, auth.user.password_hash):
         n = await redis.incr(key)
         if n == 1:
             await redis.expire(key, PW_WINDOW)

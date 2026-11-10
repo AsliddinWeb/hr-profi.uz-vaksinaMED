@@ -22,3 +22,24 @@ Qayta ishga tushirishda 60 foydalanuvchi bosqichida p95 0.7–1.0 s oralig'ida t
 - Cheklovchi omil — API jarayonlari CPU si: `WEB_CONCURRENCY` ni CPU yadrolariga yaqin qiling (har jarayon ~150 MB). Keyingi qadam kerak bo'lsa: oylik tahlilni keshlash yoki hisobotni worker ga o'tkazish.
 - Natijalar lokal Mac da olindi; productionga o'xshash droplet (4 vCPU / 8 GB) da `make loadtest` ni bir marta ishga tushirib, shu jadvalni yangilang.
 - Faqat ilova qatlami o'lchandi (nginx cheklovlari va TLS chetda). WebSocket, LiveKit media (7881/7882) va GPS oqimi alohida (real qurilma) sinovga muhtoj.
+
+## 2026-11-10: login tezlashtirildi (1000 kishilik sinov)
+
+Topilgan muammo: parol tekshiruvi (Argon2, 64 MiB / t=3 / p=4, ~320 ms) async so'rov ichida **sinxron** chaqirilgan —
+bitta login paytida shu jarayondagi barcha so'rovlar kutib qolgan. Tuzatish:
+- `verify_password_async` / `hash_password_async`: hisob alohida thread'da, bir vaqtda 4 tadan (xotira cheklovi);
+  login, parol almashtirish, foydalanuvchi yaratish, imzo (xat/buyruq) shu yo'lda.
+- Argon2id OWASP tavsiyasi: m=19 MiB, t=2, p=1 (~35 ms). Eski xeshlar keyingi loginda avtomatik yangilanadi.
+
+Realistik profil: `--think 3,10 --ramp 120` (har odam 3-10 s da bitta amal, kirishlar 2 daqiqaga tarqalgan).
+Stend: Windows noutbuk, Docker'ga 3.6 GB RAM, yuk generatori shu konteynerda, dev stek ham ishlab turgan.
+
+| 100 parallel | p50 | login p50 | xato |
+|---|---|---|---|
+| Tuzatishdan oldin | ~400 ms | 1089 ms | 1-3% |
+| Thread'ga o'tkazilgach | 144 ms | 375 ms | 0% (403 lar ssenariy xatosi edi) |
+| + OWASP Argon2 | **85 ms** | **92 ms** | **0%** |
+
+300 va 1000 kishida bu noutbukda butun stend ~20-25 RPS da to'yinadi (barcha endpointlar birga sekinlashadi,
+login emas) — bu mashina chegarasi. 1000 kishilik haqiqiy javob uchun serverda (kamida 4 vCPU / 8 GB, generator
+alohida mashinada) o'lchang: `make loadtest ARGS="--stages 100,300,1000 --think 3,10 --ramp 120"`.

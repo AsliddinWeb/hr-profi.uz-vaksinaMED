@@ -25,7 +25,9 @@ ENVS=(-e "DATABASE_URL=postgresql+asyncpg://$POSTGRES_USER:$POSTGRES_PASSWORD@db
       -e "SECRET_KEY=$SECRET_KEY" -e "MINIO_ROOT_USER=$MINIO_ROOT_USER" -e "MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD" -e CLIENT_DIR=/nonexistent -e ENV=production -e "WEB_CONCURRENCY=${WEB_CONCURRENCY:-3}")
 echo "[1/4] Test API ishga tushirilmoqda (alohida baza: $DB)..."
 # Productiondagi kabi: --reload'siz, WEB_CONCURRENCY ta jarayon (dev imidjning CMD si bitta jarayon bilan ishlaydi)
-docker run -d --name vk-load-api --network "$NET" "${ENVS[@]}" "$IMG" sh -c 'python -m app.migrate && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers "${WEB_CONCURRENCY:-3}" --proxy-headers' >/dev/null
+# Joriy backend kodi (imidj eski bo'lsa ham yangi kod o'lchanadi); Windows Git Bash'da docker uchun C:/... yo'l
+SRC="$ROOT/core/backend"; if pwd -W >/dev/null 2>&1; then SRC="$(cd "$SRC" && pwd -W)"; fi
+docker run -d --name vk-load-api --network "$NET" "${ENVS[@]}" -e PYTHONDONTWRITEBYTECODE=1 -v "$SRC:/srv:ro" "$IMG" sh -c 'python -m app.migrate && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers "${WEB_CONCURRENCY:-3}" --proxy-headers' >/dev/null
 for _ in $(seq 1 60); do docker exec vk-load-api python -c "import urllib.request as u; u.urlopen('http://localhost:8000/api/health', timeout=2)" >/dev/null 2>&1 && break; sleep 2; done
 echo "[2/4] Ma'lumot yaratilmoqda ($EMP xodim, 30 kun davomat)..."
 docker exec vk-load-api python -m app.cli seed-load "$EMP" "$USERS"

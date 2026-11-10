@@ -8,7 +8,7 @@ from app.deps import AuthContext, error
 from app.models.auth import Role, User
 from app.models.employees import Employee
 from app.rbac import covers
-from app.security import generate_temp_password, hash_password
+from app.security import generate_temp_password, hash_password_async
 from app.services.logins import unique_login
 
 
@@ -33,7 +33,7 @@ async def create_account(
     password = generate_temp_password()
     user = User(
         login=login,
-        password_hash=hash_password(password),
+        password_hash=await hash_password_async(password),
         full_name=employee.full_name,
         phone=employee.phone,
         role_id=role.id,

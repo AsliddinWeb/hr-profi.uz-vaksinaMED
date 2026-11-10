@@ -16,7 +16,7 @@ from app.deps import (
     get_auth_any,
 )
 from app.models.auth import User, UserSession
-from app.security import hash_password, validate_password_strength, verify_password
+from app.security import hash_password_async, validate_password_strength, verify_password_async
 from app.services import auth as svc
 from app.services.audit import audit, client_ip
 from app.services.notifications import deliver, notify
@@ -180,14 +180,14 @@ async def change_password(
     auth: AuthContext = Depends(get_auth_any),
 ):
     user = auth.user
-    if not verify_password(body.old_password, user.password_hash):
+    if not await verify_password_async(body.old_password, user.password_hash):
         raise error(400, "wrong_old_password")
     problem = validate_password_strength(body.new_password, user.login)
     if problem:
         raise error(400, problem)
     if body.old_password == body.new_password:
         raise error(400, "password_unchanged")
-    user.password_hash = hash_password(body.new_password)
+    user.password_hash = await hash_password_async(body.new_password)
     user.must_change_password = False
     await svc.revoke_user_sessions(db, user.id, except_sid=auth.session_id)
     await audit(db, request, "auth.password_changed", actor=user, entity="user", entity_id=user.id)

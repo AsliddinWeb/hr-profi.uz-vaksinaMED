@@ -9,11 +9,11 @@ from app.config import get_settings
 from app.models.auth import User, UserSession
 from app.security import (
     create_access_token,
-    hash_password,
+    hash_password_async,
     hash_token,
     needs_rehash,
     new_refresh_token,
-    verify_password,
+    verify_password_async,
 )
 
 MAX_FAILS = 5
@@ -49,11 +49,11 @@ async def clear_failures(redis: Redis, login: str, ip: str | None) -> None:
 
 async def authenticate(session: AsyncSession, login: str, password: str) -> User | None:
     user = await session.scalar(select(User).where(User.login == login))
-    ok = verify_password(password, user.password_hash if user else None)
+    ok = await verify_password_async(password, user.password_hash if user else None)
     if not user or not ok or not user.is_active:
         return None
     if needs_rehash(user.password_hash):
-        user.password_hash = hash_password(password)
+        user.password_hash = await hash_password_async(password)
     return user
 
 

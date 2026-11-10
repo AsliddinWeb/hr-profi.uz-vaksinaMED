@@ -17,7 +17,7 @@ from app.models.employees import Employee
 from app.models.hrdocs import StaffDocument
 from app.models.letters import ExplanationLetter
 from app.models.penalties import Penalty
-from app.security import verify_password
+from app.security import verify_password_async
 from app.services import staffdocs as svc
 from app.services.answers import users_with_permission
 from app.services.audit import audit, client_ip
@@ -271,7 +271,7 @@ async def sign(did: int, body: SignIn, request: Request, db: AsyncSession = Depe
     key = f"rl:staffdocs:pw:{auth.user.id}"
     if int(await redis.get(key) or 0) >= PW_FAILS:
         raise error(429, "too_many_attempts", retry_after=max(await redis.ttl(key), 1))
-    if not verify_password(body.password, auth.user.password_hash):
+    if not await verify_password_async(body.password, auth.user.password_hash):
         n = await redis.incr(key)
         if n == 1:
             await redis.expire(key, PW_WINDOW)

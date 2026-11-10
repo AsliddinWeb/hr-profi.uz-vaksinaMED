@@ -12,7 +12,7 @@ from app.models.auth import Role, User
 from app.rbac import SUPERUSER_ROLE, covers
 from app.security import (
     generate_temp_password,
-    hash_password,
+    hash_password_async,
     validate_password_strength,
 )
 from app.services import auth as svc
@@ -184,7 +184,7 @@ async def create_user(
 
     user = User(
         login=login,
-        password_hash=hash_password(password),
+        password_hash=await hash_password_async(password),
         full_name=body.full_name.strip(),
         phone=body.phone,
         role_id=role.id,
@@ -303,7 +303,7 @@ async def reset_password(
     user = await _get(db, user_id)
     _check_can_manage(auth, user)
     password = generate_temp_password()
-    user.password_hash = hash_password(password)
+    user.password_hash = await hash_password_async(password)
     user.must_change_password = True
     await svc.revoke_user_sessions(db, user.id)
     await audit(db, request, "user.reset_password", actor=auth.user, entity="user",

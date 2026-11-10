@@ -47,8 +47,10 @@ async def hr_scenarios(c: httpx.AsyncClient, rnd: random.Random, rec):
         await rec("attendance.dashboard.month", c.get("/api/v1/attendance/dashboard", params={"start": month_s, "end": e}))
     elif pick < 0.8:
         await rec("search", c.get("/api/v1/search", params={"q": rnd.choice(["Karimov", "Aziz", "Filial 3", "Ticket 1"])}))
-    elif pick < 0.9:
+    elif pick < 0.86:
         await rec("tasks.list", c.get("/api/v1/tasks", params={"scope": "all"}))
+    elif pick < 0.9:
+        await rec("org.scheme", c.get("/api/v1/org/scheme"))
     else:
         await rec("reports.run", c.post("/api/v1/reports/run", json={"type": "attendance", "start": s, "end": e, "format": "xlsx"}))
 
@@ -68,8 +70,6 @@ async def staff_scenarios(c: httpx.AsyncClient, rnd: random.Random, rec):
         await rec("needs.mine", c.get("/api/v1/needs", params={"scope": "mine"}))
     elif pick < 0.91:
         await rec("conferences", c.get("/api/v1/conferences"))
-    elif pick < 0.94:
-        await rec("org.scheme", c.get("/api/v1/org/scheme"))
     elif pick < 0.97:
         await rec("preboarding.my", c.get("/api/v1/preboarding/my"))
     else:
