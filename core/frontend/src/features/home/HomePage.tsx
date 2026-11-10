@@ -22,6 +22,7 @@ import { NotificationItemRow } from '../notifications/NotificationItemRow'
 import { useOpenNotification } from '../notifications/useNotifications'
 import { usePendingPenalties } from '../penalties/usePendingCount'
 import { useTaskCount } from '../tasks/useTaskCount'
+import { HomeDashboard } from './HomeDashboard'
 
 /** Bosh sahifa: salomlashuv, "sizni kutmoqda" topshiriqlari, bugungi davomat, so'nggi xabarlar va barcha bo'limlar (ishga tushirgich). */
 export function HomePage() {
@@ -95,6 +96,8 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      <HomeDashboard />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
         <div className="flex flex-col gap-6">
