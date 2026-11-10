@@ -597,3 +597,46 @@ async def my_photo(request: Request, db: AsyncSession = Depends(get_session), au
     if not emp.photo_key:
         raise error(404, "not_found")
     return StreamingResponse(request.app.state.storage.stream(emp.photo_key), media_type=emp.photo_mime or "image/jpeg", headers={"Cache-Control": "private, max-age=3600"})
+
+
+# --- Ovoz chiqarib o'qish (Whisper): bosqich matnini o'qiydi, aniqlik foizi ---------------------------
+
+
+@router.post("/my/stages/{sid}/read-aloud", status_code=201)
+async def read_aloud(sid: int, request: Request, seconds: int = 0, file: UploadFile = File(), db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
+    """Stajyor bosqich matnini (tavsif) ovoz chiqarib o'qiydi; Whisper matnga aylantiradi, mos kelish foizi va o'qilmagan so'zlar qaytadi."""
+    from app.models.smart import ReadAloudAttempt  # noqa: PLC0415
+    from app.services import speech  # noqa: PLC0415
+
+    e, _, _, s, _ = await _my_stage(db, auth, sid)
+    expected = (s.description or "").strip()
+    if len(expected.split()) < 5:
+        raise error(409, "no_reading_text")
+    n = await db.scalar(select(func.count()).select_from(ReadAloudAttempt).where(ReadAloudAttempt.enrollment_id == e.id, ReadAloudAttempt.step_id == s.id)) or 0
+    if n >= 20:
+        raise error(429, "too_many_attempts")
+    data = await file.read(speech.MAX_AUDIO_BYTES + 1)
+    mime = svc.audio_mime(data) if data else None
+    if not mime:
+        raise error(415, "unsupported_type")
+    text = await speech.transcribe(data, mime, "uz")
+    acc, missed = speech.reading_score(expected, text)
+    db.add(ReadAloudAttempt(enrollment_id=e.id, step_id=s.id, transcript=text[:20000], accuracy=acc, missed=missed, duration_s=max(0, min(seconds, 3600)) or None))
+    await db.commit()
+    return {"accuracy": acc, "missed": missed, "transcript": text, "attempts": n + 1}
+
+
+@router.get("/tracks/{pid}/read-aloud")
+async def read_aloud_results(pid: int, db: AsyncSession = Depends(get_session), _: AuthContext = Depends(Viewer)):
+    """Yo'nalish bo'yicha o'qish natijalari: har stajyor va bosqich uchun eng yaxshi aniqlik va urinishlar soni."""
+    from app.models.smart import ReadAloudAttempt  # noqa: PLC0415
+
+    rows = (await db.execute(
+        select(Employee.full_name, InternshipStep.title, func.max(ReadAloudAttempt.accuracy), func.count(), func.max(ReadAloudAttempt.created_at))
+        .join(InternshipEnrollment, InternshipEnrollment.id == ReadAloudAttempt.enrollment_id)
+        .join(Employee, Employee.id == InternshipEnrollment.employee_id)
+        .join(InternshipStep, InternshipStep.id == ReadAloudAttempt.step_id)
+        .where(InternshipEnrollment.program_id == pid)
+        .group_by(Employee.full_name, InternshipStep.title).order_by(Employee.full_name)
+    )).all()  # fmt: skip
+    return {"items": [{"employee": n, "stage": t, "best": b, "attempts": c, "last_at": at} for n, t, b, c, at in rows]}

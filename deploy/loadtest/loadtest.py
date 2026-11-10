@@ -1,6 +1,10 @@
 """Yuk testi: haqiqiy foydalanuvchilar (HR va xodimlar) aralash trafigi. Faqat `httpx` kerak (backend imidjida bor).
 
     python loadtest.py --base http://vk-load-api:8000 --users 40 --duration 45 --stages 10,30,60
+    python loadtest.py --stages 100,300,1000 --think 3,10 --ramp 30   # haqiqiy odamlar: har 3-10 soniyada bitta amal
+
+`--think`: amallar orasidagi pauza (soniya). Standart 0.05,0.4 — "stress" (1 virtual foydalanuvchi ~ 20-50 haqiqiy odam).
+`--ramp`: kirishlar shu soniya ichida bosqichma-bosqich (1000 ta parol tekshiruvi bir soniyada tushmasin).
 
 Har bosqich (parallel foydalanuvchilar soni) alohida o'lchanadi: RPS, p50/p95/p99, xato ulushi, endpoint kesimi.
 Chiqish kodi 1: p95 > --p95-limit (soniya) yoki xato ulushi > 1%.
@@ -60,16 +64,35 @@ async def staff_scenarios(c: httpx.AsyncClient, rnd: random.Random, rec):
         await rec("tasks.mine", c.get("/api/v1/tasks"))
     elif pick < 0.8:
         await rec("helpdesk.mine", c.get("/api/v1/helpdesk", params={"scope": "mine"}))
-    elif pick < 0.95:
+    elif pick < 0.88:
         await rec("needs.mine", c.get("/api/v1/needs", params={"scope": "mine"}))
+    elif pick < 0.91:
+        await rec("conferences", c.get("/api/v1/conferences"))
+    elif pick < 0.94:
+        await rec("org.scheme", c.get("/api/v1/org/scheme"))
+    elif pick < 0.97:
+        await rec("preboarding.my", c.get("/api/v1/preboarding/my"))
     else:
         await rec("helpdesk.create", c.post("/api/v1/helpdesk", json={"title": "Yuk testi ticketi", "priority": "low"}))
 
 
+THINK = (0.05, 0.4)
+RAMP = 0.0
+
+
 async def worker(base: str, login: str, hr: bool, stop: float, stats: dict, errors: dict, seed: int):
     rnd = random.Random(seed)
-    async with httpx.AsyncClient(base_url=base, headers=H, timeout=30) as c:
-        r = await c.post("/api/auth/login", json={"login": login, "password": PASSWORD})
+    await asyncio.sleep(rnd.uniform(0, RAMP))
+    limits = httpx.Limits(max_connections=2, max_keepalive_connections=2)
+    async with httpx.AsyncClient(base_url=base, headers=H, timeout=30, limits=limits) as c:
+        t = time.perf_counter()
+        try:
+            r = await c.post("/api/auth/login", json={"login": login, "password": PASSWORD})
+        except httpx.HTTPError:
+            stats["login"].append((time.perf_counter() - t, False))
+            errors["login:timeout"] += 1
+            return
+        stats["login"].append((time.perf_counter() - t, r.status_code == 200))
         if r.status_code != 200:
             errors["login"] += 1
             return
@@ -90,7 +113,7 @@ async def worker(base: str, login: str, hr: bool, stop: float, stats: dict, erro
 
         while time.perf_counter() < stop:
             await (hr_scenarios if hr else staff_scenarios)(c, rnd, rec)
-            await asyncio.sleep(rnd.uniform(0.05, 0.4))  # "o'ylash" pauzasi
+            await asyncio.sleep(rnd.uniform(*THINK))  # "o'ylash" pauzasi
 
 
 def pct(vals: list[float], p: float) -> float:
@@ -103,7 +126,7 @@ def pct(vals: list[float], p: float) -> float:
 async def stage(base: str, concurrency: int, duration: int, staff_users: int) -> dict:
     stats: dict[str, list] = defaultdict(list)
     errors: dict[str, int] = defaultdict(int)
-    stop = time.perf_counter() + duration
+    stop = time.perf_counter() + duration + RAMP
     n_hr = max(1, round(concurrency * 0.12))
     tasks = [asyncio.create_task(worker(base, f"hr{i % 5}", True, stop, stats, errors, i)) for i in range(n_hr)]
     tasks += [asyncio.create_task(worker(base, f"u{i % staff_users}", False, stop, stats, errors, 1000 + i)) for i in range(concurrency - n_hr)]
@@ -127,7 +150,12 @@ async def main() -> int:
     ap.add_argument("--duration", type=int, default=45)
     ap.add_argument("--stages", default="10,30,60")
     ap.add_argument("--p95-limit", type=float, default=1.0)
+    ap.add_argument("--think", default="0.05,0.4", help="amallar orasidagi pauza: min,max soniya")
+    ap.add_argument("--ramp", type=float, default=0.0, help="kirishlarni shu soniya ichida tarqatish")
     a = ap.parse_args()
+    global THINK, RAMP  # noqa: PLW0603
+    THINK = tuple(float(x) for x in a.think.split(","))  # type: ignore[assignment]
+    RAMP = a.ramp
     worst = 0
     for c in (int(x) for x in a.stages.split(",")):
         r = await stage(a.base, c, a.duration, a.users)

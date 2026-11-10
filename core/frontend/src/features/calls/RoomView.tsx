@@ -55,7 +55,8 @@ function Tile({ p, lk, big }: { p: Participant; lk: LK; big?: boolean }) {
 }
 
 /** Faol qo'ng'iroq: video setkasi, mikrofon / kamera / ekran ulashish, chiqish. */
-export function RoomView({ tok, startedAt, canEnd, banner, onLeave, onEnd }: { tok: TokenResp; startedAt: number; canEnd: boolean; banner?: string; onLeave: () => void; onEnd: () => void }) {
+/** `startMuted` — katta xonada (konferensiya) mikrofon o'chiq kiriladi; `maxTiles` — ekranda ko'rsatiladigan oynalar soni. */
+export function RoomView({ tok, startedAt, canEnd, banner, onLeave, onEnd, startMuted = false, maxTiles = 0 }: { tok: TokenResp; startedAt: number; canEnd: boolean; banner?: string; onLeave: () => void; onEnd: () => void; startMuted?: boolean; maxTiles?: number }) {
   const { t } = useTranslation()
   const [lk, setLk] = useState<LK | null>(null)
   const [room, setRoom] = useState<Room | null>(null)
@@ -83,11 +84,13 @@ export function RoomView({ tok, startedAt, canEnd, banner, onLeave, onEnd }: { t
         await r.connect(livekitUrl(tok), tok.token)
         if (!alive) return void r.disconnect()
         setRoom(r)
-        try {
-          await r.localParticipant.setMicrophoneEnabled(true)
-          setMicOn(true)
-        } catch {
-          setNote(t('calls.room.noMic'))
+        if (!startMuted) {
+          try {
+            await r.localParticipant.setMicrophoneEnabled(true)
+            setMicOn(true)
+          } catch {
+            setNote(t('calls.room.noMic'))
+          }
         }
         if (tok.media === 'video') {
           try {
@@ -106,7 +109,7 @@ export function RoomView({ tok, startedAt, canEnd, banner, onLeave, onEnd }: { t
       alive = false
       void r?.disconnect()
     }
-  }, [tok, t])
+  }, [tok, t, startMuted])
 
   useEffect(() => {
     const id = setInterval(() => setSecs(Math.max(0, Math.floor((Date.now() - startedAt) / 1000))), 1000)
@@ -127,7 +130,11 @@ export function RoomView({ tok, startedAt, canEnd, banner, onLeave, onEnd }: { t
 
   const all: Participant[] = room ? [room.localParticipant, ...Array.from(room.remoteParticipants.values())] : []
   const sharing = lk ? all.find((p) => p.getTrackPublication(lk.Track.Source.ScreenShare)?.track) : undefined
-  const others = sharing ? all.filter((p) => p !== sharing) : all
+  const rest = sharing ? all.filter((p) => p !== sharing) : all
+  // Katta xonada: avval gapirayotganlar va kamerasi yoqiqlar, keyin qolganlar; ekranda `maxTiles` tagacha
+  const ranked = maxTiles && lk ? [...rest].sort((a, b) => Number(b.isLocal) - Number(a.isLocal) || Number(b.isSpeaking) - Number(a.isSpeaking) || Number(!!b.getTrackPublication(lk.Track.Source.Camera)?.track) - Number(!!a.getTrackPublication(lk.Track.Source.Camera)?.track)) : rest
+  const others = maxTiles ? ranked.slice(0, maxTiles) : ranked
+  const hidden = rest.length - others.length
   const cols = others.length <= 1 ? 'grid-cols-1 sm:grid-cols-2' : others.length <= 4 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-3'
 
   return (
@@ -149,6 +156,7 @@ export function RoomView({ tok, startedAt, canEnd, banner, onLeave, onEnd }: { t
               <Tile key={p.identity} p={p} lk={lk} />
             ))}
           </div>
+          {hidden > 0 && <p className="text-center text-xs text-muted">{t('conf.moreParticipants', { n: hidden })}</p>}
         </>
       )}
       <div className="sticky bottom-3 flex flex-wrap items-center justify-center gap-2 rounded-card border border-border bg-surface/95 p-3 shadow-card backdrop-blur">

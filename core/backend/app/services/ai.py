@@ -26,7 +26,7 @@ from app.rbac import matches
 from app.services import helpdesk, needs, tasks
 from app.timeutil import local_date, now, tz
 
-FEATURES = ("summary", "resume", "ticket", "scan")
+FEATURES = ("summary", "resume", "ticket", "scan", "interview")
 ENTITIES = ("ticket", "need", "task", "candidate")
 MAX_INPUT_CHARS = 12000
 LANGS = {"uz": "o'zbek (lotin)", "ru": "русский"}
@@ -75,11 +75,16 @@ async def _post(model: str, system: str, user: str, max_tokens: int) -> tuple[st
 
 async def run(db: AsyncSession, auth: AuthContext, feature: str, system: str, user: str, *, max_tokens: int = 600, entity: str | None = None, entity_id: int | None = None) -> tuple[str, str]:
     """Limit va yoqilganlikni tekshiradi, so'rovni yuboradi, hisobini yozadi. (matn, model) qaytaradi."""
+    return await run_for(db, auth.user.id, feature, system, user, max_tokens=max_tokens, entity=entity, entity_id=entity_id)
+
+
+async def run_for(db: AsyncSession, user_id: int, feature: str, system: str, user: str, *, max_tokens: int = 600, entity: str | None = None, entity_id: int | None = None) -> tuple[str, str]:
+    """`run` ning foydalanuvchi id bo'yicha varianti (masalan nomzod ochiq havoladan topshirganda — hisob suhbatni yaratgan xodimga yoziladi)."""
     cfg = await get_cfg(db)
     if not feature_on(cfg, feature):
         raise error(503, "ai_disabled")
     moment = now()
-    if await used_today(db, auth.user.id, moment) >= cfg.daily_limit:
+    if await used_today(db, user_id, moment) >= cfg.daily_limit:
         raise error(429, "ai_limit", limit=cfg.daily_limit)
     started = time.monotonic()
     ok, err, text, tin, tout = True, None, "", 0, 0
@@ -89,7 +94,7 @@ async def run(db: AsyncSession, auth: AuthContext, feature: str, system: str, us
             raise RuntimeError("empty")
     except (httpx.HTTPError, RuntimeError, ValueError) as e:
         ok, err = False, str(e)[:120] or type(e).__name__
-    db.add(AiRequest(user_id=auth.user.id, feature=feature, entity=entity, entity_id=entity_id, model=cfg.model, input_tokens=tin, output_tokens=tout, ok=ok, error=err, duration_ms=int((time.monotonic() - started) * 1000)))
+    db.add(AiRequest(user_id=user_id, feature=feature, entity=entity, entity_id=entity_id, model=cfg.model, input_tokens=tin, output_tokens=tout, ok=ok, error=err, duration_ms=int((time.monotonic() - started) * 1000)))
     await db.commit()  # so'rov hisobi xato bo'lsa ham saqlansin
     if not ok:
         raise error(502, "ai_failed")

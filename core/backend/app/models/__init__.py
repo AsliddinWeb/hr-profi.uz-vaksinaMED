@@ -58,6 +58,7 @@ from app.models.reports import ReportRun, ReportSchedule
 from app.models.retention import Offboarding, RetentionCase, RetentionMeeting
 from app.models.rotations import Rotation
 from app.models.schedule import Holiday, ScheduleEntry, SchedulePattern, ShiftTemplate, WorkGroup
+from app.models.smart import AiInterview, Conference, ConferenceAttendee, ReadAloudAttempt
 from app.models.tasks import Task, TaskComment, TaskEvent, TaskFile, TaskTemplate
 from app.models.warehouse import Warehouse
 
@@ -187,4 +188,8 @@ __all__ = [
     "User",
     "UserSession",
     "WorkGroup",
+    "AiInterview",
+    "Conference",
+    "ConferenceAttendee",
+    "ReadAloudAttempt",
 ]

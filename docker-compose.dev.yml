@@ -17,6 +17,8 @@ services:
         CLIENT_NAME: ${CLIENT_NAME}
     environment:
       CLIENT_NAME: ${CLIENT_NAME}
+      # HMR websocket gateway porti orqali (GATEWAY_PORT o'zgartirilsa ham ishlasin)
+      GATEWAY_PORT: ${GATEWAY_PORT:-6788}
     volumes:
       - ./core/frontend:/app/core/frontend
       - /app/core/frontend/node_modules

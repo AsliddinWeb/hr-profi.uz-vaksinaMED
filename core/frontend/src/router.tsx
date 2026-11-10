@@ -26,6 +26,8 @@ import { InboxPage } from './features/answers/InboxPage'
 import { LeaveVerifyPage } from './features/answers/LeaveVerifyPage'
 import { InvitePage } from './features/public/InvitePage'
 import { JobsPage } from './features/public/JobsPage'
+import { InterviewPage } from './features/public/InterviewPage'
+import { ConferenceDetailPage, ConferenceFormPage, ConferenceRoomPage, ConferencesPage } from './features/conferences/ConferencePages'
 import { CandidateProfilePage } from './features/public/ProfilePage'
 import { FunnelPage, RecruiterTodayPage } from './features/recruit/TodayFunnelPages'
 import { ScorecardPage, TestBankFormPage, TestBankPage } from './features/recruit/TestBankPages'
@@ -256,6 +258,7 @@ export function createRouter() {
     // Ochiq: QR orqali hujjatni tekshirish (kirish shart emas)
     { path: '/verify', element: <VerifyPage /> },
     { path: '/profile/:token', element: <CandidateProfilePage /> },
+    { path: '/interview/:token', element: <InterviewPage /> },
     { path: '/jobs', element: <JobsPage /> },
     { path: '/invite/:token', element: <InvitePage /> },
     { path: '/test/:token', element: <TestPage /> },
@@ -425,6 +428,10 @@ export function createRouter() {
             { path: 'preboarding/my', element: <MyPreboardingPage /> },
             { path: 'hub/preboarding', element: <PreboardingHubPage /> },
             { path: 'hub/:sub', element: <SubHubPage /> },
+            { path: 'conferences', element: <ConferencesPage /> },
+            { path: 'conferences/new', element: <RequirePerm perm="conference.manage"><ConferenceFormPage /></RequirePerm> },
+            { path: 'conferences/:id', element: <ConferenceDetailPage /> },
+            { path: 'conferences/:id/room', element: <ConferenceRoomPage /> },
             { path: 'help', element: <HelpPage /> },
             { path: 'internship', element: <RequirePerm any={['internship.own', 'internship.read', 'internship.manage']}><EnrollmentsPage /></RequirePerm> },
             { path: 'internship/classes', element: <RequirePerm any={['internship.own', 'internship.read', 'internship.manage']}><ClassesPage /></RequirePerm> },

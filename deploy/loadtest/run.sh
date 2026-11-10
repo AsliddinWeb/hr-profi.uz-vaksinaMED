@@ -24,7 +24,8 @@ PSQL -c "CREATE DATABASE \"$DB\"" >/dev/null
 ENVS=(-e "DATABASE_URL=postgresql+asyncpg://$POSTGRES_USER:$POSTGRES_PASSWORD@db:5432/$DB" -e REDIS_URL=redis://redis:6379/5 -e RATE_LIMIT_ENABLED=false -e ALLOW_SEED_LOAD=1
       -e "SECRET_KEY=$SECRET_KEY" -e "MINIO_ROOT_USER=$MINIO_ROOT_USER" -e "MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD" -e CLIENT_DIR=/nonexistent -e ENV=production -e "WEB_CONCURRENCY=${WEB_CONCURRENCY:-3}")
 echo "[1/4] Test API ishga tushirilmoqda (alohida baza: $DB)..."
-docker run -d --name vk-load-api --network "$NET" "${ENVS[@]}" "$IMG" >/dev/null
+# Productiondagi kabi: --reload'siz, WEB_CONCURRENCY ta jarayon (dev imidjning CMD si bitta jarayon bilan ishlaydi)
+docker run -d --name vk-load-api --network "$NET" "${ENVS[@]}" "$IMG" sh -c 'python -m app.migrate && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers "${WEB_CONCURRENCY:-3}" --proxy-headers' >/dev/null
 for _ in $(seq 1 60); do docker exec vk-load-api python -c "import urllib.request as u; u.urlopen('http://localhost:8000/api/health', timeout=2)" >/dev/null 2>&1 && break; sleep 2; done
 echo "[2/4] Ma'lumot yaratilmoqda ($EMP xodim, 30 kun davomat)..."
 docker exec vk-load-api python -m app.cli seed-load "$EMP" "$USERS"

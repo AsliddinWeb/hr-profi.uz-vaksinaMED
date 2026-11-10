@@ -10,6 +10,7 @@ import { Card } from '../../components/ui/Card'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { api } from '../../lib/api'
 import { formatDate, formatDateTime } from '../../lib/format'
+import { AiInterviewPanel } from '../recruit/AiInterviewPanel'
 import { money } from '../recruit/api'
 
 interface Dossier {
@@ -129,6 +130,8 @@ export function DossierPage() {
           {r.resume_text && <p className="line-clamp-6 whitespace-pre-wrap text-xs text-muted">{r.resume_text}</p>}
         </Section>
       )}
+
+      <AiInterviewPanel employeeId={e.id} />
 
       <Section icon={FileSignature} title={t('dossier.contractOrders')}>
         {d.can.documents && (

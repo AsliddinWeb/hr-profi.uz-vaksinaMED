@@ -38,6 +38,13 @@ export const PROCESS_INFO: Record<string, ProcessInfo> = {
   },
   '/preboarding/my': { what: i("Stajyorning o'z darslari: ketma-ket bosqichlar, video, slayd va test. Oldingisi tugamaguncha keyingisi yopiq.", 'Уроки стажёра: этапы по порядку, видео, слайды и тест. Следующий открывается после предыдущего.') },
   '/internship': { what: i("Stajirovka: stajyorlar, mentorlar, dastur bo'yicha bosqichlar va baholar.", 'Стажировка: стажёры, наставники, этапы программы и оценки.') },
+  '/conferences': {
+    what: i("Onlayn darslar (100 kishigacha): rejalashtirish, auditoriya, video xona, qatnashuv hisobi va yakunda avtomatik topshiriqlar.", 'Онлайн-занятия до 100 человек: планирование, аудитория, видеокомната, учёт посещаемости и автозадачи.'),
+    steps: {
+      uz: ["Yangi dars: mavzu, vaqt, auditoriya (hamma / lavozim / filial), topshiriqlar", "Qatnashchilarga bildirishnoma boradi", "Boshlovchi kiradi — dars boshlanadi, hammaga xabar", "Qatnashuv har 30 soniyada yoziladi (kim qancha qatnashdi)", "Yakunlash: hisobot, qatnashchilarga topshiriq, kelmaganlarga yozuvni ko'rish topshirig'i"],
+      ru: ['Новое занятие: тема, время, аудитория, задачи', 'Участники получают уведомление', 'Ведущий входит — занятие начинается', 'Посещаемость фиксируется каждые 30 секунд', 'Завершение: отчёт, задачи участникам, задача отсутствовавшим посмотреть запись'],
+    },
+  },
   '/internship/classes': { what: i("Oflayn darslar jadvali va qatnashuv.", 'Расписание офлайн-занятий и посещаемость.') },
   '/attestation': { what: i("Oylik attestatsiya: test va natija bo'yicha qaror (o'tdi / qayta topshiradi / qo'shimcha dars).", 'Ежемесячная аттестация: тест и решение по результату.') },
   '/internship/programs': { what: i("Stajirovka dasturlari: lavozim uchun darslar va bosqichlar shabloni.", 'Программы стажировки: шаблоны занятий и этапов для должности.') },

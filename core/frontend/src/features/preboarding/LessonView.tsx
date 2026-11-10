@@ -13,6 +13,7 @@ import { cn } from '../../lib/cn'
 import { formatDate } from '../../lib/format'
 import { errorText } from '../auth/errorText'
 import { fmtSec, type LiveToken, type Monitoring, type MyData, type MyStage, type Stage } from './api'
+import { ReadAloudBox } from './ReadAloud'
 import { useMonitor } from './useMonitor'
 
 const TICK_MS = 10_000
@@ -206,6 +207,7 @@ function Lesson({ stage, data, blocked }: { stage: MyStage; data: MyData; blocke
         {stage.state === 'done' && <Badge tone="success">{t('preboarding.my.done')}</Badge>}
       </div>
       {stage.description && <p className="whitespace-pre-wrap text-sm text-muted">{stage.description}</p>}
+      {!blocked && stage.description && <ReadAloudBox stageId={stage.id} text={stage.description} />}
 
       {!hasVideo && !hasSlides && !hasTest ? (
         stage.state !== 'done' && (

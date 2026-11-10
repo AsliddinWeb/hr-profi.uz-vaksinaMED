@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     anthropic_base_url: str = "https://api.anthropic.com"
     ai_default_model: str = "claude-haiku-5-5"
+    # Nutqni matnga aylantirish (OpenAI Whisper): AI suhbatda ovozli javob va prebordingda ovoz chiqarib o'qish.
+    # Kalit bo'sh bo'lsa ovozli funksiyalar o'chiq, yozma javob ishlayveradi.
+    openai_api_key: str = ""
+    openai_base_url: str = "https://api.openai.com"
+    whisper_model: str = "whisper-1"
 
     # Xavfsizlik: IP bo'yicha so'rov chastotasi (hardening.RULES), koeffitsiyent bilan o'zgartiriladi
     rate_limit_enabled: bool = True

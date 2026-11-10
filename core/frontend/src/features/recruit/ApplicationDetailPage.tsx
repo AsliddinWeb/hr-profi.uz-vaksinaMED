@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 
 import { PageHeader } from '../../components/layout/PageHeader'
+import { AiInterviewPanel } from './AiInterviewPanel'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
@@ -58,6 +59,7 @@ export function ApplicationDetailPage() {
           <Button variant="outline">{t('recruit.application.candidateCard')}</Button>
         </Link>
       } />
+      <AiInterviewPanel applicationId={a.id} />
       <Card className="p-5">
         <ol className="grid grid-cols-5 gap-2" aria-label={t('recruit.application.stage')}>
           {(['new', 'screening', 'interview', 'offer', 'hired'] as const).map((s, i) => {

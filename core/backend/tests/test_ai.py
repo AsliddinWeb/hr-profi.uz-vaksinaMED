@@ -107,7 +107,7 @@ async def test_failure_limit_and_settings(new_client, llm):
     assert (await req.get(f"{A}/settings")).status_code == 403
     assert (await req.put(f"{A}/settings", json={"enabled": True, "model": "claude-haiku-5-5", "daily_limit": 5})).status_code == 403
     s = (await hr.get(f"{A}/settings")).json()
-    assert s["configured"] and s["enabled"] and s["features"] == {"summary": True, "resume": True, "ticket": True, "scan": True}
+    assert s["configured"] and s["enabled"] and s["features"] == {"summary": True, "resume": True, "ticket": True, "scan": True, "interview": True}
     r = await hr.put(f"{A}/settings", json={"enabled": True, "model": "claude-sonnet-5-5", "daily_limit": 2, "features": {"summary": True, "resume": False}})
     assert r.json()["daily_limit"] == 2 and r.json()["features"]["resume"] is False and r.json()["features"]["ticket"] is True
     assert (await hr.put(f"{A}/settings", json={"enabled": True, "model": "bad model!", "daily_limit": 2})).status_code == 422

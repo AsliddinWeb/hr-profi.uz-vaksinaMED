@@ -19,6 +19,7 @@ import { usePositionOptions } from '../org/usePositionOptions'
 import type { Monitoring, Track } from './api'
 import { TrackReport, VideoStats } from './Insights'
 import { LessonPreview } from './LessonView'
+import { ReadAloudResults } from './ReadAloud'
 import { Results } from './Results'
 import { StageEditor } from './StageEditor'
 
@@ -122,7 +123,12 @@ export function PreboardingAdminPage() {
           {tab === 'preview' && stages[stageIdx] && <LessonPreview stage={stages[stageIdx]} />}
           {tab === 'results' && <Results trackId={track.id} />}
           {tab === 'stats' && <VideoStats trackId={track.id} />}
-          {tab === 'report' && <TrackReport trackId={track.id} />}
+          {tab === 'report' && (
+            <>
+              <TrackReport trackId={track.id} />
+              <ReadAloudResults trackId={track.id} />
+            </>
+          )}
           {tab === 'settings' && <TrackSettings key={track.id} track={track} livekit={q.data.livekit} onDeleted={() => setTrackId(null)} />}
         </>
       )}
