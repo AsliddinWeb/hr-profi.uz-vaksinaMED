@@ -3,6 +3,7 @@ import { LogIn, LogOut, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import { SectionTabs } from '../../components/SectionTabs'
 
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Badge } from '../../components/ui/Badge'
@@ -55,6 +56,7 @@ export function ListPage() {
           </Link>
         }
       />
+      <SectionTabs ids={['reception', 'reception-new', 'reception-report']} />
       {sum.data && (
         <div className="grid grid-cols-3 gap-3">
           {(['inside', 'expected_today', 'arrived_today'] as const).map((k) => (

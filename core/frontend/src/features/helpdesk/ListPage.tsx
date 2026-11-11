@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import { SectionTabs } from '../../components/SectionTabs'
 
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Badge } from '../../components/ui/Badge'
@@ -57,6 +58,7 @@ export function ListPage() {
           </Link>
         }
       />
+      <SectionTabs ids={['helpdesk', 'helpdesk-new', 'helpdesk-analytics', 'helpdesk-categories']} />
       <div className="flex flex-wrap items-center gap-3 rounded-card bg-surface p-3 shadow-card">
         {scopes.length > 1 && (
           <div className="flex rounded-control bg-(--seg-bg) p-0.5 text-[13px]" role="group">

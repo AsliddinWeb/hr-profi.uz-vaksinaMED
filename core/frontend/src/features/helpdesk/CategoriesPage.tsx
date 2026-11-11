@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import { SectionTabs } from '../../components/SectionTabs'
 
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Badge } from '../../components/ui/Badge'
@@ -31,6 +32,7 @@ export function CategoriesPage() {
           </Link>
         }
       />
+      <SectionTabs ids={['helpdesk', 'helpdesk-new', 'helpdesk-analytics', 'helpdesk-categories']} />
       {!q.data ? (
         <Skeleton className="h-48" />
       ) : (

@@ -158,4 +158,8 @@ function arrange(items: NavItem[]): NavItem[] {
   return [...out, ...items.filter((i) => !used.has(i.id))]
 }
 
-export const coreNav: NavItem[] = arrange(baseNav)
+/** Yon menyuda ko'rinmaydigan bandlar: ular asosiy bandning sahifasi ichida tab bo'lib turadi (SectionTabs). */
+const TAB_ONLY = new Set(['reception-new', 'reception-report', 'helpdesk-new', 'helpdesk-analytics', 'helpdesk-categories'])
+
+export const navById = new Map(baseNav.map((i) => [i.id, i]))
+export const coreNav: NavItem[] = arrange(baseNav).filter((i) => !TAB_ONLY.has(i.id))

@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
+import { SectionTabs } from '../../components/SectionTabs'
 
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
@@ -105,6 +106,7 @@ function VisitForm({ visit }: { visit: VisitDetail | null }) {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
       <PageHeader title={visit ? t('reception.edit') : t(desk ? 'reception.register' : 'reception.invite')} subtitle={visit?.visitor_name} backTo={visit ? `/reception/${visit.id}` : '/reception'} backLabel={visit ? visit.visitor_name : t('reception.title')} />
+      <SectionTabs ids={['reception', 'reception-new', 'reception-report']} />
       <form onSubmit={submit} className="flex flex-col gap-6">
         <FormSection title={t('reception.form.visitor')}>
           <Field label={t('reception.visitor')} error={fe.visitor_name}>{(id) => <Input id={id} value={name} onChange={(e) => setName(e.target.value)} required minLength={2} maxLength={160} autoFocus />}</Field>
