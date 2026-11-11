@@ -224,8 +224,8 @@ _CANTEEN_EXTRA = {
     "direktor": ("canteen.read",),
 }
 _BRANCHOPS_EXTRA = {
-    "hr_direktor": ("revision.*", "ratings.*"),
-    "direktor": ("revision.read", "ratings.read"),
+    "hr_direktor": ("revision.*", "ratings.*", "devices.*"),
+    "direktor": ("revision.read", "ratings.read", "devices.read"),
     "hr_auditor": ("revision.read", "ratings.read"),
     "koordinator": ("ratings.own",),
     "mudir": ("ratings.own",),

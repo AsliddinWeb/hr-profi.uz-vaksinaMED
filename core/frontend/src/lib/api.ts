@@ -12,6 +12,22 @@ export class ApiError extends Error {
 
 const AUTH_PATHS = ['/api/auth/login', '/api/auth/refresh']
 
+/** Brauzer qurilmasining doimiy ID si (qurilma xavfsizligi uchun). localStorage yopiq bo'lsa sessiya ichida saqlanadi. */
+let memDeviceId: string | null = null
+function deviceId(): string {
+  try {
+    let v = localStorage.getItem('device_id')
+    if (!v) {
+      v = (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`).replace(/[^A-Za-z0-9_-]/g, '')
+      localStorage.setItem('device_id', v)
+    }
+    return v
+  } catch {
+    memDeviceId ??= `${Date.now()}${Math.floor(Math.random() * 1e9)}`
+    return memDeviceId
+  }
+}
+
 function doFetch(path: string, init?: RequestInit) {
   return fetch(path, {
     credentials: 'same-origin',
@@ -20,6 +36,7 @@ function doFetch(path: string, init?: RequestInit) {
       Accept: 'application/json',
       // Backend CSRF himoyasi: o'zgartiruvchi so'rovlarda shart
       'X-Requested-With': 'vaksina',
+      'X-Device-Id': deviceId(),
       // FormData da Content-Type ni brauzer o'zi qo'yadi (boundary bilan)
       ...(init?.body && !(init.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
       ...(init?.headers ?? {}),

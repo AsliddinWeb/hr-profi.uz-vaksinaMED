@@ -18,6 +18,7 @@ from app.deps import (
 from app.models.auth import User, UserSession
 from app.security import hash_password_async, validate_password_strength, verify_password_async
 from app.services import auth as svc
+from app.services import devices
 from app.services.audit import audit, client_ip
 from app.services.notifications import deliver, notify
 
@@ -100,6 +101,12 @@ async def login(
         raise error(401, "invalid_credentials")
 
     await svc.clear_failures(redis, login_name, ip)
+    try:
+        await devices.check(db, user, request.headers.get("x-device-id"), ip, request.headers.get("user-agent"))
+    except devices.DeviceDenied as exc:
+        await audit(db, request, f"auth.{exc.code}", actor=user, entity="user", entity_id=user.id)
+        await db.commit()
+        raise error(403, exc.code) from exc
     access, refresh = await svc.start_session(db, user, ip, request.headers.get("user-agent"))
     await audit(db, request, "auth.login", actor=user, entity="user", entity_id=user.id)
     await db.commit()

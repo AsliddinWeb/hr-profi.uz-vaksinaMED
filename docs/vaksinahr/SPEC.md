@@ -34,7 +34,7 @@ hr-profi menyusi shu guruhlar va shu tartibga keltiriladi.
 | XODIMLAR | Arizalar | /recruit/requests | ✅ |
 | XODIMLAR | Xodim kerak (/xodim-kerak) | /pharmacy/needs | ✅ |
 | MOLIYA | Oylik | /payroll | 🟡 |
-| MOLIYA | Oylik hisob | /payroll | 🟡 |
+| MOLIYA | Oylik hisob | /payroll/sheet | ✅ |
 | MOLIYA | Abet | /canteen | ✅ |
 | APTEKA TARMOG'I | Aptekalar tarmog'i | /branches | 🟡 |
 | APTEKA TARMOG‘I | Mijozlar baholashi | /ratings, /baho/:token | ✅ |
@@ -48,7 +48,7 @@ hr-profi menyusi shu guruhlar va shu tartibga keltiriladi.
 | TIZIM | Preboarding | /preboarding | ✅ |
 | TIZIM | Face ID | /face/admin | ✅ |
 | TIZIM | Skaner | /letters (skaner) | 🟡 |
-| TIZIM | Qurilmalar | — | ❌ |
+| TIZIM | Qurilmalar | /devices | ✅ |
 | TIZIM | Ko'chma davomat, Ko'chma xarita, Jonli kuzatuv | /mobile | 🟡 |
 | — | Qo'ng'iroq | /calls | ✅ |
 
@@ -254,5 +254,5 @@ Tashqi tizim iframe'da ochiladi: Dashboard/VHK, Boshqaruv, Live, GPS Davomat, Pa
 
 ## Qolgan ishlar (navbat)
 1. ✅ Menyu vaksinahr tartibiga keltirildi (nav.ts LAYOUT).
-2. ✅ Reviziya va Mijozlar baholashi qurildi. ❌ qoldi: Qurilmalar.
+2. ✅ Reviziya, Mijozlar baholashi va Qurilmalar qurildi.
 3. 🟡 bandlar: Dashboard segmentlari (Ofis/Dorixona), Oylik hisobning savdo rejasi ustunlari, Cheklist holati tablari, Davomat hisobotining segment va ustunlari.

@@ -7,6 +7,7 @@ from app.models.branch_ops import BranchRatingQr, CustomerRating, RevisionTask
 from app.models.calls import Call, CallParticipant
 from app.models.canteen import CanteenDish, CanteenMenu, CanteenRating, CanteenSettings
 from app.models.checklists import ChecklistFile, ChecklistTemplate, ChecklistVisit
+from app.models.devices import DeviceSettings, UserDevice
 from app.models.duty import DutyChecklist, DutyRun
 from app.models.employees import Employee, EmployeeDocument, EmployeeEvent
 from app.models.face import FaceAttempt, FaceConsent, FaceTemplate
@@ -72,6 +73,8 @@ from app.models.tasks import Task, TaskComment, TaskEvent, TaskFile, TaskTemplat
 from app.models.warehouse import Warehouse
 
 __all__ = [
+    "DeviceSettings",
+    "UserDevice",
     "BranchRatingQr",
     "CustomerRating",
     "RevisionTask",

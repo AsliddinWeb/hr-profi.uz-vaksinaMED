@@ -30,6 +30,8 @@ import { InterviewPage } from "./features/public/InterviewPage";
 import { RatePage } from "./features/public/RatePage";
 import { RatingsPage, RatingsPrintPage } from "./features/ratings/RatingsPage";
 import { RevisionsPage } from "./features/revisions/RevisionsPage";
+import { DevicesPage } from "./features/devices/DevicesPage";
+import { SalesSheetPage } from "./features/payroll/SalesSheetPage";
 import {
   ConferenceDetailPage,
   ConferenceFormPage,
@@ -1650,6 +1652,8 @@ export function createRouter() {
                 { path: "conferences", element: <ConferencesPage /> },
                 { path: "revisions", element: <RevisionsPage /> },
                 { path: "ratings", element: <RatingsPage /> },
+                { path: "devices", element: <DevicesPage /> },
+                { path: "payroll/sheet", element: <SalesSheetPage /> },
                 {
                   path: "conferences/new",
                   element: (

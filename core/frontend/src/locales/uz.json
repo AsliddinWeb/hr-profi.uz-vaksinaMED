@@ -473,7 +473,10 @@
     "not_live": "Stajyor hozir jonli emas",
     "requirements_pending": "Avval video, slayd va testni bajaring",
     "too_many_events": "Juda ko'p belgi qo'yildi",
-    "rewind_invalid": "Noto'g'ri qaytish"
+    "rewind_invalid": "Noto'g'ri qaytish",
+    "device_pending": "Bu qurilmadan kirishga ruxsat so‘raldi. HR tasdiqlagach qayta kiring.",
+    "device_blocked": "Bu qurilma bloklangan. HR bo‘limiga murojaat qiling.",
+    "device_unknown": "Qurilma aniqlanmadi. Brauzer xotirasi (cookie/storage) yoqilganini tekshiring."
   },
   "auth": {
     "heroTitle": "Kadrlar va filiallar — bitta tizimda",
@@ -3067,7 +3070,8 @@
     "tabs": {
       "runs": "Hisob-kitoblar",
       "schemes": "Sxemalar",
-      "items": "Kiritmalar"
+      "items": "Kiritmalar",
+      "sheet": "Oylik hisob"
     },
     "status": {
       "draft": "Qoralama",
@@ -6404,5 +6408,108 @@
     "distribution": "Baho taqsimoti",
     "branchRanking": "Filiallar reytingi",
     "employeesLow": "Xodimlar (pastlardan)"
+  },
+  "dev": {
+    "kicker": "QURILMA XAVFSIZLIGI",
+    "title": "Qurilmalar",
+    "subtitle": "Xodim qaysi telefon yoki kompyuterdan kirganini ko‘ring. Asosiy qurilmani belgilang, begona kirishni tasdiqlang yoki bloklang.",
+    "readOnly": "Sizda faqat ko‘rish huquqi bor",
+    "refresh": "Yangilash",
+    "c": {
+      "total": "Jami qurilma",
+      "online": "Hozir onlayn",
+      "pending": "Tasdiq kutilmoqda",
+      "blocked": "Bloklangan",
+      "suspicious": "Shubhali (7 kun)"
+    },
+    "tab": {
+      "requests": "Ruxsat so‘rovlari",
+      "devices": "Qurilmalar",
+      "enforced": "Majburiy xodimlar",
+      "logins": "Login tarixi",
+      "security": "Xavfsizlik hodisalari"
+    },
+    "requestsHint": "Tasdiqlansa — shu qurilma asosiy bo‘ladi, boshqa kutayotgan so‘rovlar yopiladi. Rad etilsa — shu qurilmadan kira olmaydi.",
+    "noRequests": "Yangi so‘rov yo‘q. Majburiy xodim boshqa qurilmadan kirsa, so‘rov shu yerda chiqadi.",
+    "search": "Xodim, login yoki IP…",
+    "empty": "Hozircha ma’lumot yo‘q",
+    "online": "Onlayn",
+    "lastSeen": "oxirgi",
+    "st": {
+      "all": "Hammasi",
+      "approved": "Tasdiqlangan",
+      "pending": "Kutilmoqda",
+      "blocked": "Bloklangan"
+    },
+    "primary": "Asosiy",
+    "approve": "Tasdiqlash",
+    "reject": "Rad etish",
+    "makePrimary": "Asosiy qilish",
+    "block": "Bloklash",
+    "unblock": "Blokdan chiqarish",
+    "blockHint": "Shu qurilmadan kirish to‘xtatiladi va ochiq sessiya yopiladi.",
+    "delete": "O‘chirish",
+    "deleteHint": "Qurilma ro‘yxatdan o‘chiriladi. Xodim keyingi kirishda qayta qayd etiladi.",
+    "enforcedHint": "Belgilangan rol yoki xodimlar faqat tasdiqlangan qurilmadan kira oladi. Yangi qurilmadan kirsa — ruxsat so‘rovi yaratiladi.",
+    "byRole": "Rollar bo‘yicha",
+    "byUser": "Alohida xodimlar",
+    "addUser": "Xodim qo‘shish: ism yoki login…",
+    "autoFirst": "Birinchi qurilma avtomatik tasdiqlansin (asosiy bo‘ladi)",
+    "loginSearch": "Login yoki IP bo‘yicha qidirish…",
+    "col": {
+      "at": "Vaqt",
+      "login": "Login",
+      "event": "Hodisa",
+      "device": "Qurilma"
+    },
+    "ev": {
+      "login": "Kirdi",
+      "login_failed": "Noto‘g‘ri parol",
+      "login_blocked": "Ko‘p urinish — bloklandi",
+      "device_pending": "Begona qurilma (so‘rov)",
+      "device_blocked": "Bloklangan qurilma",
+      "device_unknown": "Noma’lum qurilma"
+    }
+  },
+  "sheet": {
+    "kicker": "MOLIYA · SAVDO",
+    "title": "Xodimlar oylik hisobi",
+    "subtitle": "Savdo, reja, fiks, bonus va jarimalar — barcha lavozimlar. Oylik (KPI) bilan bog‘langan.",
+    "period": "Davr",
+    "position": "Lavozim",
+    "allPositions": "Barcha lavozimlar",
+    "search": "Ism familiya",
+    "noRuns": "Hali oylik hisob-kitobi yaratilmagan. «Hisob-kitoblar» bo‘limida oy uchun hisob oching.",
+    "empty": "Xodim topilmadi",
+    "c": {
+      "employees": "Xodimlar",
+      "plan": "{{p}} reja",
+      "prevPlan": "{{p}} reja",
+      "sales": "Bir oylik savdo",
+      "over": "Rejadan ortiq",
+      "vsPrev": "{{p}}ga %",
+      "toPay": "Qo‘lga / karta"
+    },
+    "col": {
+      "name": "Xodim",
+      "position": "Lavozim",
+      "phone": "Telefon",
+      "plan": "Joriy reja",
+      "prev_plan": "Oldingi reja",
+      "sales": "Haqiqiy savdo",
+      "over_plan": "Rejadan ortiq",
+      "plan_pct": "Reja %",
+      "commission_percent": "Savdo foizi",
+      "commission": "Foiz summasi",
+      "fixed": "Fiks maosh",
+      "plan_bonus": "Reja bonusi",
+      "kpi_bonus": "KPI bonus",
+      "advance": "Avans",
+      "recalc": "Qayta hisob",
+      "time_penalty": "Vaqt jarimasi",
+      "due_penalty": "Muddat jarimasi",
+      "gross": "Hisoblangan",
+      "to_pay": "Qo‘lga / karta"
+    }
   }
 }

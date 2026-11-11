@@ -203,6 +203,11 @@ async def test_run_matches_hand_calculation_and_lifecycle(new_client, clock):
     assert l["warnings"] == ["pending_penalties"]
     d = (await boss.get(f"{P}/runs/{rid}/lines/{l['id']}")).json()
     assert d["details"]["absent_days"] == 4 and d["details"]["scheme"]["fixed_amount"] == "5000000.00"
+    sheet = (await boss.get(f"{P}/runs/{rid}/sheet")).json()
+    row = sheet["items"][0]
+    assert sheet["prev_period"] == "2026-10" and row["to_pay"] == 3570800 and row["commission"] == 400000 and row["fixed"] == 4200000
+    assert row["recalc"] == 100000 - 50000 and row["time_penalty"] + row["due_penalty"] == 150000
+    assert (await boss.get(f"{P}/runs/{rid}/sheet.xlsx")).status_code == 200
     run = (await boss.get(f"{P}/runs/{rid}")).json()
     assert run["totals"]["to_pay"] == 3570800 and run["totals"]["employees"] == 1 and run["flagged"] == 1 and run["missing_scheme"] == 1
     assert (await boss.get(f"{P}/runs/{rid}/lines", params={"flagged": "true"})).json()["total"] == 1

@@ -110,6 +110,8 @@ register_permission("helpdesk.work", "AyTi: ticketlar navbati, olish va hal qili
 register_permission("helpdesk.read", "Barcha ticketlar va tahlilni ko'rish", "Просмотр всех заявок и аналитики")
 register_permission("helpdesk.manage", "Ticket kategoriyalari, tayinlash, SLA va tahlil", "Категории заявок, назначение, SLA и аналитика")
 register_permission("calls.own", "Qo'ng'iroq qilish, konferensiya o'tkazish va unga qo'shilish", "Звонки, проведение конференций и участие в них")
+register_permission("devices.read", "Qurilmalar va login tarixini ko'rish", "Просмотр устройств и истории входов")
+register_permission("devices.manage", "Qurilmani tasdiqlash, bloklash va majburiy nazorat", "Подтверждение и блокировка устройств, обязательный контроль")
 register_permission("revision.own", "Reviziya vazifalarini bajarish (revizor)", "Выполнение ревизий (ревизор)")
 register_permission("revision.read", "Reviziya bo'limi: filiallar sikli va natijalarni ko'rish", "Просмотр ревизий и циклов филиалов")
 register_permission("revision.manage", "Reviziya biriktirish va natijani tasdiqlash", "Назначение ревизий и утверждение результатов")

@@ -530,3 +530,84 @@ async def my_payslip(lid: int, db: AsyncSession = Depends(get_session), auth: Au
     if not l or not r or l.employee_id not in ids or r.status not in ("approved", "paid"):
         raise error(404, "not_found")
     return {**svc.line_out(l, detail=True), "period": r.period, "status": r.status}
+
+
+# --- Savdo varag'i (vaksinahr "Oylik hisob" ko'rinishi) ---
+
+TIME_PENALTY = ("late", "absent", "early_leave", "no_checkout")
+
+
+def _prev_period(period: str) -> str:
+    y, m = map(int, period.split("-"))
+    return f"{y - (m == 1)}-{(m - 2) % 12 + 1:02d}"
+
+
+async def _sheet(db: AsyncSession, r: PayrollRun, q: str | None, position_id: int | None) -> dict[str, Any]:
+    from app.models.org import Position  # noqa: PLC0415
+    from app.models.penalties import Penalty  # noqa: PLC0415
+
+    start, end = svc.month_bounds(r.period)
+    prev = _prev_period(r.period)
+    prev_plan = dict((await db.execute(select(PayItem.employee_id, func.sum(PayItem.amount)).where(PayItem.period == prev, PayItem.kind == "plan").group_by(PayItem.employee_id))).all())
+    pen = (await db.execute(select(Penalty.employee_id, Penalty.incident_type, func.sum(Penalty.amount)).where(Penalty.status == "approved", Penalty.incident_date.between(start, end)).group_by(Penalty.employee_id, Penalty.incident_type))).all()
+    time_pen: dict[int, Decimal] = {}
+    due_pen: dict[int, Decimal] = {}
+    for eid, kind, amount in pen:
+        bucket = time_pen if kind in TIME_PENALTY else due_pen
+        bucket[eid] = bucket.get(eid, Decimal(0)) + svc.num(amount)
+    stmt = select(PayrollLine, Employee.phone, Position.name).join(Employee, Employee.id == PayrollLine.employee_id).outerjoin(Position, Position.id == Employee.position_id).where(PayrollLine.run_id == r.id)
+    if q and q.strip():
+        stmt = stmt.where(PayrollLine.employee_name.ilike(f"%{q.strip()}%"))
+    if position_id:
+        stmt = stmt.where(Employee.position_id == position_id)
+    rows = (await db.execute(stmt.order_by(PayrollLine.employee_name))).all()
+    items, tot = [], dict.fromkeys(("plan", "prev_plan", "sales", "over_plan", "to_pay"), Decimal(0))
+    for ln, phone, pos in rows:
+        d = ln.details or {}
+        sales, plan = svc.num(d.get("sales")), svc.num(d.get("plan"))
+        pp = svc.num(prev_plan.get(ln.employee_id))
+        over = max(sales - plan, Decimal(0))
+        tp, dp = time_pen.get(ln.employee_id, Decimal(0)), due_pen.get(ln.employee_id, Decimal(0))
+        items.append({
+            "id": ln.id, "employee_id": ln.employee_id, "name": ln.employee_name, "position": pos, "phone": phone,
+            "plan": float(plan), "prev_plan": float(pp), "sales": float(sales), "over_plan": float(over), "plan_pct": round(float(sales / plan * 100), 1) if plan else None,
+            "commission_percent": float(svc.num((d.get("scheme") or {}).get("commission_percent"))), "commission": float(ln.commission), "fixed": float(ln.fixed),
+            "plan_bonus": float(ln.plan_bonus), "kpi_bonus": float(ln.kpi_bonus), "advance": float(ln.advance), "recalc": float(svc.num(ln.bonus) - svc.num(ln.deductions)),
+            "time_penalty": float(tp), "due_penalty": float(dp), "gross": float(ln.gross), "to_pay": float(ln.to_pay),
+        })  # fmt: skip
+        tot["plan"] += plan
+        tot["prev_plan"] += pp
+        tot["sales"] += sales
+        tot["over_plan"] += over
+        tot["to_pay"] += svc.num(ln.to_pay)
+    totals = {k: float(v) for k, v in tot.items()}
+    totals["vs_prev_pct"] = round(float(tot["sales"] / tot["prev_plan"] * 100), 1) if tot["prev_plan"] else None
+    positions = (await db.execute(select(Position.id, Position.name).where(Position.is_active.is_(True)).order_by(Position.name))).all()
+    return {"period": r.period, "prev_period": prev, "status": r.status, "count": len(items), "totals": totals, "positions": [{"id": i, "name": n} for i, n in positions], "items": items}
+
+
+@router.get("/runs/{rid}/sheet")
+async def sales_sheet(rid: int, q: str | None = None, position_id: int | None = None, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(Read)):
+    """Xodimlar oylik hisobi: joriy/oldingi reja, haqiqiy savdo, rejadan ortiq, reja %, foiz, fiks, bonuslar, avans, qayta hisob, vaqt va muddat jarimalari, qo'lga/karta."""
+    return await _sheet(db, await _run(db, rid), q, position_id)
+
+
+@router.get("/runs/{rid}/sheet.xlsx")
+async def sales_sheet_xlsx(rid: int, q: str | None = None, position_id: int | None = None, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(Read)):
+    from openpyxl import Workbook  # noqa: PLC0415
+
+    data = await _sheet(db, await _run(db, rid), q, position_id)
+    wb = Workbook()
+    ws = wb.active
+    ws.title = data["period"]
+    cols = [("№", None), ("Xodim", "name"), ("Lavozim", "position"), ("Telefon", "phone"), ("Joriy reja", "plan"), ("Oldingi reja", "prev_plan"), ("Haqiqiy savdo", "sales"),
+            ("Rejadan ortiq", "over_plan"), ("Reja %", "plan_pct"), ("Savdo foizi", "commission_percent"), ("Foiz summasi", "commission"), ("Fiks maosh", "fixed"),
+            ("Reja bonusi", "plan_bonus"), ("KPI bonus", "kpi_bonus"), ("Avans", "advance"), ("Qayta hisob", "recalc"), ("Vaqt jarimasi", "time_penalty"),
+            ("Muddat jarimasi", "due_penalty"), ("Hisoblangan", "gross"), ("Qo'lga / karta", "to_pay")]  # fmt: skip
+    ws.append([c for c, _ in cols])
+    for i, it in enumerate(data["items"], 1):
+        ws.append([i, *[it[k] for _, k in cols[1:]]])
+    harden(wb)
+    buf = io.BytesIO()
+    wb.save(buf)
+    return Response(buf.getvalue(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f'attachment; filename="oylik-hisob-{data["period"]}.xlsx"'})

@@ -6,6 +6,7 @@ import { useCan } from '../auth/useAuth'
 
 const TABS = [
   { to: '/payroll', key: 'runs', end: true },
+  { to: '/payroll/sheet', key: 'sheet' },
   { to: '/payroll/schemes', key: 'schemes' },
   { to: '/payroll/items', key: 'items' },
 ]
