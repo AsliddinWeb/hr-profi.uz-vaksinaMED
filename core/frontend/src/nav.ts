@@ -7,6 +7,8 @@ import type { NavItem } from './extensions/registry'
  * `module` — backend modules ro'yxatidagi kalit (client.yaml orqali o'chirilishi mumkin).
  */
 const baseNav: NavItem[] = [
+  { id: 'revisions', group: 'main', label: { uz: 'Reviziya', ru: 'Ревизия' }, to: '/revisions', icon: ClipboardCheck, anyPermission: ['revision.own', 'revision.read', 'revision.manage'], module: 'pharmacy' },
+  { id: 'ratings', group: 'pharmacy', label: { uz: 'Mijozlar baholashi', ru: 'Оценки клиентов' }, to: '/ratings', icon: MessageSquareQuote, anyPermission: ['ratings.own', 'ratings.read', 'ratings.manage'], module: 'pharmacy' },
   { id: 'home', group: 'main', label: { uz: 'Bosh sahifa', ru: 'Главная' }, to: '/', icon: LayoutDashboard },
   { id: 'help', group: 'main', label: { uz: 'Jarayonlar qo\'llanmasi', ru: 'Справочник процессов' }, to: '/help', icon: BookOpen },
   { id: 'employees', group: 'people', label: { uz: 'Xodimlar', ru: 'Сотрудники' }, to: '/employees', icon: Contact, permission: 'employees.read', module: 'employees' },
@@ -120,12 +122,12 @@ const baseNav: NavItem[] = [
 /** Menyu tartibi vaksinahr.uz bilan bir xil: ASOSIY, DAVOMAT, MENING ISHIM, XODIMLAR, MOLIYA, APTEKA TARMOG'I, LOGISTIKA, OMBORXONA, TIZIM.
  * Ro'yxatda yo'q yangi band o'z guruhining oxiriga tushadi. */
 const LAYOUT: [NonNullable<NavItem['group']>, string[]][] = [
-  ['main', ['home', 'reception', 'reception-new', 'reception-report', 'my-answers', 'answers-inbox', 'answers-calendar', 'answers-status', 'org', 'helpdesk', 'helpdesk-new', 'helpdesk-analytics', 'helpdesk-categories', 'complaints', 'calls', 'help']],
+  ['main', ['home', 'reception', 'reception-new', 'reception-report', 'my-answers', 'answers-inbox', 'answers-calendar', 'answers-status', 'org', 'revisions', 'helpdesk', 'helpdesk-new', 'helpdesk-analytics', 'helpdesk-categories', 'complaints', 'calls', 'help']],
   ['attendance', ['my-attendance', 'attendance-daily', 'attendance-dashboard', 'timesheet', 'attendance-issues', 'attendance-qr', 'rotations', 'schedule', 'shifts', 'work-groups', 'patterns', 'holidays', 'checklists', 'checklists-report', 'checklists-templates', 'duty-my', 'duty-control', 'duty-templates', 'letters', 'letter-templates', 'verify', 'hr-references', 'penalties', 'penalty-rules', 'penalty-report']],
   ['tasks', ['tasks-list', 'tasks-board', 'tasks-analytics', 'tasks-templates', 'reminders']],
   ['people', ['employees', 'recruit-vacancies', 'recruit-candidates', 'internship', 'recruit-requests', 'pharmacy-needs', 'recruit-requirements', 'recruit-recruiter', 'recruit-funnel', 'recruit-compare', 'hr-library', 'hr-documents', 'kadr', 'conferences', 'internship-classes', 'attestation', 'internship-programs', 'preboarding-my', 'career', 'performance', 'control', 'retention', 'offboarding']],
   ['payroll', ['payroll', 'payroll-my', 'canteen', 'canteen-menus', 'canteen-comments', 'canteen-analytics', 'canteen-qr']],
-  ['pharmacy', ['branches', 'pharmacy', 'pharmacy-map', 'pharmacy-quality', 'needs', 'needs-new', 'needs-analytics', 'needs-categories']],
+  ['pharmacy', ['branches', 'pharmacy', 'pharmacy-map', 'pharmacy-quality', 'ratings', 'needs', 'needs-new', 'needs-analytics', 'needs-categories']],
   ['logistics', ['logistics', 'logistics-my']],
   ['warehouse', ['warehouse']],
   ['system', ['coord-report', 'reports', 'departments', 'positions', 'position-duties', 'org-structures', 'preboarding', 'face-id', 'face-admin', 'face-eval', 'mobile', 'mobile-my', 'users', 'roles', 'audit', 'ai-usage', 'migration', 'integrations', 'plan', 'system', 'notifications']],

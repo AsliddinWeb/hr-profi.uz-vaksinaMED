@@ -14,7 +14,7 @@ hr-profi menyusi shu guruhlar va shu tartibga keltiriladi.
 | ASOSIY | Javob olish | /answers | ✅ |
 | ASOSIY | Javob olish holati | /answers/holat | ✅ |
 | ASOSIY | Tashkiliy tuzilma | /org | ✅ |
-| ASOSIY | Reviziya (/reviziya) | — | ❌ |
+| ASOSIY | Reviziya (/reviziya) | /revisions | ✅ |
 | ASOSIY | AyTi (/it) | /helpdesk | ✅ |
 | DAVOMAT | Davomat (/davomat-face) | /attendance | 🟡 |
 | DAVOMAT | Davomat hisobot | /attendance/daily | 🟡 |
@@ -37,7 +37,7 @@ hr-profi menyusi shu guruhlar va shu tartibga keltiriladi.
 | MOLIYA | Oylik hisob | /payroll | 🟡 |
 | MOLIYA | Abet | /canteen | ✅ |
 | APTEKA TARMOG'I | Aptekalar tarmog'i | /branches | 🟡 |
-| APTEKA TARMOG'I | Mijozlar baholashi | — | ❌ |
+| APTEKA TARMOG‘I | Mijozlar baholashi | /ratings, /baho/:token | ✅ |
 | APTEKA TARMOG'I | Ehtiyoj | /needs | ✅ |
 | LOGISTIKA | Dashboard/VHK, Boshqaruv, Live, GPS Davomat, Panel | /logistics | 🟡 |
 | OMBORXONA | Omborxona_ish | /warehouse | ✅ |
@@ -254,5 +254,5 @@ Tashqi tizim iframe'da ochiladi: Dashboard/VHK, Boshqaruv, Live, GPS Davomat, Pa
 
 ## Qolgan ishlar (navbat)
 1. ✅ Menyu vaksinahr tartibiga keltirildi (nav.ts LAYOUT).
-2. ❌ bandlar: Reviziya, Mijozlar baholashi, Qurilmalar.
+2. ✅ Reviziya va Mijozlar baholashi qurildi. ❌ qoldi: Qurilmalar.
 3. 🟡 bandlar: Dashboard segmentlari (Ofis/Dorixona), Oylik hisobning savdo rejasi ustunlari, Cheklist holati tablari, Davomat hisobotining segment va ustunlari.

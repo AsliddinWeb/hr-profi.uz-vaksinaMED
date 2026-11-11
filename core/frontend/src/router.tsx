@@ -27,6 +27,9 @@ import { LeaveVerifyPage } from "./features/answers/LeaveVerifyPage";
 import { InvitePage } from "./features/public/InvitePage";
 import { JobsPage } from "./features/public/JobsPage";
 import { InterviewPage } from "./features/public/InterviewPage";
+import { RatePage } from "./features/public/RatePage";
+import { RatingsPage, RatingsPrintPage } from "./features/ratings/RatingsPage";
+import { RevisionsPage } from "./features/revisions/RevisionsPage";
 import {
   ConferenceDetailPage,
   ConferenceFormPage,
@@ -346,6 +349,8 @@ export function createRouter() {
         { path: "/verify", element: <VerifyPage /> },
         { path: "/profile/:token", element: <CandidateProfilePage /> },
         { path: "/interview/:token", element: <InterviewPage /> },
+        { path: "/baho/:token", element: <RatePage /> },
+        { path: "/ratings/print", element: <RatingsPrintPage /> },
         { path: "/jobs", element: <JobsPage /> },
         { path: "/invite/:token", element: <InvitePage /> },
         { path: "/test/:token", element: <TestPage /> },
@@ -1643,6 +1648,8 @@ export function createRouter() {
                 { path: "hub/preboarding", element: <PreboardingHubPage /> },
                 { path: "hub/:sub", element: <SubHubPage /> },
                 { path: "conferences", element: <ConferencesPage /> },
+                { path: "revisions", element: <RevisionsPage /> },
+                { path: "ratings", element: <RatingsPage /> },
                 {
                   path: "conferences/new",
                   element: (

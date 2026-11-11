@@ -59,6 +59,7 @@ from app.api import (
     pharmacy,
     plan,
     preboarding,
+    ratings,
     reception,
     recruit,
     recruit_core,
@@ -70,6 +71,7 @@ from app.api import (
     reminders,
     reports,
     retention,
+    revisions,
     roles,
     rotations,
     schedule,
@@ -191,7 +193,7 @@ def create_app() -> FastAPI:
     for module in (
         health, metrics, meta, auth, users, roles, audit, notifications, telegram, home, org, org_insights, branches,
         employee_io, employee_bulk, employees, employee_files,
-        schedule_config, schedule, attendance, attendance_issues, attestation, growth, integrations, complaints, coord_report, face, answers, letters, penalties, tasks, reminders, pharmacy, needs, checklists, recruit_core, recruit_eval, recruit, recruit_pipeline, recruit_requests, recruit_sources, employee_dossier, retention, rotations, duty, hrdocs, staffdocs, references, internship, preboarding, onboarding, plan, payroll, canteen, logistics, warehouse, mobile, reception, helpdesk, calls, ai, ai_interview, conference, reports, migration,
+        schedule_config, schedule, attendance, attendance_issues, attestation, growth, integrations, complaints, coord_report, face, answers, letters, penalties, tasks, reminders, pharmacy, needs, checklists, recruit_core, recruit_eval, recruit, recruit_pipeline, recruit_requests, recruit_sources, employee_dossier, retention, rotations, duty, hrdocs, staffdocs, references, revisions, ratings, internship, preboarding, onboarding, plan, payroll, canteen, logistics, warehouse, mobile, reception, helpdesk, calls, ai, ai_interview, conference, reports, migration,
     ):  # fmt: skip
         app.include_router(module.router, prefix="/api")
     app.include_router(letters.public_router, prefix="/api")
@@ -207,6 +209,7 @@ def create_app() -> FastAPI:
     app.include_router(recruit_sources.public_router, prefix="/api")
     app.include_router(recruit_requests.public_router, prefix="/api")
     app.include_router(ai_interview.public_router, prefix="/api")
+    app.include_router(ratings.public_router, prefix="/api")
     app.include_router(ws.router)  # /ws/... (gateway /ws/ ni API ga yo'naltiradi)
 
     ctx = ExtensionContext(app=app, config=config, events=app.state.events)

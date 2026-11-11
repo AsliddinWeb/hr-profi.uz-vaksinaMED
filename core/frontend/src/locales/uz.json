@@ -6258,5 +6258,151 @@
     "hint": "Sahifani qayta yuklang. Takrorlansa, administratorga xabar bering.",
     "retry": "Qayta urinish",
     "home": "Bosh sahifa"
+  },
+  "rev": {
+    "kicker": "ICHKI AUDIT · YIG‘UV",
+    "title": "Reviziya bo‘limi",
+    "subtitle": "Filial sikli, kamomad, biriktirish va inventarizatsiya. Hujjatlar: rahbar → buxgalter. Taqiq: narx, vozvrat, qo‘lda qoldiq, o‘chirish — faqat storno.",
+    "tab": {
+      "branches": "Mening filiallarim",
+      "tasks": "Vazifalar",
+      "calendar": "Kalendar"
+    },
+    "assign": "Reviziya biriktirish",
+    "st": {
+      "overdue": "Muddati o‘tgan",
+      "cycle_done": "Sikl o‘tkazilgan",
+      "soon": "Tez orada",
+      "in_progress": "Jarayonda",
+      "on_plan": "Rejadagidek",
+      "never": "Hali reviziyasiz"
+    },
+    "stHint": {
+      "overdue": "Sana o‘tib ketgan",
+      "cycle_done": "Butun sikl reviziyasi",
+      "soon": "14 kundan kam qoldi",
+      "in_progress": "Revizor ishlayapti",
+      "on_plan": "Vaqtida o‘tkazilgan",
+      "never": "Birinchi reviziya kerak"
+    },
+    "search": "Filial, mudir, koordinator, revizor yoki javobgar…",
+    "empty": "Filial topilmadi",
+    "manager": "Mudir",
+    "coordinator": "Koordinator",
+    "lastDone": "Oxirgi",
+    "nextDue": "Keyingi",
+    "days": "kun",
+    "task": {
+      "assigned": "Biriktirilgan",
+      "accepted": "Qabul qilingan",
+      "in_progress": "Jarayonda",
+      "review": "Tasdiqlash kutilmoqda",
+      "done": "Yakunlangan",
+      "cancelled": "Bekor qilingan"
+    },
+    "kind": {
+      "cycle": "Sikl reviziyasi",
+      "shortage": "Kamomad",
+      "inventory": "Inventarizatsiya",
+      "check": "Tekshiruv"
+    },
+    "grp": {
+      "review": "Tekshiruvda",
+      "overdue": "Kechikkan",
+      "today": "Bugun",
+      "future": "Kelajakda"
+    },
+    "grpHint": {
+      "review": "Boshliq tekshiryapti",
+      "overdue": "Muddati o‘tgan",
+      "today": "Bugungi",
+      "future": "Rejalashtirilgan"
+    },
+    "noTasks": "Hozircha vazifa yo‘q",
+    "noTasksHint": "Bo‘lim boshlig‘i reviziya topshirsa shu yerda paydo bo‘ladi va sizga xabar keladi.",
+    "shortage": "Kamomad (so‘m)",
+    "score": "Ball (0–100)",
+    "resultNote": "Natija va izoh",
+    "act": {
+      "accept": "Qabul qilish",
+      "start": "Boshlash",
+      "submit": "Natijani topshirish",
+      "approve": "Tasdiqlash",
+      "return": "Qayta ishlashga",
+      "cancel": "Bekor qilish"
+    },
+    "planned": "{{n}} ta reviziya rejada",
+    "noDay": "Bu kunga reviziya rejalashtirilmagan",
+    "f": {
+      "branch": "Filial",
+      "revizor": "Revizor",
+      "date": "Sana",
+      "kind": "Turi",
+      "note": "Izoh"
+    }
+  },
+  "rate": {
+    "title": "Mijozlar baholashi",
+    "subtitle": "Har filial uchun QR · xodim va dorixona baholari alohida · mudir/koordinator · mijoz ma’lumoti admin uchun ochiq",
+    "c": {
+      "branches": "Filiallar",
+      "active": "Faol QR",
+      "none": "QR yo‘q",
+      "blocked": "Bloklangan"
+    },
+    "tab": {
+      "qr": "QR kodlar",
+      "employee": "Xodim baholari",
+      "pharmacy": "Dorixona baholari",
+      "stats": "Statistika"
+    },
+    "qrHint": "Har bir qator — bitta filial. «Yaratish» yoki «Hammaga QR yaratish». A4 PDF chop etish uchun.",
+    "createAll": "Hammaga QR yaratish ({{n}})",
+    "printAll": "Barchasi A4 PDF",
+    "f": {
+      "all": "Hammasi",
+      "none": "QR yo‘q",
+      "active": "Faol",
+      "blocked": "Blok"
+    },
+    "search": "Filial nomi, № yoki mudir…",
+    "col": {
+      "branch": "Filial",
+      "manager": "Mudir",
+      "status": "Holat",
+      "version": "Versiya",
+      "actions": "Amallar",
+      "date": "Sana",
+      "coordinator": "Koordinator",
+      "employee": "Xodim",
+      "stars": "Baho",
+      "clean": "Tozalik / tanlov",
+      "comment": "Izoh",
+      "client": "Mijoz"
+    },
+    "st": {
+      "active": "Faol",
+      "none": "QR yo‘q",
+      "blocked": "Bloklangan"
+    },
+    "create": "Yaratish",
+    "view": "Ko‘rish",
+    "rotate": "Almashtirish",
+    "rotateHint": "Yangi QR yaratiladi, eskisi ishlamay qoladi. Chop etilganini almashtiring.",
+    "block": "Bloklash",
+    "unblock": "Faollashtirish",
+    "delete": "O‘chirish",
+    "deleteHint": "Filial QR kodi o‘chiriladi. Baholar saqlanib qoladi.",
+    "qrTitle": "Xizmatni baholang",
+    "onlyComplaints": "Faqat shikoyatlar",
+    "stars": "Yulduz",
+    "summary": "{{n}} ta yozuv · ★ {{avg}} · {{low}} past baho",
+    "empty": "Hozircha ma’lumot yo‘q",
+    "total": "Jami baho",
+    "avg": "O‘rtacha",
+    "complaints": "Shikoyat",
+    "distribution": "Baho taqsimoti",
+    "branchRanking": "Filiallar reytingi",
+    "employeesLow": "Xodimlar (pastlardan)"
   }
 }

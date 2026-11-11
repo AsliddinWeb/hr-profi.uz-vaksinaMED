@@ -223,6 +223,13 @@ _CANTEEN_EXTRA = {
     "hr_menejer": ("canteen.read", "canteen.manage"),
     "direktor": ("canteen.read",),
 }
+_BRANCHOPS_EXTRA = {
+    "hr_direktor": ("revision.*", "ratings.*"),
+    "direktor": ("revision.read", "ratings.read"),
+    "hr_auditor": ("revision.read", "ratings.read"),
+    "koordinator": ("ratings.own",),
+    "mudir": ("ratings.own",),
+}
 _CONF_EXTRA = {
     "hr_direktor": ("conference.*",),
     "hr_menejer": ("conference.manage", "conference.read"),
@@ -307,7 +314,7 @@ _GROWTH_EXTRA = {
 SYSTEM_ROLES = tuple(
     RoleDef(
         r.key, r.uz, r.ru,
-        tuple(dict.fromkeys((*r.permissions, *_PHARMACY_EXTRA.get(r.key, ()), *_GROWTH_EXTRA.get(r.key, ()), *_RETENTION_EXTRA.get(r.key, ()), *_ROTATION_EXTRA.get(r.key, ()), *_DUTY_EXTRA.get(r.key, ()), *_HRDOCS_EXTRA.get(r.key, ()), *_EXT_EXTRA.get(r.key, ()), *_NEEDS_EXTRA.get(r.key, ()), *_CHECKLIST_EXTRA.get(r.key, ()), *_RECRUIT_EXTRA.get(r.key, ()), *_INTERN_EXTRA.get(r.key, ()), *_PAYROLL_EXTRA.get(r.key, ()), *_CONF_EXTRA.get(r.key, ()), *_CANTEEN_EXTRA.get(r.key, ()), *_LOGISTICS_EXTRA.get(r.key, ()), *_WAREHOUSE_EXTRA.get(r.key, ()), *_MOBILE_EXTRA.get(r.key, ()), *_DESK_EXTRA.get(r.key, ()), *(() if r.key == SUPERUSER_ROLE else ("attestation.own", "duty.own", "hrdocs.read", "staffdocs.apply", "complaints.own", "needs.own", "payroll.own", "canteen.own", "mobile.own", "reception.own", "helpdesk.own", "calls.own", "ai.use", "conference.own"))))),
+        tuple(dict.fromkeys((*r.permissions, *_PHARMACY_EXTRA.get(r.key, ()), *_GROWTH_EXTRA.get(r.key, ()), *_RETENTION_EXTRA.get(r.key, ()), *_ROTATION_EXTRA.get(r.key, ()), *_DUTY_EXTRA.get(r.key, ()), *_HRDOCS_EXTRA.get(r.key, ()), *_EXT_EXTRA.get(r.key, ()), *_NEEDS_EXTRA.get(r.key, ()), *_CHECKLIST_EXTRA.get(r.key, ()), *_RECRUIT_EXTRA.get(r.key, ()), *_INTERN_EXTRA.get(r.key, ()), *_PAYROLL_EXTRA.get(r.key, ()), *_CONF_EXTRA.get(r.key, ()), *_BRANCHOPS_EXTRA.get(r.key, ()), *_CANTEEN_EXTRA.get(r.key, ()), *_LOGISTICS_EXTRA.get(r.key, ()), *_WAREHOUSE_EXTRA.get(r.key, ()), *_MOBILE_EXTRA.get(r.key, ()), *_DESK_EXTRA.get(r.key, ()), *(() if r.key == SUPERUSER_ROLE else ("attestation.own", "duty.own", "hrdocs.read", "staffdocs.apply", "complaints.own", "needs.own", "payroll.own", "canteen.own", "mobile.own", "reception.own", "helpdesk.own", "calls.own", "ai.use", "conference.own"))))),
     )
     for r in SYSTEM_ROLES
 )

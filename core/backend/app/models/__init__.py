@@ -3,6 +3,7 @@ from app.models.answers import LeaveEvent, LeaveRequest
 from app.models.attendance import AttendanceCorrection, AttendanceRecord
 from app.models.attendance_issues import AttendanceExplanation, AttendanceIssue
 from app.models.auth import AuditLog, Role, RolePermission, User, UserSession
+from app.models.branch_ops import BranchRatingQr, CustomerRating, RevisionTask
 from app.models.calls import Call, CallParticipant
 from app.models.canteen import CanteenDish, CanteenMenu, CanteenRating, CanteenSettings
 from app.models.checklists import ChecklistFile, ChecklistTemplate, ChecklistVisit
@@ -71,6 +72,9 @@ from app.models.tasks import Task, TaskComment, TaskEvent, TaskFile, TaskTemplat
 from app.models.warehouse import Warehouse
 
 __all__ = [
+    "BranchRatingQr",
+    "CustomerRating",
+    "RevisionTask",
     "Application",
     "Complaint",
     "BranchDailyMetric",
