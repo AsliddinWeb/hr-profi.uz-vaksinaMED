@@ -137,6 +137,8 @@ const LAYOUT: [NonNullable<NavItem['group']>, string[]][] = [
   ['system', ['coord-report', 'reports', 'departments', 'positions', 'position-duties', 'org-structures', 'preboarding', 'face-id', 'face-admin', 'face-eval', 'mobile', 'mobile-my', 'company-settings', 'devices', 'users', 'roles', 'audit', 'ai-usage', 'migration', 'integrations', 'plan', 'system', 'notifications']],
 ]
 
+const LISTED = new Set(LAYOUT.flatMap(([, ids]) => ids))
+
 function arrange(items: NavItem[]): NavItem[] {
   const byId = new Map(items.map((i) => [i.id, i]))
   const out: NavItem[] = []
@@ -150,7 +152,7 @@ function arrange(items: NavItem[]): NavItem[] {
       // Kichik bo'limlar (sub) faqat XODIMLAR guruhida qoladi, boshqa joyda tekis ro'yxat
       chunk.push({ ...it, group, sub: group === 'people' ? it.sub : undefined })
     }
-    chunk.push(...items.filter((i) => !used.has(i.id) && i.group === group).map((i) => (used.add(i.id), i)))
+    chunk.push(...items.filter((i) => !used.has(i.id) && !LISTED.has(i.id) && i.group === group).map((i) => (used.add(i.id), i)))
     // Bir xil kichik bo'lim bandlari yonma-yon turishi shart (yon panel ularni bitta blokka yig'adi)
     const order = [...new Set(chunk.map((i) => i.sub ?? `#${i.id}`))]
     out.push(...order.flatMap((k) => chunk.filter((i) => (i.sub ?? `#${i.id}`) === k)))
@@ -158,8 +160,48 @@ function arrange(items: NavItem[]): NavItem[] {
   return [...out, ...items.filter((i) => !used.has(i.id))]
 }
 
-/** Yon menyuda ko'rinmaydigan bandlar: ular asosiy bandning sahifasi ichida tab bo'lib turadi (SectionTabs). */
-const TAB_ONLY = new Set(['reception-new', 'reception-report', 'helpdesk-new', 'helpdesk-analytics', 'helpdesk-categories'])
+/**
+ * Bo'lim klasterlari: yon menyuda har klasterdan faqat birinchi ruxsatli band turadi,
+ * qolganlari sahifa tepasida tab bo'lib chiqadi (ClusterTabs). tabs: false — sahifaning o'z tablari bor.
+ */
+export const NAV_CLUSTERS: { ids: string[]; tabs?: false }[] = [
+  { ids: ['org', 'departments', 'positions', 'position-duties', 'org-structures'] },
+  { ids: ['recruit-vacancies', 'recruit-candidates', 'recruit-requirements', 'recruit-recruiter', 'recruit-funnel'], tabs: false },
+  { ids: ['internship', 'internship-classes', 'internship-programs'] },
+  { ids: ['schedule', 'shifts', 'work-groups', 'patterns', 'holidays'] },
+  { ids: ['attendance-dashboard', 'attendance-daily', 'timesheet', 'coord-report', 'my-attendance', 'attendance-issues', 'attendance-qr'] },
+  { ids: ['face-admin', 'face-eval', 'face-id'] },
+  { ids: ['answers-inbox', 'answers-status', 'answers-calendar', 'my-answers'] },
+  { ids: ['letters', 'letter-templates', 'verify'] },
+  { ids: ['penalties', 'penalty-report', 'penalty-rules'] },
+  { ids: ['tasks-board', 'tasks-list', 'tasks-analytics', 'tasks-templates'] },
+  { ids: ['mobile', 'mobile-my'] },
+  { ids: ['reception', 'reception-new', 'reception-report'] },
+  { ids: ['helpdesk', 'helpdesk-new', 'helpdesk-analytics', 'helpdesk-categories'] },
+  { ids: ['logistics', 'logistics-my'] },
+  { ids: ['canteen', 'canteen-menus', 'canteen-comments', 'canteen-analytics', 'canteen-qr'] },
+  { ids: ['checklists', 'checklists-report', 'checklists-templates'] },
+  { ids: ['duty-control', 'duty-templates', 'duty-my'] },
+  { ids: ['needs', 'needs-new', 'needs-analytics', 'needs-categories'] },
+  { ids: ['pharmacy', 'pharmacy-map', 'pharmacy-needs', 'pharmacy-quality'] },
+]
+export const clusterOf = new Map(NAV_CLUSTERS.flatMap((c) => c.ids.map((id) => [id, c] as const)))
+
+/** Joriy yo'lga eng uzun mos keladigan band. */
+export function matchNav<T extends { to: string }>(pathname: string, items: T[]): T | undefined {
+  return items.filter((i) => pathname === i.to || pathname.startsWith(i.to === '/' ? '/__' : `${i.to}/`)).sort((a, b) => b.to.length - a.to.length)[0]
+}
+
+/** Klasterning ruxsatli birinchi bandi (yon menyuda shu turadi). */
+export function clusterHead(id: string, allowed: Set<string>): string {
+  return clusterOf.get(id)?.ids.find((x) => allowed.has(x)) ?? id
+}
+
+/** Yon menyu uchun: klasterdan faqat bosh band qoladi. */
+export function collapseNav<T extends { id: string }>(items: T[]): T[] {
+  const allowed = new Set(items.map((i) => i.id))
+  return items.filter((i) => !clusterOf.has(i.id) || clusterHead(i.id, allowed) === i.id)
+}
 
 export const navById = new Map(baseNav.map((i) => [i.id, i]))
-export const coreNav: NavItem[] = arrange(baseNav).filter((i) => !TAB_ONLY.has(i.id))
+export const coreNav: NavItem[] = arrange(baseNav)

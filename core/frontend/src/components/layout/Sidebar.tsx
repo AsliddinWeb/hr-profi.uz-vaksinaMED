@@ -14,7 +14,7 @@ import { usePendingPenalties } from '../../features/penalties/usePendingCount'
 import { useTaskCount } from '../../features/tasks/useTaskCount'
 import { cn } from '../../lib/cn'
 import { colorVars, groupColor } from '../../lib/navTheme'
-import { coreNav } from '../../nav'
+import { clusterHead, collapseNav, coreNav, matchNav } from '../../nav'
 
 const RAIL_KEY = 'hrprofi.nav.rail'
 const SUB_KEY = 'hrprofi.nav.sub'
@@ -74,8 +74,9 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
     })
 
   const enabled = (module?: string) => !module || !meta || meta.modules.includes(module)
-  const items = [...coreNav, ...getExtensionNavItems()].filter((i) => enabled(i.module) && (!i.permission || can(i.permission)) && (!i.anyPermission || i.anyPermission.some(can)))
+  const allItems = [...coreNav, ...getExtensionNavItems()].filter((i) => enabled(i.module) && (!i.permission || can(i.permission)) && (!i.anyPermission || i.anyPermission.some(can)))
 
+  const items = collapseNav(allItems)
   const { main, sections, activeId } = useMemo(() => {
     const main: NavItem[] = []
     const sections: Section[] = []
@@ -89,10 +90,10 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
       }
     }
     // Eng uzun mos keladigan yo'l = faol element
-    const hit = items.filter((i) => pathname === i.to || pathname.startsWith(i.to === '/' ? '/__' : `${i.to}/`)).sort((a, b) => b.to.length - a.to.length)[0]
-    return { main, sections, activeId: hit?.id }
+    const hit = matchNav(pathname, allItems)
+    return { main, sections, activeId: hit && clusterHead(hit.id, new Set(allItems.map((i) => i.id))) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items.map((i) => i.id).join('|'), pathname])
+  }, [allItems.map((i) => i.id).join('|'), pathname])
 
   const toggleRail = () =>
     setRail((r) => {

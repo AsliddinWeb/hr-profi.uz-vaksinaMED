@@ -4,6 +4,7 @@ import { Outlet } from 'react-router-dom'
 import { IncomingCalls } from '../../features/calls/IncomingCalls'
 import { AutoLetterModal } from '../../features/letters/AutoLetterModal'
 import { useRealtime } from '../../features/notifications/useRealtime'
+import { ClusterTabs } from '../SectionTabs'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 
@@ -21,6 +22,7 @@ export function AppShell() {
         <IncomingCalls />
         <AutoLetterModal />
         <main id="main" className="flex-1 px-4 pb-12 pt-1 lg:px-8">
+          <ClusterTabs />
           <Outlet />
         </main>
       </div>

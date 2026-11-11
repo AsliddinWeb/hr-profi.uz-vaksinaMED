@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
-import { SectionTabs } from '../../components/SectionTabs'
 
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
@@ -73,7 +72,6 @@ function TicketForm({ ticket }: { ticket: TicketDetail | null }) {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <PageHeader title={ticket ? t('helpdesk.edit') : t('helpdesk.new')} subtitle={ticket?.number} backTo={ticket ? `/helpdesk/${ticket.id}` : '/helpdesk'} backLabel={ticket ? ticket.number : t('helpdesk.title')} />
-      <SectionTabs ids={['helpdesk', 'helpdesk-new', 'helpdesk-analytics', 'helpdesk-categories']} />
       <form onSubmit={submit} className="flex flex-col gap-6">
         <FormSection title={t('helpdesk.form.main')}>
           <Field label={t('helpdesk.form.title')} error={fe.title}>{(id) => <Input id={id} value={title} onChange={(e) => setTitle(e.target.value)} required minLength={3} maxLength={200} autoFocus />}</Field>

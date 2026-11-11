@@ -10,7 +10,7 @@ import { Card } from '../../components/ui/Card'
 import { getExtensionNavItems, type NavItem } from '../../extensions/registry'
 import { api } from '../../lib/api'
 import { colorVars, groupColor } from '../../lib/navTheme'
-import { coreNav } from '../../nav'
+import { collapseNav, coreNav } from '../../nav'
 import { useInboxCount } from '../answers/useInboxCount'
 import { type Dashboard, todayLocal } from '../attendance/api'
 import { useCan, useMe } from '../auth/useAuth'
@@ -54,7 +54,7 @@ export function HomePage() {
   const first = me?.full_name.split(' ')[1] ?? me?.full_name ?? ''
 
   const sections = useMemo(() => {
-    const items = [...coreNav, ...getExtensionNavItems()].filter((i) => i.id !== 'home' && (!i.module || !meta || meta.modules.includes(i.module)) && (!i.permission || can(i.permission)) && (!i.anyPermission || i.anyPermission.some(can)))
+    const items = collapseNav([...coreNav, ...getExtensionNavItems()].filter((i) => i.id !== 'home' && (!i.module || !meta || meta.modules.includes(i.module)) && (!i.permission || can(i.permission)) && (!i.anyPermission || i.anyPermission.some(can))))
     const map = new Map<string, NavItem[]>()
     for (const it of items) map.set(it.group ?? 'main', [...(map.get(it.group ?? 'main') ?? []), it])
     return [...map.entries()]

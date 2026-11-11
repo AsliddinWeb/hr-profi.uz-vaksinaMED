@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { SectionTabs } from '../../components/SectionTabs'
 
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
@@ -41,7 +40,6 @@ export function AnalyticsPage() {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-5">
       <PageHeader title={t('helpdesk.analytics.title')} subtitle={t('helpdesk.analytics.subtitle')} backTo="/helpdesk" backLabel={t('helpdesk.title')} />
-      <SectionTabs ids={['helpdesk', 'helpdesk-new', 'helpdesk-analytics', 'helpdesk-categories']} />
       <Card className="flex flex-wrap items-center gap-3 p-4">
         <div className="flex flex-wrap rounded-control bg-(--seg-bg) p-0.5 text-[13px]" role="group" aria-label={t('attendance.dash.period')}>
           {(['week', 'month', 'lastMonth', 'custom'] as const).map((p) => (
