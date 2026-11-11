@@ -151,6 +151,8 @@ async def control(db: AsyncSession, auth: AuthContext, day: date, moment: dateti
             runs[(r.checklist_id, r.employee_id)] = r
     bmap = {b.id: b.name for b in branches}
     dmap = {d.id: d.name for d in (await db.scalars(select(Department))).all()}
+    pos_ids = {e.position_id for e in emps if e.position_id}
+    pmap = {p.id: p.name for p in (await db.scalars(select(Position).where(Position.id.in_(pos_ids)))).all()} if pos_ids else {}
     rows, per_dept = [], defaultdict(lambda: {"expected": 0, "done": 0})
     kpi = {"expected": 0, "done": 0, "overdue": 0, "open": 0}
     for e, c in pairs:
@@ -167,7 +169,7 @@ async def control(db: AsyncSession, auth: AuthContext, day: date, moment: dateti
         if status and status != "all" and st != status:
             continue
         rows.append({
-            "employee": {"id": e.id, "name": e.full_name}, "branch": bmap.get(e.branch_id or 0), "department": dmap.get(e.department_id or 0),
+            "employee": {"id": e.id, "name": e.full_name}, "branch": bmap.get(e.branch_id or 0), "department": dmap.get(e.department_id or 0), "position": pmap.get(e.position_id or 0),
             "checklist": {"id": c.id, "name": c.name, "frequency": c.frequency}, "status": st, "due_at": due_at(c, start),
             "completed_at": run.completed_at if run else None, "score_pct": run.score_pct if run else None, "late": bool(run and run.late),
         })  # fmt: skip

@@ -43,6 +43,7 @@ export interface DutyControl {
     employee: { id: number; name: string }
     branch: string | null
     department: string | null
+    position: string | null
     checklist: { id: number; name: string; frequency: 'daily' | 'weekly' }
     status: DutyStatus
     due_at: string

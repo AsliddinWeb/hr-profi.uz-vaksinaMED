@@ -13,7 +13,13 @@ from app.db import get_session
 from app.deps import AuthContext, error, require
 from app.models.auth import Role, User
 from app.models.employees import Employee
-from app.models.org import Branch, Position
+from app.models.org import (
+    Branch,
+    OrgStructure,
+    OrgStructureDepartment,
+    OrgStructurePosition,
+    Position,
+)
 from app.rbac import matches
 from app.services import org as svc
 from app.timeutil import local_date, now
@@ -122,17 +128,23 @@ async def insights(
 
 
 @router.get("/scheme")
-async def scheme(request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(require("org.read"))):
+async def scheme(request: Request, structure_id: int | None = None, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(require("org.read"))):
     """Tashkiliy tuzilma shajarasi. Ma'lumotlar bo'lim, lavozim (kimga bo'ysunadi, shtat soni) va xodimlardan avtomatik
     yig'iladi; frontend daraxtni shu tekis ro'yxatlardan quradi."""
     see = matches(auth.permissions, "employees.read")
+    structure = await db.get(OrgStructure, structure_id) if structure_id else await db.scalar(select(OrgStructure).where(OrgStructure.is_default.is_(True)))
+    if structure_id and not structure:
+        raise error(404, "not_found")
     depts = [d for d in (await svc.load_departments(db)).values() if d.is_active]
     positions = list((await db.scalars(select(Position).where(Position.is_active.is_(True)).order_by(Position.sort_order, Position.id))).all())
+    dept_layout = {x.department_id: x for x in (await db.scalars(select(OrgStructureDepartment).where(OrgStructureDepartment.structure_id == structure.id))).all()} if structure else {}
+    pos_layout = {x.position_id: x for x in (await db.scalars(select(OrgStructurePosition).where(OrgStructurePosition.structure_id == structure.id))).all()} if structure else {}
     emps = list((await db.scalars(select(Employee).where(Employee.status == "active").order_by(Employee.full_name))).all())
     by_pos: dict[int, list[Employee]] = defaultdict(list)
     for e in emps:
         if e.position_id:
             by_pos[e.position_id].append(e)
+    position_department = {p.id: pos_layout[p.id].department_id if p.id in pos_layout else p.department_id for p in positions}
     coord_branches = Counter(uid for (uid,) in (await db.execute(select(Branch.coordinator_user_id).where(Branch.coordinator_user_id.is_not(None), Branch.is_active.is_(True)))).all())
     users = {u.id: u for u in (await db.scalars(select(User).join(Role).where(Role.key.in_(["tasischi", "direktor"]), User.is_active.is_(True)))).unique().all()}
     by_role: dict[str, list[User]] = defaultdict(list)
@@ -152,13 +164,14 @@ async def scheme(request: Request, db: AsyncSession = Depends(get_session), auth
 
     return {
         "company": request.app.state.client_config.brand["name"],
+        "structure": {"id": structure.id, "name": structure.name, "description": structure.description, "is_default": structure.is_default} if structure else None,
         "departments": [
-            {"id": d.id, "name": d.name, "parent_id": d.parent_id, "reports_to_position_id": d.reports_to_position_id, "yqm": d.yqm, "color": d.color, "sort_order": d.sort_order,
-             "headcount": sum(len(by_pos.get(p.id, [])) for p in positions if p.department_id == d.id)}
+            {"id": d.id, "name": d.name, "parent_id": dept_layout[d.id].parent_department_id if d.id in dept_layout else d.parent_id, "reports_to_position_id": dept_layout[d.id].reports_to_position_id if d.id in dept_layout else d.reports_to_position_id, "yqm": d.yqm, "color": d.color, "sort_order": d.sort_order,
+             "headcount": sum(len(by_pos.get(p.id, [])) for p in positions if position_department.get(p.id) == d.id)}
             for d in sorted(depts, key=lambda x: (x.sort_order, x.name.lower()))
         ],
         "positions": [
-            {"id": p.id, "name": p.name, "department_id": p.department_id, "parent_id": p.parent_id, "slots": p.slots, "is_head": p.is_head, "yqm": p.yqm, "occupants": occupants(p)}
+            {"id": p.id, "name": p.name, "department_id": pos_layout[p.id].department_id if p.id in pos_layout else p.department_id, "parent_id": pos_layout[p.id].parent_position_id if p.id in pos_layout else p.parent_id, "slots": p.slots, "is_head": p.is_head, "yqm": p.yqm, "occupants": occupants(p)}
             for p in positions
         ],
     }  # fmt: skip

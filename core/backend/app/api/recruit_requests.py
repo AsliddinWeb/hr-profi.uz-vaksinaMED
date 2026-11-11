@@ -114,7 +114,7 @@ class RequestIn(BaseModel):
 
 @router.post("/requests", status_code=201)
 async def create_request(body: RequestIn, request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
-    if not body.department_id and not body.branch_id:
+    if bool(body.department_id) == bool(body.branch_id):
         raise error(400, "unit_required")
     deps, brs = await _my_units(db, auth)
     if body.department_id and body.department_id not in {d.id for d in deps}:
@@ -122,9 +122,11 @@ async def create_request(body: RequestIn, request: Request, db: AsyncSession = D
     if body.branch_id and body.branch_id not in {b.id for b in brs}:
         raise error(403, "forbidden")
     pos = await db.get(Position, body.position_id)
-    if not pos:
+    if not pos or not pos.is_active:
         raise error(400, "unknown_position")
-    if body.salary_from and body.salary_to and body.salary_from > body.salary_to:
+    if body.department_id and pos.department_id not in (None, body.department_id):
+        raise error(400, "position_department_mismatch")
+    if body.salary_from is not None and body.salary_to is not None and body.salary_from > body.salary_to:
         raise error(400, "salary_range_invalid")
     reqs = (body.requirements or "").strip() or None
     if reqs is None:
@@ -187,6 +189,11 @@ async def decide(rid: int, body: DecideIn, request: Request, db: AsyncSession = 
     note = (body.note or "").strip() or None
     if body.action == "reject" and not note:
         raise error(400, "note_required")
+    if body.action == "approve" and body.recruiter_id is not None:
+        recruiters = set(await users_with_permission(db, "recruit.manage"))
+        active = await db.scalar(select(User.id).where(User.id == body.recruiter_id, User.is_active.is_(True)))
+        if body.recruiter_id not in recruiters or active is None:
+            raise error(400, "unknown_recruiter")
     moment = now()
     pos = await db.get(Position, r.position_id)
     r.decided_by, r.decided_at, r.decision_note = auth.user.id, moment, note

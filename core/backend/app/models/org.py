@@ -10,6 +10,7 @@ from sqlalchemy import (
     String,
     Text,
     Time,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -48,9 +49,49 @@ class Position(Base, TimestampMixin):
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     yqm: Mapped[str | None] = mapped_column(Text)  # lavozimning yakuniy qimmatli mahsuloti
+    duties: Mapped[list] = mapped_column(JSONB, default=list, server_default="[]")  # lavozimning doimiy vazifalari
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("positions.id", ondelete="SET NULL"))  # kimga bo'ysunadi
     slots: Mapped[int] = mapped_column(Integer, default=1, server_default="1")  # shtat birligi (o'rinlar soni)
     is_head: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")  # bo'lim boshlig'i lavozimi
+
+
+class OrgStructure(Base, TimestampMixin):
+    """Ko'rish uchun nomlangan org-shajara; rahbarlar turli hisobot yo'llarini saqlashi mumkin."""
+
+    __tablename__ = "org_structures"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True)
+    description: Mapped[str | None] = mapped_column(String(300))
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+
+
+class OrgStructurePosition(Base):
+    """Lavozimning ayni org-shajaradagi bo'limi va bevosita rahbari."""
+
+    __tablename__ = "org_structure_positions"
+    __table_args__ = (UniqueConstraint("structure_id", "position_id", name="uq_org_structure_position"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    structure_id: Mapped[int] = mapped_column(ForeignKey("org_structures.id", ondelete="CASCADE"), index=True)
+    position_id: Mapped[int] = mapped_column(ForeignKey("positions.id", ondelete="CASCADE"), index=True)
+    department_id: Mapped[int | None] = mapped_column(ForeignKey("departments.id", ondelete="SET NULL"))
+    parent_position_id: Mapped[int | None] = mapped_column(ForeignKey("positions.id", ondelete="SET NULL"))
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+
+
+class OrgStructureDepartment(Base):
+    """Bo'limning ayni org-shajaradagi yuqori bo'limi yoki lavozimga birikishi."""
+
+    __tablename__ = "org_structure_departments"
+    __table_args__ = (UniqueConstraint("structure_id", "department_id", name="uq_org_structure_department"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    structure_id: Mapped[int] = mapped_column(ForeignKey("org_structures.id", ondelete="CASCADE"), index=True)
+    department_id: Mapped[int] = mapped_column(ForeignKey("departments.id", ondelete="CASCADE"), index=True)
+    parent_department_id: Mapped[int | None] = mapped_column(ForeignKey("departments.id", ondelete="SET NULL"))
+    reports_to_position_id: Mapped[int | None] = mapped_column(ForeignKey("positions.id", ondelete="SET NULL"))
 
 
 class Branch(Base, TimestampMixin):

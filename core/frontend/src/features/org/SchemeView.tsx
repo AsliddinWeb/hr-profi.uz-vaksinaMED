@@ -4,9 +4,13 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
+import { Button } from '../../components/ui/Button'
+import { Select } from '../../components/ui/Input'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { api } from '../../lib/api'
+import { useCan } from '../auth/useAuth'
 import { Avatar } from '../employees/Avatar'
+import type { OrgStructureRow } from './api'
 
 interface P {
   id: number | null
@@ -35,6 +39,7 @@ interface Dept {
 }
 interface Scheme {
   company: string
+  structure: OrgStructureRow | null
   departments: Dept[]
   positions: Pos[]
 }
@@ -106,7 +111,12 @@ function DeptCard({ d }: { d: Dept }) {
 /** Tashkiliy tuzilma shajarasi (org.xlsx kabi). Bo'lim, lavozim yoki xodim qo'shilganda avtomatik yangilanadi. */
 export function SchemeView() {
   const { t } = useTranslation()
-  const q = useQuery({ queryKey: ['org', 'scheme'], queryFn: () => api<Scheme>('/api/v1/org/scheme') })
+  const canManage = useCan()('org.manage')
+  const structures = useQuery({ queryKey: ['org', 'structures'], queryFn: () => api<{ items: OrgStructureRow[] }>('/api/v1/org/structures') })
+  const [selected, setSelected] = useState('')
+  const defaultId = structures.data?.items.find((x) => x.is_default)?.id
+  const structureId = Number(selected) || defaultId
+  const q = useQuery({ queryKey: ['org', 'scheme', structureId], queryFn: () => api<Scheme>(`/api/v1/org/scheme${structureId ? `?structure_id=${structureId}` : ''}`), enabled: !!structures.data })
   const [zoom, setZoom] = useState(0.85)
   const box = useRef<HTMLDivElement>(null)
   const d = q.data
@@ -200,7 +210,16 @@ export function SchemeView() {
 
   return (
     <div className="relative rounded-card border border-border bg-gradient-to-b from-sky-50/60 to-transparent dark:from-sky-950/20">
-      <div className="absolute right-3 top-3 z-10 flex items-center gap-1 rounded-control border border-border bg-surface p-1 shadow-card">
+      <div className="flex flex-wrap items-center gap-3 border-b border-border p-3 pr-28">
+        <label htmlFor="org-structure" className="text-sm font-medium">{t('org.structureSelect')}</label>
+        <Select id="org-structure" className="w-auto min-w-56" value={structureId ? String(structureId) : ''} onChange={(e) => setSelected(e.target.value)}>
+          {(structures.data?.items ?? []).map((x) => <option key={x.id} value={x.id}>{x.name}{x.is_default ? ` · ${t('org.defaultStructure')}` : ''}</option>)}
+        </Select>
+        {canManage && <Link to="/org/structures"><Button variant="outline" className="h-9">{t('org.manageStructures')}</Button></Link>}
+        {d.structure?.description && <span className="text-xs text-muted">{d.structure.description}</span>}
+      </div>
+      <div className="flex justify-end border-b border-border px-3 py-2">
+      <div className="flex items-center gap-1 rounded-control border border-border bg-surface p-1 shadow-card">
         <button type="button" aria-label={t('scheme.zoomOut')} onClick={() => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)))} className="rounded p-1 hover:bg-surface-2">
           <Minus className="size-4" />
         </button>
@@ -211,6 +230,7 @@ export function SchemeView() {
         <button type="button" aria-label={t('scheme.zoomReset')} onClick={() => setZoom(0.85)} className="rounded p-1 hover:bg-surface-2">
           <RotateCcw className="size-4" />
         </button>
+      </div>
       </div>
       <div ref={box} className="overflow-auto p-6" style={{ maxHeight: '80vh' }}>
         <div className="org-tree scheme min-w-max origin-top-left" style={{ zoom }}>

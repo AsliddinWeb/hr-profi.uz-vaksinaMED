@@ -30,7 +30,14 @@ from app.models.migration import MigrationBatch, MigrationCheck, MigrationLegacy
 from app.models.mobile import MobileEvent, MobilePermit, MobilePoint, MobileSession
 from app.models.needs import NeedCategory, NeedComment, NeedEvent, NeedFile, NeedRequest
 from app.models.notifications import Notification, NotificationPref
-from app.models.org import Branch, Department, Position
+from app.models.org import (
+    Branch,
+    Department,
+    OrgStructure,
+    OrgStructureDepartment,
+    OrgStructurePosition,
+    Position,
+)
 from app.models.payroll import PayItem, PayrollLine, PayrollRun, PayScheme
 from app.models.penalties import Penalty, PenaltyRuleVersion
 from app.models.pharmacy import StaffNeed
@@ -53,6 +60,7 @@ from app.models.recruit import (
     Vacancy,
     VacancyChannel,
 )
+from app.models.references import EmploymentReference
 from app.models.reminders import Reminder, ReminderEvent
 from app.models.reports import ReportRun, ReportSchedule
 from app.models.retention import Offboarding, RetentionCase, RetentionMeeting
@@ -81,6 +89,7 @@ __all__ = [
     "HrDocumentVersion",
     "StaffDocument",
     "DutyRun",
+    "EmploymentReference",
     "RetentionCase",
     "Rotation",
     "Offboarding",
@@ -160,6 +169,9 @@ __all__ = [
     "Penalty",
     "PenaltyRuleVersion",
     "Position",
+    "OrgStructure",
+    "OrgStructureDepartment",
+    "OrgStructurePosition",
     "Reminder",
     "ReportRun",
     "ReportSchedule",

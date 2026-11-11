@@ -52,6 +52,19 @@ export interface PositionRow {
   parent_id?: number | null
   slots?: number
   is_head?: boolean
+  duties?: string[]
+}
+
+export interface OrgStructureRow {
+  id: number
+  name: string
+  description: string | null
+  is_default: boolean
+}
+
+export interface OrgStructureDetail extends OrgStructureRow {
+  positions: { id: number; name: string; department_id: number | null; parent_position_id: number | null; is_active: boolean }[]
+  departments: { id: number; name: string; parent_department_id: number | null; reports_to_position_id: number | null; is_active: boolean }[]
 }
 
 export const KINDS = ['office', 'pharmacy', 'warehouse', 'other'] as const

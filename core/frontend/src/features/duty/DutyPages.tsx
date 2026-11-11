@@ -395,7 +395,9 @@ export function DutyControlPage() {
   const { t, i18n } = useTranslation()
   const [day, setDay] = useState(todayLocal())
   const [status, setStatus] = useState<'all' | DutyStatus>('all')
-  const q = useQuery({ queryKey: ['duty', 'control', day, status], queryFn: () => api<DutyControl>(`/api/v1/duty/control?date=${day}&status=${status}`), placeholderData: (p) => p, refetchInterval: 120_000 })
+  const [position, setPosition] = useState('')
+  const positionOptions = usePositionOptions()
+  const q = useQuery({ queryKey: ['duty', 'control', day, status, position], queryFn: () => api<DutyControl>(`/api/v1/duty/control?date=${day}&status=${status}${position ? `&position_id=${position}` : ''}`), placeholderData: (p) => p, refetchInterval: 120_000 })
   const d = q.data
   const kpi = (key: 'all' | DutyStatus, value: number | undefined, label: string) => (
     <button key={key} aria-pressed={status === key} onClick={() => setStatus(key)} className={'rounded-2xl border p-4 text-left transition-colors ' + (status === key ? 'border-primary bg-primary/5' : 'border-border bg-surface hover:bg-surface-2')}>
@@ -411,6 +413,10 @@ export function DutyControlPage() {
           {t('duty.control.date')}
         </label>
         <Input id="duty-day" type="date" className="w-auto" value={day} onChange={(e) => e.target.value && setDay(e.target.value)} />
+        <Select className="w-auto min-w-56" aria-label={t('org.positionsTitle')} value={position} onChange={(e) => setPosition(e.target.value)}>
+          <option value="">{t('org.allPositions')}</option>
+          {positionOptions.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+        </Select>
         {d?.kpis.rate !== null && d?.kpis.rate !== undefined && <span className="ml-auto text-sm text-muted">{t('duty.control.rate', { n: d.kpis.rate })}</span>}
       </Card>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -443,7 +449,7 @@ export function DutyControlPage() {
             <Card key={`${r.employee.id}-${r.checklist.id}-${i}`} className="flex flex-wrap items-center justify-between gap-3 p-4">
               <div>
                 <div className="font-medium">{r.employee.name}</div>
-                <div className="text-sm text-muted">{[r.branch, r.checklist.name, t(`duty.freq.${r.checklist.frequency}`)].filter(Boolean).join(' · ')}</div>
+                <div className="text-sm text-muted">{[r.position, r.department, r.branch, r.checklist.name, t(`duty.freq.${r.checklist.frequency}`)].filter(Boolean).join(' · ')}</div>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 {r.completed_at && <span className="text-muted">{formatDateTime(r.completed_at, i18n.language)}</span>}

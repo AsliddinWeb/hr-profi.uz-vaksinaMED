@@ -417,6 +417,8 @@ async def complete(oid: int, body: CompleteIn, request: Request, db: AsyncSessio
         raise error(409, "already_decided")
     if o.exit_at is None:
         raise error(409, "exit_required")
+    if o.approved_at is None:
+        raise error(409, "approval_required")
     reason = {"fired": "discipline", "other": "other"}.get(o.reason_type or "", "own_will")
     await dismiss_one(db, emp, DismissIn(date=body.leave_date, reason=reason, note=(body.note or o.reason_text or "")[:500], block_account=True), auth)
     o.status, o.leave_date, o.completed_by, o.completed_at, o.access_closed = "completed", body.leave_date, auth.user.id, now(), True

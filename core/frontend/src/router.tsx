@@ -234,6 +234,8 @@ import { DepartmentFormPage } from "./features/org/DepartmentFormPage";
 import { DepartmentsPage } from "./features/org/DepartmentsPage";
 import { OrgChartPage } from "./features/org/OrgChartPage";
 import { PositionFormPage, PositionsPage } from "./features/org/PositionsPages";
+import { PositionDutiesPage } from "./features/org/PositionDutiesPage";
+import { OrgStructuresPage } from "./features/org/OrgStructuresPage";
 import {
   DocFormPage,
   DocViewPage,
@@ -246,6 +248,8 @@ import {
   StaffDocsPage,
 } from "./features/hrdocs/StaffDocPages";
 import { StaffVerifyPage } from "./features/hrdocs/StaffVerifyPage";
+import { ReferencesPage } from "./features/hrdocs/ReferencesPage";
+import { ReferenceVerifyPage } from "./features/hrdocs/ReferenceVerifyPage";
 import {
   DutyControlPage,
   DutyFormPage,
@@ -349,6 +353,7 @@ export function createRouter() {
         { path: "/offer/:token", element: <OfferPage /> },
         { path: "/verify/leave/:code", element: <LeaveVerifyPage /> },
         { path: "/verify/doc/:code", element: <StaffVerifyPage /> },
+        { path: "/verify/reference/:code", element: <ReferenceVerifyPage /> },
         { path: "/verify/:code", element: <VerifyPage /> },
         { path: "/apply/:code", element: <PublicApplyPage /> },
         {
@@ -2956,6 +2961,22 @@ export function createRouter() {
                   ),
                 },
                 {
+                  path: "org/duties",
+                  element: (
+                    <RequirePerm perm="org.read">
+                      <PositionDutiesPage />
+                    </RequirePerm>
+                  ),
+                },
+                {
+                  path: "org/structures",
+                  element: (
+                    <RequirePerm perm="org.manage">
+                      <OrgStructuresPage />
+                    </RequirePerm>
+                  ),
+                },
+                {
                   path: "org/positions",
                   element: (
                     <RequirePerm perm="org.read">
@@ -3046,6 +3067,14 @@ export function createRouter() {
                   element: (
                     <RequirePerm perm="hrdocs.manage">
                       <DocFormPage />
+                    </RequirePerm>
+                  ),
+                },
+                {
+                  path: "hr/references",
+                  element: (
+                    <RequirePerm perm="staffdocs.manage">
+                      <ReferencesPage />
                     </RequirePerm>
                   ),
                 },

@@ -2,7 +2,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,7 +10,14 @@ from app.db import get_session
 from app.deps import AuthContext, error, require, require_any
 from app.models.auth import Role, User
 from app.models.employees import Employee
-from app.models.org import Branch, Department, Position
+from app.models.org import (
+    Branch,
+    Department,
+    OrgStructure,
+    OrgStructureDepartment,
+    OrgStructurePosition,
+    Position,
+)
 from app.services import org as svc
 from app.services.audit import audit
 from app.services.notifications import deliver, notify
@@ -64,6 +71,47 @@ class PositionPatch(BaseModel):
     parent_id: int | None = None
     slots: int | None = Field(default=None, ge=0, le=1000)
     is_head: bool | None = None
+
+
+class PositionDutiesIn(BaseModel):
+    duties: list[str] = Field(max_length=100)
+
+
+class StructureIn(BaseModel):
+    name: str = Field(min_length=2, max_length=100)
+    description: str | None = Field(default=None, max_length=300)
+    source_id: int | None = None
+
+
+class StructurePatch(BaseModel):
+    name: str = Field(min_length=2, max_length=100)
+    description: str | None = Field(default=None, max_length=300)
+
+
+class StructurePositionIn(BaseModel):
+    department_id: int | None = None
+    parent_position_id: int | None = None
+
+
+class StructureDepartmentIn(BaseModel):
+    parent_department_id: int | None = None
+    reports_to_position_id: int | None = None
+
+
+def _clean_duties(raw: list[str]) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for value in raw:
+        text = " ".join(str(value).split())
+        if not text:
+            continue
+        if len(text) > 1000:
+            raise error(400, "duty_too_long")
+        key = text.casefold()
+        if key not in seen:
+            out.append(text)
+            seen.add(key)
+    return out
 
 
 async def _check_parent(db: AsyncSession, pos_id: int | None, parent_id: int | None) -> None:
@@ -314,9 +362,201 @@ async def list_positions(
             "parent_id": p.parent_id,
             "slots": p.slots,
             "is_head": p.is_head,
+            "duties": p.duties or [],
         }
         for p in rows
     ]
+
+
+@router.get("/duties")
+async def list_position_duties(
+    db: AsyncSession = Depends(get_session), _: AuthContext = Depends(require("org.read"))
+):
+    """Lavozimlar va ularga biriktirilgan umumiy vazifalar bazasi."""
+    rows = (await db.execute(
+        select(Position, Department.name).outerjoin(Department, Department.id == Position.department_id)
+        .where(Position.is_active.is_(True)).order_by(Department.name, Position.sort_order, Position.name)
+    )).all()
+    return [{"id": p.id, "name": p.name, "department_id": p.department_id, "department": dept,
+             "duties": p.duties or []} for p, dept in rows]
+
+
+@router.put("/positions/{pos_id}/duties")
+async def update_position_duties(
+    pos_id: int, body: PositionDutiesIn, request: Request,
+    db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(require("org.manage")),
+):
+    pos = await db.get(Position, pos_id)
+    if not pos:
+        raise error(404, "not_found")
+    duties = _clean_duties(body.duties)
+    if duties != (pos.duties or []):
+        pos.duties = duties
+        await audit(db, request, "org.position_duties_update", actor=auth.user, entity="position",
+                    entity_id=pos.id, data={"count": len(duties)})
+        await db.commit()
+    return {"id": pos.id, "duties": pos.duties or []}
+
+
+def _structure_out(s: OrgStructure) -> dict[str, Any]:
+    return {"id": s.id, "name": s.name, "description": s.description, "is_default": s.is_default}
+
+
+async def _structure(db: AsyncSession, structure_id: int) -> OrgStructure:
+    item = await db.get(OrgStructure, structure_id)
+    if not item:
+        raise error(404, "not_found")
+    return item
+
+
+@router.get("/structures")
+async def list_structures(db: AsyncSession = Depends(get_session), _: AuthContext = Depends(require("org.read"))):
+    rows = (await db.scalars(select(OrgStructure).order_by(OrgStructure.is_default.desc(), OrgStructure.name))).all()
+    return {"items": [_structure_out(s) for s in rows]}
+
+
+@router.post("/structures", status_code=201)
+async def create_structure(body: StructureIn, request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(require("org.manage"))):
+    name = body.name.strip()
+    if len(name) < 2:
+        raise error(400, "structure_name_invalid")
+    source = await _structure(db, body.source_id) if body.source_id else await db.scalar(select(OrgStructure).where(OrgStructure.is_default.is_(True)))
+    structure = OrgStructure(name=name, description=(body.description or "").strip() or None, created_by=auth.user.id)
+    db.add(structure)
+    try:
+        await db.flush()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise error(409, "structure_name_taken") from exc
+    source_pos = {x.position_id: x for x in (await db.scalars(select(OrgStructurePosition).where(OrgStructurePosition.structure_id == source.id))).all()} if source else {}
+    for p in (await db.scalars(select(Position))).all():
+        ref = source_pos.get(p.id)
+        db.add(OrgStructurePosition(structure_id=structure.id, position_id=p.id,
+                                    department_id=ref.department_id if ref else p.department_id,
+                                    parent_position_id=ref.parent_position_id if ref else p.parent_id,
+                                    sort_order=ref.sort_order if ref else p.sort_order))
+    source_dept = {x.department_id: x for x in (await db.scalars(select(OrgStructureDepartment).where(OrgStructureDepartment.structure_id == source.id))).all()} if source else {}
+    for d in (await db.scalars(select(Department))).all():
+        ref = source_dept.get(d.id)
+        db.add(OrgStructureDepartment(structure_id=structure.id, department_id=d.id,
+                                      parent_department_id=ref.parent_department_id if ref else d.parent_id,
+                                      reports_to_position_id=ref.reports_to_position_id if ref else d.reports_to_position_id))
+    await audit(db, request, "org.structure_create", actor=auth.user, entity="org_structure", entity_id=structure.id,
+                data={"name": name, "source_id": source.id if source else None})
+    await db.commit()
+    return _structure_out(structure)
+
+
+@router.get("/structures/{structure_id}")
+async def get_structure(structure_id: int, db: AsyncSession = Depends(get_session), _: AuthContext = Depends(require("org.read"))):
+    item = await _structure(db, structure_id)
+    positions = (await db.scalars(select(Position).order_by(Position.department_id, Position.sort_order, Position.name))).all()
+    depts = (await db.scalars(select(Department).order_by(Department.sort_order, Department.name))).all()
+    pos_links = {x.position_id: x for x in (await db.scalars(select(OrgStructurePosition).where(OrgStructurePosition.structure_id == item.id))).all()}
+    dept_links = {x.department_id: x for x in (await db.scalars(select(OrgStructureDepartment).where(OrgStructureDepartment.structure_id == item.id))).all()}
+    return {**_structure_out(item),
+            "positions": [{"id": p.id, "name": p.name, "department_id": pos_links[p.id].department_id if p.id in pos_links else p.department_id,
+                           "parent_position_id": pos_links[p.id].parent_position_id if p.id in pos_links else p.parent_id, "is_active": p.is_active} for p in positions],
+            "departments": [{"id": d.id, "name": d.name, "parent_department_id": dept_links[d.id].parent_department_id if d.id in dept_links else d.parent_id,
+                             "reports_to_position_id": dept_links[d.id].reports_to_position_id if d.id in dept_links else d.reports_to_position_id, "is_active": d.is_active} for d in depts]}
+
+
+@router.put("/structures/{structure_id}")
+async def update_structure(structure_id: int, body: StructurePatch, request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(require("org.manage"))):
+    item = await _structure(db, structure_id)
+    item.name, item.description = body.name.strip(), (body.description or "").strip() or None
+    await audit(db, request, "org.structure_update", actor=auth.user, entity="org_structure", entity_id=item.id, data={"name": item.name})
+    await _commit(db, "structure_name_taken")
+    return _structure_out(item)
+
+
+@router.put("/structures/{structure_id}/default")
+async def set_default_structure(structure_id: int, request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(require("org.manage"))):
+    item = await _structure(db, structure_id)
+    if not item.is_default:
+        await db.execute(update(OrgStructure).where(OrgStructure.is_default.is_(True)).values(is_default=False))
+        item.is_default = True
+        await audit(db, request, "org.structure_default", actor=auth.user, entity="org_structure", entity_id=item.id)
+        await db.commit()
+    return _structure_out(item)
+
+
+@router.delete("/structures/{structure_id}", status_code=204)
+async def delete_structure(structure_id: int, request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(require("org.manage"))):
+    item = await _structure(db, structure_id)
+    if item.is_default:
+        raise error(409, "default_structure")
+    await audit(db, request, "org.structure_delete", actor=auth.user, entity="org_structure", entity_id=item.id, data={"name": item.name})
+    await db.delete(item)
+    await db.commit()
+
+
+@router.put("/structures/{structure_id}/positions/{pos_id}")
+async def set_structure_position(structure_id: int, pos_id: int, body: StructurePositionIn, request: Request,
+                                 db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(require("org.manage"))):
+    structure = await _structure(db, structure_id)
+    pos = await db.get(Position, pos_id)
+    if not pos:
+        raise error(404, "not_found")
+    if body.department_id is not None and not await db.get(Department, body.department_id):
+        raise error(400, "unknown_department")
+    if body.parent_position_id is not None and not await db.get(Position, body.parent_position_id):
+        raise error(400, "unknown_position")
+    if body.parent_position_id == pos_id:
+        raise error(400, "position_cycle")
+    links = list((await db.scalars(select(OrgStructurePosition).where(OrgStructurePosition.structure_id == structure.id))).all())
+    parent_map = {x.position_id: x.parent_position_id for x in links}
+    for p in (await db.scalars(select(Position))).all():
+        parent_map.setdefault(p.id, p.parent_id)
+    parent_map[pos_id] = body.parent_position_id
+    seen, cur = {pos_id}, body.parent_position_id
+    while cur is not None:
+        if cur in seen:
+            raise error(400, "position_cycle")
+        seen.add(cur)
+        cur = parent_map.get(cur)
+    link = next((x for x in links if x.position_id == pos_id), None)
+    if link is None:
+        link = OrgStructurePosition(structure_id=structure.id, position_id=pos.id)
+        db.add(link)
+    link.department_id, link.parent_position_id = body.department_id, body.parent_position_id
+    await audit(db, request, "org.structure_position_update", actor=auth.user, entity="org_structure", entity_id=structure.id,
+                data={"position_id": pos.id, "department_id": body.department_id, "parent_position_id": body.parent_position_id})
+    await db.commit()
+    return {"position_id": pos.id, "department_id": link.department_id, "parent_position_id": link.parent_position_id}
+
+
+@router.put("/structures/{structure_id}/departments/{dept_id}")
+async def set_structure_department(structure_id: int, dept_id: int, body: StructureDepartmentIn, request: Request,
+                                   db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(require("org.manage"))):
+    structure = await _structure(db, structure_id)
+    dept = await _department(db, dept_id)
+    if body.parent_department_id is not None and not await db.get(Department, body.parent_department_id):
+        raise error(400, "unknown_parent")
+    if body.parent_department_id == dept_id:
+        raise error(400, "cycle")
+    if body.reports_to_position_id is not None and not await db.get(Position, body.reports_to_position_id):
+        raise error(400, "unknown_position")
+    links = list((await db.scalars(select(OrgStructureDepartment).where(OrgStructureDepartment.structure_id == structure.id))).all())
+    parent_map = {x.department_id: x.parent_department_id for x in links}
+    for d in (await db.scalars(select(Department))).all():
+        parent_map.setdefault(d.id, d.parent_id)
+    parent_map[dept_id] = body.parent_department_id
+    seen, cur = {dept_id}, body.parent_department_id
+    while cur is not None:
+        if cur in seen:
+            raise error(409, "cycle")
+        seen.add(cur)
+        cur = parent_map.get(cur)
+    link = next((x for x in links if x.department_id == dept_id), None)
+    if link is None:
+        link = OrgStructureDepartment(structure_id=structure.id, department_id=dept.id)
+        db.add(link)
+    link.parent_department_id, link.reports_to_position_id = body.parent_department_id, body.reports_to_position_id
+    await audit(db, request, "org.structure_department_update", actor=auth.user, entity="org_structure", entity_id=structure.id,
+                data={"department_id": dept.id, "parent_department_id": body.parent_department_id, "reports_to_position_id": body.reports_to_position_id})
+    await db.commit()
+    return {"department_id": dept.id, "parent_department_id": link.parent_department_id, "reports_to_position_id": link.reports_to_position_id}
 
 
 @router.post("/positions", status_code=201)

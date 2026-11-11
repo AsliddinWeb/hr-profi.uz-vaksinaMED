@@ -286,10 +286,11 @@ export function OffboardingDetailPage() {
           {o.can?.complete && (
             <div className="flex flex-wrap items-end gap-3 border-t border-border pt-3">
               <Field label={t('offboarding.leaveDateReal')}>{(fid) => <Input id={fid} type="date" value={leave} max={todayLocal()} onChange={(e) => setLeave(e.target.value)} />}</Field>
-              <Button variant="outline" className="text-danger" disabled={act.isPending || !o.exit_at} onClick={() => act.mutate({ path: 'complete', body: { leave_date: leave } })}>
+              <Button variant="outline" className="text-danger" disabled={act.isPending || !o.exit_at || !o.approved_at} onClick={() => act.mutate({ path: 'complete', body: { leave_date: leave } })}>
                 {t('offboarding.complete')}
               </Button>
               {!o.exit_at && <span className="text-xs text-muted">{t('offboarding.exitFirst')}</span>}
+              {o.exit_at && !o.approved_at && <span className="text-xs text-muted">{t('offboarding.approvalFirst')}</span>}
             </div>
           )}
         </Card>
