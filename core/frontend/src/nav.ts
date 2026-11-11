@@ -6,7 +6,7 @@ import type { NavItem } from './extensions/registry'
  * Core navigatsiyasi. Yangi faza tayyor bo'lganda shu yerga qo'shiladi (rolga qarab filtr F1 da).
  * `module` — backend modules ro'yxatidagi kalit (client.yaml orqali o'chirilishi mumkin).
  */
-export const coreNav: NavItem[] = [
+const baseNav: NavItem[] = [
   { id: 'home', group: 'main', label: { uz: 'Bosh sahifa', ru: 'Главная' }, to: '/', icon: LayoutDashboard },
   { id: 'help', group: 'main', label: { uz: 'Jarayonlar qo\'llanmasi', ru: 'Справочник процессов' }, to: '/help', icon: BookOpen },
   { id: 'employees', group: 'people', label: { uz: 'Xodimlar', ru: 'Сотрудники' }, to: '/employees', icon: Contact, permission: 'employees.read', module: 'employees' },
@@ -116,3 +116,36 @@ export const coreNav: NavItem[] = [
   { id: 'plan', group: 'system', label: { uz: 'Tarif va litsenziya', ru: 'Тариф и лицензия' }, to: '/system/plan', icon: Tags, permission: 'roles.read' },
   { id: 'system', group: 'system', label: { uz: 'Tizim holati', ru: 'Состояние системы' }, to: '/system', icon: Activity },
 ]
+
+/** Menyu tartibi vaksinahr.uz bilan bir xil: ASOSIY, DAVOMAT, MENING ISHIM, XODIMLAR, MOLIYA, APTEKA TARMOG'I, LOGISTIKA, OMBORXONA, TIZIM.
+ * Ro'yxatda yo'q yangi band o'z guruhining oxiriga tushadi. */
+const LAYOUT: [NonNullable<NavItem['group']>, string[]][] = [
+  ['main', ['home', 'reception', 'reception-new', 'reception-report', 'my-answers', 'answers-inbox', 'answers-calendar', 'answers-status', 'org', 'helpdesk', 'helpdesk-new', 'helpdesk-analytics', 'helpdesk-categories', 'complaints', 'calls', 'help']],
+  ['attendance', ['my-attendance', 'attendance-daily', 'attendance-dashboard', 'timesheet', 'attendance-issues', 'attendance-qr', 'rotations', 'schedule', 'shifts', 'work-groups', 'patterns', 'holidays', 'checklists', 'checklists-report', 'checklists-templates', 'duty-my', 'duty-control', 'duty-templates', 'letters', 'letter-templates', 'verify', 'hr-references', 'penalties', 'penalty-rules', 'penalty-report']],
+  ['tasks', ['tasks-list', 'tasks-board', 'tasks-analytics', 'tasks-templates', 'reminders']],
+  ['people', ['employees', 'recruit-vacancies', 'recruit-candidates', 'internship', 'recruit-requests', 'pharmacy-needs', 'recruit-requirements', 'recruit-recruiter', 'recruit-funnel', 'recruit-compare', 'hr-library', 'hr-documents', 'kadr', 'conferences', 'internship-classes', 'attestation', 'internship-programs', 'preboarding-my', 'career', 'performance', 'control', 'retention', 'offboarding']],
+  ['payroll', ['payroll', 'payroll-my', 'canteen', 'canteen-menus', 'canteen-comments', 'canteen-analytics', 'canteen-qr']],
+  ['pharmacy', ['branches', 'pharmacy', 'pharmacy-map', 'pharmacy-quality', 'needs', 'needs-new', 'needs-analytics', 'needs-categories']],
+  ['logistics', ['logistics', 'logistics-my']],
+  ['warehouse', ['warehouse']],
+  ['system', ['coord-report', 'reports', 'departments', 'positions', 'position-duties', 'org-structures', 'preboarding', 'face-id', 'face-admin', 'face-eval', 'mobile', 'mobile-my', 'users', 'roles', 'audit', 'ai-usage', 'migration', 'integrations', 'plan', 'system', 'notifications']],
+]
+
+function arrange(items: NavItem[]): NavItem[] {
+  const byId = new Map(items.map((i) => [i.id, i]))
+  const out: NavItem[] = []
+  const used = new Set<string>()
+  for (const [group, ids] of LAYOUT) {
+    for (const id of ids) {
+      const it = byId.get(id)
+      if (!it) continue
+      used.add(id)
+      // Kichik bo'limlar (sub) faqat XODIMLAR guruhida qoladi, boshqa joyda tekis ro'yxat
+      out.push({ ...it, group, sub: group === 'people' ? it.sub : undefined })
+    }
+    out.push(...items.filter((i) => !used.has(i.id) && i.group === group).map((i) => (used.add(i.id), i)))
+  }
+  return [...out, ...items.filter((i) => !used.has(i.id))]
+}
+
+export const coreNav: NavItem[] = arrange(baseNav)

@@ -89,7 +89,7 @@
       "admin": "Boshqaruv",
       "attendance": "Davomat",
       "requests": "So'rovlar",
-      "tasks": "Topshiriq va eslatmalar",
+      "tasks": "Mening ishim",
       "pharmacy": "Apteka tarmog'i",
       "needs": "Ehtiyojlar",
       "checklists": "Filial tekshiruvlari",
@@ -107,7 +107,8 @@
       "reports": "Hisobotlar",
       "migration": "Migratsiya",
       "org": "Tashkiliy tuzilma",
-      "hr": "HR bo'limi"
+      "hr": "HR bo'limi",
+      "main": "Asosiy"
     },
     "sub": {
       "preboarding": "Prebording",
@@ -5081,7 +5082,10 @@
     "position": "Lavozim",
     "issuedAt": "Berilgan sana",
     "statusLabel": "Holati",
-    "status": { "issued": "Amal qiladi", "cancelled": "Bekor qilingan" }
+    "status": {
+      "issued": "Amal qiladi",
+      "cancelled": "Bekor qilingan"
+    }
   },
   "staffdocs": {
     "title": "Ariza va buyruqlar",

@@ -32,7 +32,7 @@ hr-profi menyusi shu guruhlar va shu tartibga keltiriladi.
 | XODIMLAR | Nomzodlar | /recruit/candidates | ✅ |
 | XODIMLAR | Stajirovkalar | /internship | ✅ |
 | XODIMLAR | Arizalar | /recruit/requests | ✅ |
-| XODIMLAR | Xodim kerak (/xodim-kerak) | — | ❌ |
+| XODIMLAR | Xodim kerak (/xodim-kerak) | /pharmacy/needs | ✅ |
 | MOLIYA | Oylik | /payroll | 🟡 |
 | MOLIYA | Oylik hisob | /payroll | 🟡 |
 | MOLIYA | Abet | /canteen | ✅ |
@@ -185,7 +185,7 @@ hr-profi menyusi shu guruhlar va shu tartibga keltiriladi.
 - Holatlar: Ochiq, Yangi, Ko'rib chiqilmoqda, Qabul qilingan, E'lon qilingan, Yopilgan.
 - Ustunlar: ID / Bo'lim-lavozim / Ariza bergan / Soni / Prioritet / Status / Mas'ul / HR yuborgan / Rekruter qabul / E'lon tasdiqlangan.
 
-### Xodim kerak ❌
+### Xodim kerak (hr-profi: /pharmacy/needs)
 - Filial bo'yicha xodim so'rovi.
 - Holatlar: Qidirilmoqda, Topilgan, Rad etilgan. Amallar: Topildi, Rad etish.
 
@@ -253,6 +253,6 @@ Tashqi tizim iframe'da ochiladi: Dashboard/VHK, Boshqaruv, Live, GPS Davomat, Pa
 - Xarita: kim ishda. Jonli ro'yxat: Online, Offline.
 
 ## Qolgan ishlar (navbat)
-1. Menyuni yuqoridagi tartib va guruhlarga keltirish. Bo'limlar o'z o'rnida qoladi, hr-profi'dagi qo'shimcha bandlar mos guruhga tushadi.
-2. ❌ bandlar: Reviziya, Xodim kerak, Mijozlar baholashi, Qurilmalar.
+1. ✅ Menyu vaksinahr tartibiga keltirildi (nav.ts LAYOUT).
+2. ❌ bandlar: Reviziya, Mijozlar baholashi, Qurilmalar.
 3. 🟡 bandlar: Dashboard segmentlari (Ofis/Dorixona), Oylik hisobning savdo rejasi ustunlari, Cheklist holati tablari, Davomat hisobotining segment va ustunlari.
