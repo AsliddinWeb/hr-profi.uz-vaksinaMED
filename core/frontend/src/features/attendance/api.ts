@@ -82,8 +82,10 @@ export interface PunchResult {
 }
 
 export interface DailyItem {
-  employee: { id: number; employee_no: number; full_name: string }
+  employee: { id: number; employee_no: number; full_name: string; position?: string | null }
   status: Status
+  early_in_minutes?: number
+  late_out_minutes?: number
   shift: { id: number; name: string; start_time: string; end_time: string } | null
   record: AttRecord | null
 }
@@ -94,6 +96,7 @@ export interface Daily {
   page: number
   size: number
   summary: Record<Status, number>
+  segment_counts?: Record<string, number>
   items: DailyItem[]
 }
 

@@ -1625,6 +1625,14 @@
       "noScheduleHint": "Kelsangiz «grafiksiz» deb belgilanadi. Grafik bo'yicha savol bo'lsa HR ga murojaat qiling.",
       "letterTitle": "Tushuntirish xati imzolanmagan ({{number}})",
       "letterHint": "Imzolanmaguncha «Keldim» belgilanmaydi. Ochish uchun bosing."
+    },
+    "cols": {
+      "no": "№",
+      "lateIn": "Kech keldi",
+      "earlyIn": "Erta keldi",
+      "earlyOut": "Erta ketdi",
+      "lateOut": "Kech ketdi",
+      "number": "Raqam"
     }
   },
   "face": {

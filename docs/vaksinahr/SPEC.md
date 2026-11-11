@@ -17,7 +17,7 @@ hr-profi menyusi shu guruhlar va shu tartibga keltiriladi.
 | ASOSIY | Reviziya (/reviziya) | /revisions | ✅ |
 | ASOSIY | AyTi (/it) | /helpdesk | ✅ |
 | DAVOMAT | Davomat (/davomat-face) | /attendance | 🟡 |
-| DAVOMAT | Davomat hisobot | /attendance/daily | 🟡 |
+| DAVOMAT | Davomat hisobot | /attendance/daily | ✅ |
 | DAVOMAT | Davomat QR | /attendance/qr | ✅ |
 | DAVOMAT | Smena va filial | /org/rotations | 🟡 |
 | DAVOMAT | Cheklist holati | /checklists/status | ✅ |
@@ -88,7 +88,7 @@ hr-profi menyusi shu guruhlar va shu tartibga keltiriladi.
 - Oy kunlari bo'yicha sonlar; xodim kartasi: filial, nechta kunlik, nechta soatlik.
 - Qidiruv: xodim yoki izoh bo'yicha.
 
-### Reviziya ❌
+### Reviziya ✅
 - Tablar: Mening filiallarim (sikl, natija, tarix), Vazifalar (bugungi va navbatdagi), Kalendar (oy bo'yicha reja).
 - Kartalar: Muddati o'tgan, Sikl o'tkazilgan, Tez orada (14 kundan kam qolgan), Jarayonda (revizor ishlayapti), Rejadagidek, Hali reviziyasiz.
 - Qidiruv: filial, mudir, koordinator, revizor yoki javobgar.
@@ -209,7 +209,7 @@ Savdo rejasiga asoslangan hisob. Ustunlar:
 - Filtrlar: koordinator, smena; Jamoa bor/yo'q, Mudir yo'q.
 - Filial kartasi: "Batafsil"; "Xodim kerak" bloki.
 
-### Mijozlar baholashi ❌
+### Mijozlar baholashi ✅
 - Har filial uchun QR (A4 PDF); tablar: QR kodlar, Xodim baholari, Dorixona baholari, Statistika.
 - Ustunlar: № / Filial / Mudir / Holat / Versiya / Amallar (Ko'rish, A4 PDF, Almashtirish, O'chirish, Yaratish).
 
@@ -245,7 +245,7 @@ Tashqi tizim iframe'da ochiladi: Dashboard/VHK, Boshqaruv, Live, GPS Davomat, Pa
 ### Preboarding
 - Rol bo'yicha (Farmasevt, Mudir), 5 bosqich: video, slayd, savollar; Qoralama.
 
-### Qurilmalar ❌
+### Qurilmalar ✅
 - Tablar: Ruxsat so'rovlari, Qurilmalar, Majburiy xodimlar, Sozlamalar, Login tarixi, Xavfsizlik hodisalari.
 
 ### Ko'chma davomat, xarita va jonli kuzatuv

@@ -236,6 +236,8 @@ async def test_daily_and_timesheet(new_client, clock):
     clock.set("2026-11-03 12:00")  # Se: Ali kelmadi, hali kun davom etyapti
     d = (await hr.get(f"{API}/daily", params={"date": "2026-11-02"})).json()
     assert d["summary"]["late"] == 1 and d["summary"]["absent"] == 1 and d["total"] == 2
+    ali_d = next(i for i in d["items"] if i["employee"]["full_name"] == "Aliyev Ali")
+    assert "segment_counts" in d and ali_d["early_in_minutes"] == 0 and ali_d["late_out_minutes"] == 0 and "position" in ali_d["employee"]
     d3 = (await hr.get(f"{API}/daily", params={"date": "2026-11-03"})).json()
     assert d3["summary"]["pending"] == 2 and d3["summary"]["absent"] == 0
     only = (await hr.get(f"{API}/daily", params={"date": "2026-11-02", "status": "absent"})).json()

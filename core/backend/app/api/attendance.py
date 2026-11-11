@@ -22,7 +22,7 @@ from app.models.employees import Employee
 from app.models.org import Branch, Department, Position
 from app.models.schedule import ShiftTemplate, WorkGroup
 from app.services import attendance as svc
-from app.services import auto_letters
+from app.services import auto_letters, company
 from app.services import schedule as sched
 from app.services.answers import approved_leave_days
 from app.services.attendance_pdf import build_pdf
@@ -277,14 +277,19 @@ async def daily(
     branch_id: int | None = None,
     group_id: int | None = None,
     status: str | None = None,
+    segment_id: int | None = None,
     page: int = Query(1, ge=1),
     size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_session),
     _: AuthContext = Depends(require("attendance.read")),
 ):
     stmt = await _filtered(db, q=q, department_id=department_id, branch_id=branch_id, group_id=group_id)
+    seg_counts = await company.segment_counts(db, lambda extra: select(func.count()).select_from(stmt.where(*extra).subquery()))
+    stmt = company.apply_segment(stmt, await company.load_segment(db, segment_id))
     employees = list((await db.scalars(stmt.order_by(Employee.full_name, Employee.id).limit(MAX_EXPORT_EMPLOYEES))).all())
     rows = await _rows(db, employees, date_, date_)
+    pos_ids = {e.position_id for e in employees if e.position_id}
+    positions = dict((await db.execute(select(Position.id, Position.name).where(Position.id.in_(pos_ids)))).all()) if pos_ids else {}
     summary: dict[str, int] = dict.fromkeys(STATUSES, 0)
     items = []
     for e in employees:
@@ -294,8 +299,10 @@ async def daily(
             continue
         rec, shift = d["record"], d["shift"]
         items.append({
-            "employee": {"id": e.id, "employee_no": e.employee_no, "full_name": e.full_name},
+            "employee": {"id": e.id, "employee_no": e.employee_no, "full_name": e.full_name, "position": positions.get(e.position_id)},
             "status": d["status"],
+            "early_in_minutes": _gap(rec.check_in_at, rec.planned_start) if rec else 0,
+            "late_out_minutes": _gap(rec.planned_end, rec.check_out_at) if rec else 0,
             "shift": {"id": shift.id, "name": shift.name, "start_time": shift.start_time.strftime("%H:%M"), "end_time": shift.end_time.strftime("%H:%M")} if shift else None,
             "record": record_out(rec, shift) if rec else None,
         })  # fmt: skip
@@ -306,8 +313,16 @@ async def daily(
         "page": page,
         "size": size,
         "summary": summary,
+        "segment_counts": seg_counts,
         "items": items[(page - 1) * size : page * size],
     }
+
+
+def _gap(a: datetime | None, b: datetime | None) -> int:
+    """b - a daqiqada (manfiy bo'lsa 0): erta kelish = reja - kelish, kech ketish = ketish - reja."""
+    if a is None or b is None:
+        return 0
+    return max(0, int((b - a).total_seconds() // 60))
 
 
 def _totals(days: list[dict[str, Any]]) -> dict[str, int]:

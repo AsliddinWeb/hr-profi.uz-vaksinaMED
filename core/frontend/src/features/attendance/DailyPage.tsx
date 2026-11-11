@@ -12,6 +12,7 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { Input, Select } from '../../components/ui/Input'
 import { Pagination } from '../../components/ui/Pagination'
 import { Skeleton } from '../../components/ui/Skeleton'
+import { SegmentFilter } from '../../components/SegmentFilter'
 import { api } from '../../lib/api'
 import { useCan } from '../auth/useAuth'
 import { STATUS_TO_INCIDENT } from '../letters/api'
@@ -35,10 +36,12 @@ export function DailyPage() {
   const [filters, setFilters] = useState<FilterState>(emptyFilters)
   const [status, setStatus] = useState<Status | ''>('')
   const [page, setPage] = useState(1)
+  const [segment, setSegment] = useState<number | null>(null)
 
   const params = new URLSearchParams({ date, page: String(page), size: String(SIZE) })
   filterParams(filters, params)
   if (status) params.set('status', status)
+  if (segment) params.set('segment_id', String(segment))
   const list = useQuery({
     queryKey: ['attendance', 'daily', params.toString()],
     queryFn: () => api<Daily>(`/api/v1/attendance/daily?${params}`),
@@ -50,6 +53,7 @@ export function DailyPage() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-5">
       <PageHeader title={t('attendance.daily.title')} subtitle={t('attendance.daily.subtitle')} />
+      <SegmentFilter value={segment} onChange={(v) => reset(() => setSegment(v))} counts={list.data?.segment_counts} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {HEADLINE.map((k) => (
@@ -91,11 +95,17 @@ export function DailyPage() {
           <table className="w-full text-left text-sm">
             <thead className="border-b border-border text-xs text-muted">
               <tr>
+                <th className="w-10 px-3 py-2.5 font-medium">{t('attendance.cols.no')}</th>
                 <th className="px-5 py-2.5 font-medium">{t('employees.fullName')}</th>
                 <th className="hidden px-5 py-2.5 font-medium md:table-cell">{t('attendance.shift')}</th>
                 <th className="px-5 py-2.5 font-medium">{t('attendance.in')}</th>
                 <th className="px-5 py-2.5 font-medium">{t('attendance.out')}</th>
                 <th className="hidden px-5 py-2.5 font-medium sm:table-cell">{t('attendance.worked')}</th>
+                <th className="hidden px-3 py-2.5 font-medium lg:table-cell">{t('attendance.cols.lateIn')}</th>
+                <th className="hidden px-3 py-2.5 font-medium lg:table-cell">{t('attendance.cols.earlyIn')}</th>
+                <th className="hidden px-3 py-2.5 font-medium lg:table-cell">{t('attendance.cols.earlyOut')}</th>
+                <th className="hidden px-3 py-2.5 font-medium lg:table-cell">{t('attendance.cols.lateOut')}</th>
+                <th className="hidden px-3 py-2.5 font-medium lg:table-cell">{t('attendance.cols.number')}</th>
                 <th className="px-5 py-2.5 font-medium">{t('attendance.statusLabel')}</th>
                 <th className="px-5 py-2.5" />
               </tr>
@@ -103,17 +113,19 @@ export function DailyPage() {
             <tbody className="divide-y divide-border">
               {list.isLoading && (
                 <tr>
-                  <td colSpan={7} className="px-5 py-2.5">
+                  <td colSpan={13} className="px-5 py-2.5">
                     <Skeleton className="h-32" />
                   </td>
                 </tr>
               )}
-              {list.data?.items.map((r) => (
+              {list.data?.items.map((r, i) => (
                 <tr key={r.employee.id} data-href onClick={(ev) => !(ev.target as HTMLElement).closest('a,button,input') && navigate(`/attendance/employee/${r.employee.id}`)}>
+                  <td className="px-3 py-2.5 tabular-nums text-muted">{(page - 1) * SIZE + i + 1}</td>
                   <td className="px-5 py-2.5">
                     <Link to={`/schedule/employee/${r.employee.id}`} className="font-medium hover:text-primary hover:underline">
                       {r.employee.full_name}
                     </Link>
+                    {r.employee.position && <div className="text-xs text-muted">{r.employee.position}</div>}
                   </td>
                   <td className="hidden px-5 py-2.5 text-muted md:table-cell">{r.shift ? `${r.shift.name} ${r.shift.start_time}–${r.shift.end_time}` : '—'}</td>
                   <td className="px-5 py-2.5 tabular-nums">
@@ -125,6 +137,11 @@ export function DailyPage() {
                     {r.record && r.record.early_leave_minutes > 0 && <Badge className="ml-2" tone="warning">−{r.record.early_leave_minutes}</Badge>}
                   </td>
                   <td className="hidden px-5 py-2.5 tabular-nums sm:table-cell">{r.record?.check_out_at ? fmtMin(r.record.worked_minutes) : '—'}</td>
+                  <MinCell v={r.record?.late_minutes} tone="text-warning" />
+                  <MinCell v={r.early_in_minutes} tone="text-success" />
+                  <MinCell v={r.record?.early_leave_minutes} tone="text-warning" />
+                  <MinCell v={r.late_out_minutes} tone="text-primary" />
+                  <td className="hidden px-3 py-2.5 tabular-nums text-muted lg:table-cell">{r.employee.employee_no}</td>
                   <td className="px-5 py-2.5">
                     <StatusBadge status={r.status} />
                     {r.record?.is_manual && <Badge className="ml-1.5">{t('attendance.manual')}</Badge>}
@@ -149,7 +166,7 @@ export function DailyPage() {
               ))}
               {list.data && list.data.items.length === 0 && (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={13}>
                     <EmptyState icon={CalendarOff} title={t('attendance.emptyTitle')} hint={t('attendance.emptyHint')} />
                   </td>
                 </tr>
@@ -166,4 +183,9 @@ export function DailyPage() {
       <p className="text-xs text-muted">{t('attendance.daily.note')}</p>
     </div>
   )
+}
+
+/** Daqiqa ustuni: 0 bo'lsa chiziqcha. */
+function MinCell({ v, tone }: { v?: number; tone: string }) {
+  return <td className={`hidden px-3 py-2.5 tabular-nums lg:table-cell ${v ? tone : 'text-muted'}`}>{v ? fmtMin(v) : '—'}</td>
 }
