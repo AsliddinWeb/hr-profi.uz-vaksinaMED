@@ -6914,6 +6914,40 @@
       "version": "Versiya: v{{v}}.0",
       "nComps": "{{n}} ta kompetensiya",
       "view": "Profilni ko'rish"
+    },
+    "ov": {
+      "title": "Rekruting dashboardi",
+      "subtitle": "Kompaniyangizning kadrlar va rekruting jarayonlari bo'yicha umumiy ko'rsatkichlar",
+      "period": "Davr",
+      "lastDays": "Oxirgi {{n}} kun",
+      "dynamics": "Rekruting zayavkalari dinamikasi",
+      "totalProfiles": "Jami profil",
+      "activity": "So'nggi faoliyatlar",
+      "pending": "Tasdiqlashni kutayotganlar ({{n}})",
+      "all": "Barchasi",
+      "daysAgo": "{{n}} kun",
+      "funnel": "Rekruting voronkasi",
+      "stage": {
+        "requests": "Zayavka",
+        "vacancies": "Vakansiya",
+        "new": "Yangi",
+        "screening": "Saralash",
+        "interview": "Intervyu",
+        "offer": "Offer",
+        "hired": "Ishga qabul"
+      },
+      "act": {
+        "profile_create": "Lavozim profili yaratildi",
+        "profile_submit": "Profil tasdiqlashga yuborildi",
+        "profile_approve": "Lavozim profili tasdiqlandi",
+        "profile_return": "Profil qayta ishlashga yuborildi",
+        "recruit_request_create": "Rekruting zayavkasi yaratildi",
+        "recruit_request_approve": "Rekruting zayavkasi tasdiqlandi",
+        "recruit_request_reject": "Rekruting zayavkasi rad etildi",
+        "competency_create": "Kompetensiya qo'shildi",
+        "competency_update": "Kompetensiya tahrirlandi",
+        "competency_delete": "Kompetensiya o'chirildi"
+      }
     }
   }
 }

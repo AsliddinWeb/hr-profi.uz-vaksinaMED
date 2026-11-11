@@ -1,4 +1,4 @@
-import { ApprovalsPage as RecruitApprovalsPage, CompetenciesPage, ProfilesPage as PositionProfilesPage, ProfileWizardPage } from "./features/recruit/CompetencyPages";
+import { ApprovalsPage as RecruitApprovalsPage, CompetenciesPage, RecruitDashboardPage, ProfilesPage as PositionProfilesPage, ProfileWizardPage } from "./features/recruit/CompetencyPages";
 import { createBrowserRouter } from "react-router-dom";
 
 import { AppShell } from "./components/layout/AppShell";
@@ -2105,6 +2105,7 @@ export function createRouter() {
                     </RequirePerm>
                   ),
                 },
+                { path: "recruit/dashboard", element: <RecruitDashboardPage /> },
                 { path: "recruit/competencies", element: <CompetenciesPage /> },
                 { path: "recruit/profiles", element: <PositionProfilesPage /> },
                 { path: "recruit/profiles/:id", element: <ProfileWizardPage /> },

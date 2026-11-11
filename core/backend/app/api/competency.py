@@ -370,3 +370,60 @@ async def dashboard(db: AsyncSession = Depends(get_session), _: AuthContext = De
         "status": status,
         "coverage": coverage,
     }
+
+
+@router.get("/overview")
+async def overview(days: int = Query(default=30, ge=7, le=365), db: AsyncSession = Depends(get_session), _: AuthContext = Depends(_reader)):
+    """Rekruting dashboardi: zayavkalar dinamikasi (6 oy), so'nggi faoliyatlar, tasdiqlashni kutayotganlar, voronka va davr o'zgarishi."""
+    from app.models.auth import AuditLog
+    from app.services import recruit_core as core
+    from app.timeutil import local_date
+
+    moment = now()
+    start, prev = moment - timedelta(days=days), moment - timedelta(days=days * 2)
+
+    async def n(model, *cond) -> int:
+        return await db.scalar(select(func.count()).select_from(model).where(*cond)) or 0
+
+    def delta(cur: int, old: int) -> int | None:
+        return round((cur - old) / old * 100) if old else None
+
+    req_cur, req_old = await n(HireRequest, HireRequest.created_at >= start), await n(HireRequest, HireRequest.created_at >= prev, HireRequest.created_at < start)
+    ap_cur = await n(PositionProfile, PositionProfile.status.in_(("approved", "archived")), PositionProfile.decided_at >= start)
+    ap_old = await n(PositionProfile, PositionProfile.status.in_(("approved", "archived")), PositionProfile.decided_at >= prev, PositionProfile.decided_at < start)
+    comp_cur, comp_old = await n(Competency, Competency.created_at >= start), await n(Competency, Competency.created_at >= prev, Competency.created_at < start)
+    vac_cur, vac_old = await n(Vacancy, Vacancy.created_at >= start), await n(Vacancy, Vacancy.created_at >= prev, Vacancy.created_at < start)
+
+    today = local_date(moment)
+    months = []
+    y, m = today.year, today.month
+    for _ in range(6):
+        months.append((y, m))
+        y, m = (y - 1, 12) if m == 1 else (y, m - 1)
+    months.reverse()
+    created = [local_date(c) for (c,) in (await db.execute(select(HireRequest.created_at).where(HireRequest.created_at >= prev - timedelta(days=200)))).all()]
+    dynamics = [{"month": f"{yy}-{mm:02d}", "count": sum(1 for c in created if (c.year, c.month) == (yy, mm))} for yy, mm in months]
+
+    logs = (await db.scalars(select(AuditLog).where(or_(AuditLog.action.like("profile.%"), AuditLog.action.like("recruit.request%"), AuditLog.action.like("competency.%"))).order_by(AuditLog.id.desc()).limit(8))).all()
+    names = {u.id: u.full_name for u in (await db.scalars(select(User).where(User.id.in_({x.actor_id for x in logs if x.actor_id})))).all()}
+    activity = [{"action": x.action, "actor": names.get(x.actor_id or 0) or x.actor_login, "data": x.data or {}, "at": x.created_at} for x in logs]
+
+    pend_p = (await db.scalars(select(PositionProfile).where(PositionProfile.status == "pending").order_by(PositionProfile.submitted_at).limit(5))).all()
+    pend_r = (await db.scalars(select(HireRequest).where(HireRequest.status == "pending").order_by(HireRequest.created_at).limit(5))).all()
+    pos = {p.id: p.name for p in (await db.scalars(select(Position).where(Position.id.in_({x.position_id for x in [*pend_p, *pend_r]})))).all()} if pend_p or pend_r else {}
+    pending = sorted(
+        [{"type": "profile", "title": pos.get(p.position_id), "link": f"/recruit/profiles/{p.id}", "since": p.submitted_at or p.updated_at} for p in pend_p]
+        + [{"type": "request", "title": pos.get(r.position_id), "link": f"/recruit/requests/{r.id}", "since": r.created_at} for r in pend_r],
+        key=lambda x: x["since"],
+    )[:5]
+    for x in pending:
+        x["days"] = (moment - x["since"]).days
+
+    f = await core.funnel(db, vacancy_id=None, start=local_date(start), end=today)
+    funnel = [{"stage": "requests", "count": req_cur}, {"stage": "vacancies", "count": vac_cur}, *({"stage": s["stage"], "count": s["count"]} for s in f["steps"])]
+    return {
+        "days": days,
+        "deltas": {"requests": delta(req_cur, req_old), "approved": delta(ap_cur, ap_old), "competencies": delta(comp_cur, comp_old), "vacancies": delta(vac_cur, vac_old)},
+        "dynamics": dynamics, "activity": activity, "pending": pending, "pending_total": await n(PositionProfile, PositionProfile.status == "pending") + await n(HireRequest, HireRequest.status == "pending"),
+        "funnel": funnel,
+    }  # fmt: skip

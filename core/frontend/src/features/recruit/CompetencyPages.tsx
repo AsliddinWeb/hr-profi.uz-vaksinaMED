@@ -826,3 +826,184 @@ export function ApprovedProfileCard({ positionId, onState }: { positionId: strin
     </Card>
   )
 }
+
+type Overview = {
+  days: number
+  deltas: Record<'requests' | 'approved' | 'competencies' | 'vacancies', number | null>
+  dynamics: { month: string; count: number }[]
+  activity: { action: string; actor: string | null; data: Record<string, unknown>; at: string }[]
+  pending: { type: 'profile' | 'request'; title: string | null; link: string; days: number }[]
+  pending_total: number
+  funnel: { stage: string; count: number }[]
+}
+
+const RC: Record<string, string> = { approved: 'var(--success)', pending: 'var(--warning)', draft: 'var(--primary)', returned: 'var(--danger)', none: 'var(--border)' }
+const FC = ['bg-primary', 'bg-primary/90', 'bg-[#0ea5e9]', 'bg-[#06b6d4]', 'bg-[#14b8a6]', 'bg-warning', 'bg-[#f97316]', 'bg-success']
+
+/** /recruit/dashboard — rekruting dashboardi: ko'rsatkichlar, zayavkalar dinamikasi, profillar holati, qamrov, faoliyat, kutayotganlar, voronka. */
+export function RecruitDashboardPage() {
+  const { t, i18n } = useTranslation()
+  const [days, setDays] = useState(30)
+  const dash = useQuery({ queryKey: ['comp', 'dash'], queryFn: () => api<Dash>('/api/v1/recruit/competency-dashboard') })
+  const ov = useQuery({ queryKey: ['recruit', 'overview', days], queryFn: () => api<Overview>(`/api/v1/recruit/overview?days=${days}`) })
+  const d = dash.data
+  const o = ov.data
+  const cards: [string, number | undefined, number | null | undefined][] = [
+    ['positions', d?.positions, null],
+    ['competencies', d?.competencies, o?.deltas.competencies],
+    ['approved', d?.approved, o?.deltas.approved],
+    ['returned', d?.returned, null],
+    ['openVacancies', d?.open_vacancies, o?.deltas.vacancies],
+    ['pendingRequests', o?.pending_total, o?.deltas.requests],
+  ]
+  const dyn = o?.dynamics ?? []
+  const max = Math.max(1, ...dyn.map((x) => x.count))
+  const W = 520
+  const H = 160
+  const pts = dyn.map((x, i) => [20 + (i * (W - 40)) / Math.max(1, dyn.length - 1), H - 22 - (x.count / max) * (H - 50)] as const)
+  const MONTHS = i18n.language === 'ru' ? ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'] : ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyun', 'Iyul', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek']
+  const monthName = (m: string) => MONTHS[Number(m.slice(5, 7)) - 1]
+  const keys = ['approved', 'pending', 'draft', 'returned', 'none'] as const
+  const totalP = d ? keys.reduce((a, k) => a + d.status[k], 0) : 0
+  let acc = 0
+  const ring = keys.map((k) => {
+    const from = acc
+    acc += totalP && d ? (d.status[k] / totalP) * 100 : 0
+    return `${RC[k]} ${from}% ${acc}%`
+  })
+  return (
+    <div className="mx-auto flex max-w-6xl flex-col gap-5">
+      <PageHeader
+        title={t('comp.ov.title')}
+        subtitle={t('comp.ov.subtitle')}
+        actions={
+          <Select className="w-auto" value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label={t('comp.ov.period')}>
+            {[30, 90, 180].map((n) => (
+              <option key={n} value={n}>
+                {t('comp.ov.lastDays', { n })}
+              </option>
+            ))}
+          </Select>
+        }
+      />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {cards.map(([k, v, dl]) => (
+          <Card key={k} className="p-4">
+            <div className="text-xs text-muted">{t(`comp.dash.${k}`)}</div>
+            <div className="mt-2 flex items-end gap-2">
+              <span className="font-mono text-[26px] font-medium leading-none tabular-nums">{v ?? '—'}</span>
+              {dl != null && <span className={clsx('text-xs font-medium', dl >= 0 ? 'text-success' : 'text-danger')}>{`${dl >= 0 ? '↑' : '↓'} ${Math.abs(dl)}%`}</span>}
+            </div>
+          </Card>
+        ))}
+      </div>
+      <div className="grid gap-3 lg:grid-cols-3">
+        <Card className="flex flex-col gap-2 p-5">
+          <div className="font-medium">{t('comp.ov.dynamics')}</div>
+          <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={t('comp.ov.dynamics')}>
+            {pts.length > 1 && <polygon points={`${pts[0][0]},${H - 22} ${pts.map((p) => p.join(',')).join(' ')} ${pts[pts.length - 1][0]},${H - 22}`} fill="var(--primary)" opacity="0.1" />}
+            {pts.length > 1 && <polyline points={pts.map((p) => p.join(',')).join(' ')} fill="none" stroke="var(--primary)" strokeWidth="2.5" />}
+            {pts.map(([x, y], i) => (
+              <g key={dyn[i].month}>
+                <circle cx={x} cy={y} r="4" fill="var(--primary)" />
+                <text x={x} y={y - 9} textAnchor="middle" fontSize="11" fill="currentColor">
+                  {dyn[i].count}
+                </text>
+                <text x={x} y={H - 4} textAnchor="middle" fontSize="11" fill="var(--muted)">
+                  {monthName(dyn[i].month)}
+                </text>
+              </g>
+            ))}
+          </svg>
+        </Card>
+        <Card className="flex flex-col gap-3 p-5">
+          <div className="font-medium">{t('comp.dash.statusTitle')}</div>
+          <div className="flex items-center gap-5">
+            <div className="relative size-32 shrink-0 rounded-full" style={{ background: totalP ? `conic-gradient(${ring.join(', ')})` : 'var(--border)' }}>
+              <div className="absolute inset-3 grid place-items-center rounded-full bg-surface text-center">
+                <div>
+                  <div className="font-mono text-2xl font-medium">{totalP}</div>
+                  <div className="text-[11px] text-muted">{t('comp.ov.totalProfiles')}</div>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1 text-sm">
+              {keys.map((k) => (
+                <div key={k} className="flex items-center gap-2">
+                  <span className="size-2.5 rounded-full" style={{ background: RC[k] }} />
+                  <span className="text-muted">{t(`comp.st.${k}`)}</span>
+                  <span className="ml-auto pl-2 tabular-nums">{d?.status[k] ?? 0}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+        <Card className="flex flex-col gap-2.5 p-5">
+          <div className="font-medium">{t('comp.dash.coverage')}</div>
+          {d?.coverage.map((c) => (
+            <div key={c.department} className="grid grid-cols-[110px_1fr_40px] items-center gap-2 text-sm">
+              <span className="truncate">{c.department}</span>
+              <span className="h-2 overflow-hidden rounded-full bg-surface-2">
+                <span className="block h-full rounded-full bg-primary" style={{ width: `${c.pct}%` }} />
+              </span>
+              <span className="text-right tabular-nums text-muted">{c.pct}%</span>
+            </div>
+          ))}
+        </Card>
+      </div>
+      <div className="grid gap-3 lg:grid-cols-3">
+        <Card className="flex flex-col gap-2 p-5">
+          <div className="font-medium">{t('comp.ov.activity')}</div>
+          {o?.activity.length === 0 && <div className="text-sm text-muted">{t('common.empty')}</div>}
+          {o?.activity.map((a, i) => (
+            <div key={i} className="flex items-start gap-2 text-sm">
+              <Check className="mt-0.5 size-4 shrink-0 text-success" />
+              <div className="min-w-0 flex-1">
+                <div className="truncate">
+                  {t(`comp.ov.act.${a.action.replace(/\./g, '_')}`, { defaultValue: a.action })}
+                  {typeof a.data.position === 'string' ? ` — ${a.data.position}` : typeof a.data.name === 'string' ? ` — ${a.data.name}` : ''}
+                </div>
+                <div className="text-xs text-muted">
+                  {a.actor} · {formatDate(a.at, i18n.language)}
+                </div>
+              </div>
+            </div>
+          ))}
+        </Card>
+        <Card className="flex flex-col gap-2 p-5">
+          <div className="flex items-center justify-between font-medium">
+            {t('comp.ov.pending', { n: o?.pending_total ?? 0 })}
+            <Link to="/recruit/approvals" className="text-xs font-normal text-primary hover:underline">
+              {t('comp.ov.all')}
+            </Link>
+          </div>
+          {o?.pending.length === 0 && <div className="text-sm text-muted">{t('common.empty')}</div>}
+          {o?.pending.map((p) => (
+            <Link key={p.link} to={p.link} className="flex items-center justify-between gap-2 rounded-lg px-1 py-1 text-sm hover:bg-surface-2">
+              <span className="truncate">
+                {p.title} — {t(p.type === 'profile' ? 'comp.appr.profile' : 'comp.appr.request')}
+              </span>
+              <span className="shrink-0 text-xs text-muted">{t('comp.ov.daysAgo', { n: p.days })}</span>
+            </Link>
+          ))}
+        </Card>
+        <Card className="flex flex-col gap-3 p-5">
+          <div className="flex items-center justify-between font-medium">
+            {t('comp.ov.funnel')}
+            <Link to="/recruit/funnel" className="text-xs font-normal text-primary hover:underline">
+              {t('comp.ov.all')}
+            </Link>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {o?.funnel.map((f, i) => (
+              <div key={f.stage} className={clsx('rounded-lg p-2 text-center text-white', FC[i % FC.length])}>
+                <div className="font-mono text-lg font-medium">{f.count}</div>
+                <div className="truncate text-[10px] opacity-90">{t(`comp.ov.stage.${f.stage}`)}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </div>
+  )
+}

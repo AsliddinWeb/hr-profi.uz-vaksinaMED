@@ -6913,6 +6913,40 @@
       "version": "Версия: v{{v}}.0",
       "nComps": "{{n}} компетенций",
       "view": "Открыть профиль"
+    },
+    "ov": {
+      "title": "Дашборд подбора",
+      "subtitle": "Общие показатели по кадрам и подбору персонала",
+      "period": "Период",
+      "lastDays": "Последние {{n}} дней",
+      "dynamics": "Динамика заявок на подбор",
+      "totalProfiles": "Всего профилей",
+      "activity": "Последние действия",
+      "pending": "Ожидают согласования ({{n}})",
+      "all": "Все",
+      "daysAgo": "{{n}} дн.",
+      "funnel": "Воронка подбора",
+      "stage": {
+        "requests": "Заявки",
+        "vacancies": "Вакансии",
+        "new": "Новые",
+        "screening": "Отбор",
+        "interview": "Интервью",
+        "offer": "Оффер",
+        "hired": "Приняты"
+      },
+      "act": {
+        "profile_create": "Создан профиль должности",
+        "profile_submit": "Профиль отправлен на согласование",
+        "profile_approve": "Профиль утверждён",
+        "profile_return": "Профиль возвращён на доработку",
+        "recruit_request_create": "Создана заявка на подбор",
+        "recruit_request_approve": "Заявка утверждена",
+        "recruit_request_reject": "Заявка отклонена",
+        "competency_create": "Добавлена компетенция",
+        "competency_update": "Компетенция изменена",
+        "competency_delete": "Компетенция удалена"
+      }
     }
   }
 }

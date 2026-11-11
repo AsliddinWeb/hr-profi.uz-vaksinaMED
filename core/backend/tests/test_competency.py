@@ -70,3 +70,11 @@ async def test_profile_required_before_request(new_client):
     assert v2["version"] == 2 and len(v2["competencies"]) == 3
     lst = (await hr.get(f"{R}/profiles")).json()["items"]
     assert any(i["position"]["id"] == pid and i["profile"]["version"] == 2 for i in lst)
+
+
+async def test_overview(new_client):
+    hr, _ = await as_user(new_client, "hrov", "hr_direktor")
+    r = await hr.get(f"{R}/overview", params={"days": 30})
+    assert r.status_code == 200, r.text
+    d = r.json()
+    assert len(d["dynamics"]) == 6 and d["funnel"][0]["stage"] == "requests" and "deltas" in d
