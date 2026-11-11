@@ -48,6 +48,7 @@ export interface LetterDetail extends Letter {
 }
 
 export interface LetterPage {
+  segment_counts?: Record<string, number>
   total: number
   page: number
   size: number

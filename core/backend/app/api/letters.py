@@ -235,6 +235,7 @@ async def list_letters(
     status: str | None = Query(default=None, pattern="^(open|overdue|requested|submitted|accepted|returned|cancelled)$"),
     q: str | None = None,
     employee_id: int | None = None,
+    segment_id: int | None = None,
     page: int = Query(1, ge=1),
     size: int = Query(30, ge=1, le=100),
     db: AsyncSession = Depends(get_session),
@@ -261,11 +262,16 @@ async def list_letters(
         stmt = stmt.where(or_(Employee.full_name.ilike(like), ExplanationLetter.number.ilike(like)))
     if employee_id:
         stmt = stmt.where(ExplanationLetter.employee_id == employee_id)
+    from app.services import company  # noqa: PLC0415
+
+    base_stmt = stmt
+    seg_counts = await company.segment_counts(db, lambda extra: select(func.count()).select_from(base_stmt.where(*extra).subquery()))
+    stmt = stmt.where(*company.segment_conditions(await company.load_segment(db, segment_id)))
     total = await db.scalar(select(func.count()).select_from(stmt.subquery()))
     rows = (await db.execute(stmt.order_by(ExplanationLetter.id.desc()).offset((page - 1) * size).limit(size))).all()
     names = await _requester_names(db, {r.requested_by for r, _ in rows})
     return {
-        "total": total or 0, "page": page, "size": size,
+        "total": total or 0, "page": page, "size": size, "segment_counts": seg_counts,
         "items": [svc.letter_out(r, e, today=today, auth=auth, requester=names.get(r.requested_by or 0)) for r, e in rows],
     }  # fmt: skip
 

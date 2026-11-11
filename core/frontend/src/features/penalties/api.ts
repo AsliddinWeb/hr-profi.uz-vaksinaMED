@@ -35,6 +35,7 @@ export interface PenaltyDetail extends Penalty {
 }
 
 export interface PenaltyPage {
+  segment_counts?: Record<string, number>
   total: number
   page: number
   size: number

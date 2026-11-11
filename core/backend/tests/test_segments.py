@@ -47,3 +47,28 @@ async def test_segments_crud_dashboard_and_settings(new_client):
     f = new_client()
     assert (await login(f, "farmseg")).status_code == 200
     assert (await f.post("/api/v1/segments", json={"name": "X"})).status_code == 403
+
+
+async def test_segment_filters_penalties_and_letters(new_client):
+    from app.models.penalties import Penalty  # noqa: PLC0415
+
+    await make_user("hrseg2", "hr_direktor")
+    hr = new_client()
+    assert (await login(hr, "hrseg2")).status_code == 200
+    async with SessionLocal() as s:
+        b = Branch(name="Seg2 filial", number=904)
+        s.add(b)
+        await s.flush()
+        off = Employee(last_name="O", first_name="Bir", full_name="O Bir", hire_date=date.today() - timedelta(days=50))
+        far = Employee(last_name="F", first_name="Ikki", full_name="F Ikki", branch_id=b.id, hire_date=date.today() - timedelta(days=50))
+        s.add_all([off, far])
+        await s.flush()
+        for e in (off, far, far):
+            s.add(Penalty(employee_id=e.id, incident_type="late", incident_date=date.today(), source="manual", step=1, label="Kech", amount=10000, status="pending"))
+        await s.commit()
+    segs = {x["scope"]: x["id"] for x in (await hr.get("/api/v1/segments")).json()}
+    r = (await hr.get("/api/v1/penalties", params={"scope": "all", "segment_id": segs["branch"]})).json()
+    assert r["total"] == 2 and r["segment_counts"][str(segs["office"])] == 1 and r["segment_counts"][str(segs["all"])] == 3
+    assert (await hr.get("/api/v1/penalties", params={"scope": "all", "segment_id": segs["office"]})).json()["total"] == 1
+    lt = await hr.get("/api/v1/letters", params={"scope": "all", "segment_id": segs["office"]})
+    assert lt.status_code == 200 and set(lt.json()["segment_counts"]) >= {str(segs["office"]), str(segs["branch"])}

@@ -49,3 +49,31 @@ async def segments(db: AsyncSession, active_only: bool = True) -> list[EmployeeS
     if active_only:
         stmt = stmt.where(EmployeeSegment.is_active.is_(True))
     return list((await db.scalars(stmt)).all())
+
+
+def segment_conditions(seg: EmployeeSegment | None) -> list:
+    """Segment shartlari ro'yxat ko'rinishida (Employee jadvali so'rovda bo'lishi kerak)."""
+    if seg is None:
+        return []
+    conds: list = []
+    if seg.scope == "office":
+        conds.append(Employee.branch_id.is_(None))
+    elif seg.scope == "branch":
+        conds.append(Employee.branch_id.is_not(None))
+    if seg.department_ids:
+        conds.append(Employee.department_id.in_(seg.department_ids))
+    if seg.position_ids:
+        conds.append(Employee.position_id.in_(seg.position_ids))
+    return conds
+
+
+async def segment_counts(db: AsyncSession, count_stmt_for) -> dict[int, int]:
+    """Har faol segment uchun son: `count_stmt_for(conds)` -> count so'rovi."""
+    out: dict[int, int] = {}
+    for s in await segments(db):
+        out[s.id] = await db.scalar(count_stmt_for(segment_conditions(s))) or 0
+    return out
+
+
+async def load_segment(db: AsyncSession, segment_id: int | None) -> EmployeeSegment | None:
+    return await db.get(EmployeeSegment, segment_id) if segment_id else None

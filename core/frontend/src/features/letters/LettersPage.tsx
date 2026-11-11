@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { PageHeader } from '../../components/layout/PageHeader'
+import { SegmentFilter } from '../../components/SegmentFilter'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { Input, Select } from '../../components/ui/Input'
@@ -28,7 +29,9 @@ export function LettersPage() {
   const [status, setStatus] = useState('')
   const [q, setQ] = useState('')
   const [page, setPage] = useState(1)
+  const [segment, setSegment] = useState<number | null>(null)
   const params = new URLSearchParams({ scope, page: String(page), size: String(SIZE) })
+  if (scope === 'all' && segment) params.set('segment_id', String(segment))
   if (status) params.set('status', status)
   if (q.trim()) params.set('q', q.trim())
   const list = useQuery({ queryKey: ['letters', 'list', params.toString()], queryFn: () => api<LetterPage>(`/api/v1/letters?${params}`), placeholderData: (p) => p, refetchInterval: 60_000 })
@@ -49,6 +52,7 @@ export function LettersPage() {
           )
         }
       />
+      {scope === 'all' && <SegmentFilter value={segment} onChange={(s) => (setSegment(s), setPage(1))} counts={list.data?.segment_counts} />}
       <Card className="flex flex-wrap items-center gap-3 p-4">
         {scopes.length > 1 && (
           <div className="flex rounded-control bg-(--seg-bg) p-0.5 text-[13px]">

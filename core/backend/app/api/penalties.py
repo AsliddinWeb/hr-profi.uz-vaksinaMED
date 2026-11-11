@@ -120,6 +120,7 @@ async def list_penalties(
     source: str | None = Query(default=None, pattern="^(auto|manual)$"),
     q: str | None = None,
     employee_id: int | None = None,
+    segment_id: int | None = None,
     start: date | None = None,
     end: date | None = None,
     page: int = Query(1, ge=1),
@@ -141,12 +142,16 @@ async def list_penalties(
         conds.append(Penalty.incident_date >= start)
     if end:
         conds.append(Penalty.incident_date <= end)
+    from app.services import company  # noqa: PLC0415
+
+    seg_counts = await company.segment_counts(db, lambda extra: select(func.count()).select_from(Penalty).join(Employee, Employee.id == Penalty.employee_id).where(*conds, *extra))
+    conds.extend(company.segment_conditions(await company.load_segment(db, segment_id)))
     base = select(Penalty, Employee).join(Employee, Employee.id == Penalty.employee_id).where(*conds)
     total = await db.scalar(select(func.count()).select_from(Penalty).join(Employee, Employee.id == Penalty.employee_id).where(*conds))
     sums = float(await db.scalar(select(func.coalesce(func.sum(Penalty.amount), 0)).select_from(Penalty).join(Employee, Employee.id == Penalty.employee_id).where(*conds, Penalty.status == "approved")) or 0)
     stmt = base
     rows = (await db.execute(stmt.order_by(Penalty.incident_date.desc(), Penalty.id.desc()).offset((page - 1) * size).limit(size))).all()
-    return {"total": total or 0, "page": page, "size": size, "items": [svc.penalty_out(p, e) for p, e in rows], "approved_amount": sums}
+    return {"total": total or 0, "page": page, "size": size, "items": [svc.penalty_out(p, e) for p, e in rows], "approved_amount": sums, "segment_counts": seg_counts}
 
 
 @router.get("/summary")
