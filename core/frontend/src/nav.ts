@@ -7,7 +7,7 @@ import type { NavItem } from './extensions/registry'
  * `module` — backend modules ro'yxatidagi kalit (client.yaml orqali o'chirilishi mumkin).
  */
 const baseNav: NavItem[] = [
-  { id: 'checklist-status', group: 'attendance', label: { uz: 'Cheklist holati', ru: 'Статус чек-листов' }, to: '/checklists/status', icon: ClipboardCheck, anyPermission: ['checklists.own', 'checklists.read', 'checklists.manage'], module: 'checklists' },
+  { id: 'checklist-status', group: 'checklists', label: { uz: 'Cheklist holati', ru: 'Статус чек-листов' }, to: '/checklists/status', icon: ClipboardCheck, anyPermission: ['checklists.own', 'checklists.read', 'checklists.manage'], module: 'checklists' },
   { id: 'company-settings', group: 'system', label: { uz: 'Kompaniya sozlamalari', ru: 'Настройки компании' }, to: '/settings/company', icon: Building2, anyPermission: ['org.manage'] },
   { id: 'devices', group: 'system', label: { uz: 'Qurilmalar', ru: 'Устройства' }, to: '/devices', icon: MonitorSmartphone, anyPermission: ['devices.read', 'devices.manage'] },
   { id: 'payroll-sheet', group: 'payroll', label: { uz: 'Oylik hisob', ru: 'Расчёт зарплаты' }, to: '/payroll/sheet', icon: Table2, permission: 'payroll.read', module: 'payroll' },
@@ -123,67 +123,12 @@ const baseNav: NavItem[] = [
   { id: 'system', group: 'system', label: { uz: 'Tizim holati', ru: 'Состояние системы' }, to: '/system', icon: Activity },
 ]
 
-/** Menyu tartibi vaksinahr.uz bilan bir xil: ASOSIY, DAVOMAT, MENING ISHIM, XODIMLAR, MOLIYA, APTEKA TARMOG'I, LOGISTIKA, OMBORXONA, TIZIM.
- * Ro'yxatda yo'q yangi band o'z guruhining oxiriga tushadi. */
-const LAYOUT: [NonNullable<NavItem['group']>, string[]][] = [
-  ['main', ['home', 'reception', 'reception-new', 'reception-report', 'my-answers', 'answers-inbox', 'answers-calendar', 'answers-status', 'org', 'revisions', 'helpdesk', 'helpdesk-new', 'helpdesk-analytics', 'helpdesk-categories', 'complaints', 'calls', 'help']],
-  ['attendance', ['my-attendance', 'attendance-daily', 'attendance-dashboard', 'timesheet', 'attendance-issues', 'attendance-qr', 'rotations', 'schedule', 'shifts', 'work-groups', 'patterns', 'holidays', 'checklist-status', 'checklists', 'checklists-report', 'checklists-templates', 'duty-my', 'duty-control', 'duty-templates', 'letters', 'letter-templates', 'verify', 'hr-references', 'penalties', 'penalty-rules', 'penalty-report']],
-  ['tasks', ['tasks-list', 'tasks-board', 'tasks-analytics', 'tasks-templates', 'reminders']],
-  ['people', ['employees', 'recruit-vacancies', 'recruit-candidates', 'internship', 'recruit-requests', 'pharmacy-needs', 'recruit-requirements', 'recruit-recruiter', 'recruit-funnel', 'recruit-compare', 'hr-library', 'hr-documents', 'kadr', 'conferences', 'internship-classes', 'attestation', 'internship-programs', 'preboarding-my', 'career', 'performance', 'control', 'retention', 'offboarding']],
-  ['payroll', ['payroll', 'payroll-sheet', 'payroll-my', 'canteen', 'canteen-menus', 'canteen-comments', 'canteen-analytics', 'canteen-qr']],
-  ['pharmacy', ['branches', 'pharmacy', 'pharmacy-map', 'pharmacy-quality', 'ratings', 'needs', 'needs-new', 'needs-analytics', 'needs-categories']],
-  ['logistics', ['logistics', 'logistics-my']],
-  ['warehouse', ['warehouse']],
-  ['system', ['coord-report', 'reports', 'departments', 'positions', 'position-duties', 'org-structures', 'preboarding', 'face-id', 'face-admin', 'face-eval', 'mobile', 'mobile-my', 'company-settings', 'devices', 'users', 'roles', 'audit', 'ai-usage', 'migration', 'integrations', 'plan', 'system', 'notifications']],
-]
-
-const LISTED = new Set(LAYOUT.flatMap(([, ids]) => ids))
-
-function arrange(items: NavItem[]): NavItem[] {
-  const byId = new Map(items.map((i) => [i.id, i]))
-  const out: NavItem[] = []
-  const used = new Set<string>()
-  for (const [group, ids] of LAYOUT) {
-    const chunk: NavItem[] = []
-    for (const id of ids) {
-      const it = byId.get(id)
-      if (!it) continue
-      used.add(id)
-      // Kichik bo'limlar (sub) faqat XODIMLAR guruhida qoladi, boshqa joyda tekis ro'yxat
-      chunk.push({ ...it, group, sub: group === 'people' ? it.sub : undefined })
-    }
-    chunk.push(...items.filter((i) => !used.has(i.id) && !LISTED.has(i.id) && i.group === group).map((i) => (used.add(i.id), i)))
-    // Bir xil kichik bo'lim bandlari yonma-yon turishi shart (yon panel ularni bitta blokka yig'adi)
-    const order = [...new Set(chunk.map((i) => i.sub ?? `#${i.id}`))]
-    out.push(...order.flatMap((k) => chunk.filter((i) => (i.sub ?? `#${i.id}`) === k)))
-  }
-  return [...out, ...items.filter((i) => !used.has(i.id))]
-}
-
 /**
  * Bo'lim klasterlari: yon menyuda har klasterdan faqat birinchi ruxsatli band turadi,
  * qolganlari sahifa tepasida tab bo'lib chiqadi (ClusterTabs). tabs: false — sahifaning o'z tablari bor.
  */
 export const NAV_CLUSTERS: { ids: string[]; tabs?: false }[] = [
-  { ids: ['org', 'departments', 'positions', 'position-duties', 'org-structures'] },
-  { ids: ['recruit-vacancies', 'recruit-candidates', 'recruit-requirements', 'recruit-recruiter', 'recruit-funnel'], tabs: false },
-  { ids: ['internship', 'internship-classes', 'internship-programs'] },
-  { ids: ['schedule', 'shifts', 'work-groups', 'patterns', 'holidays'] },
-  { ids: ['attendance-dashboard', 'attendance-daily', 'timesheet', 'coord-report', 'my-attendance', 'attendance-issues', 'attendance-qr'] },
-  { ids: ['face-admin', 'face-eval', 'face-id'] },
-  { ids: ['answers-inbox', 'answers-status', 'answers-calendar', 'my-answers'] },
-  { ids: ['letters', 'letter-templates', 'verify'] },
-  { ids: ['penalties', 'penalty-report', 'penalty-rules'] },
-  { ids: ['tasks-board', 'tasks-list', 'tasks-analytics', 'tasks-templates'] },
-  { ids: ['mobile', 'mobile-my'] },
   { ids: ['reception', 'reception-new', 'reception-report'] },
-  { ids: ['helpdesk', 'helpdesk-new', 'helpdesk-analytics', 'helpdesk-categories'] },
-  { ids: ['logistics', 'logistics-my'] },
-  { ids: ['canteen', 'canteen-menus', 'canteen-comments', 'canteen-analytics', 'canteen-qr'] },
-  { ids: ['checklists', 'checklists-report', 'checklists-templates'] },
-  { ids: ['duty-control', 'duty-templates', 'duty-my'] },
-  { ids: ['needs', 'needs-new', 'needs-analytics', 'needs-categories'] },
-  { ids: ['pharmacy', 'pharmacy-map', 'pharmacy-needs', 'pharmacy-quality'] },
 ]
 export const clusterOf = new Map(NAV_CLUSTERS.flatMap((c) => c.ids.map((id) => [id, c] as const)))
 
@@ -204,4 +149,18 @@ export function collapseNav<T extends { id: string }>(items: T[]): T[] {
 }
 
 export const navById = new Map(baseNav.map((i) => [i.id, i]))
-export const coreNav: NavItem[] = arrange(baseNav)
+/** Keyin qo'shilgan bandlar (baseNav boshida): o'z guruhining oxiriga qo'yiladi, qolgan menyu asl tartibida. */
+const ADDED = new Set(['checklist-status', 'company-settings', 'devices', 'payroll-sheet', 'revisions', 'ratings'])
+
+/** Menyu asl holicha: guruhlar va bandlar baseNav tartibida, bir xil kichik bo'lim (sub) bandlari yonma-yon. */
+function original(items: NavItem[]): NavItem[] {
+  const g = (i: NavItem) => i.group ?? 'main'
+  const groups = [...new Set([...items.filter((i) => !ADDED.has(i.id)), ...items].map(g))]
+  return groups.flatMap((grp) => {
+    const chunk = [...items.filter((i) => !ADDED.has(i.id) && g(i) === grp), ...items.filter((i) => ADDED.has(i.id) && g(i) === grp)]
+    const subs = [...new Set(chunk.map((i) => i.sub ?? `#${i.id}`))]
+    return subs.flatMap((k) => chunk.filter((i) => (i.sub ?? `#${i.id}`) === k))
+  })
+}
+
+export const coreNav: NavItem[] = original(baseNav)

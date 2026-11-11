@@ -55,7 +55,7 @@ function periodText(r: Pick<Rotation, 'kind' | 'start_date' | 'end_date'>, lang:
 
 const TONE = { pending: 'warning', approved: 'info', active: 'success', completed: 'neutral', rejected: 'danger', cancelled: 'neutral' } as const
 const area = 'w-full rounded-control border border-border bg-surface px-3 py-2 text-sm'
-const FILTERS = ['open', 'pending', 'active', 'history'] as const
+const FILTERS = ['open', 'pending', 'active', 'completed', 'history'] as const
 
 /** /org/rotations: filialdan filialga vaqtincha o'tkazishlar. */
 export function RotationsPage() {
