@@ -214,3 +214,22 @@ async def test_coverage_ranking_and_trend(new_client, clock):
     assert [t["visits"] for t in tr] == [1, 1] and [t["avg_score"] for t in tr] == [100.0, 20.0]
     assert datetime.fromisoformat(tr[0]["week"]).weekday() == 0
     assert (await ctx["hr"].get(f"{C}/trend", params={"start": "2020-01-01", "end": "2026-11-30"})).status_code == 400
+
+
+async def test_status_dashboard(new_client, clock):
+    ctx = await setup(new_client)
+    v = (await start(ctx["co"], ctx)).json()
+    await ctx["co"].put(f"{C}/visits/{v['id']}/answers", json={"answers": answers(ctx, [(1, False), (5, False), (1, False), (None, True)])})
+    clock["t"] = NOW + timedelta(minutes=25)
+    assert (await ctx["co"].post(f"{C}/visits/{v['id']}/submit")).status_code == 200
+    s = (await ctx["hr"].get(f"{C}/status")).json()
+    assert s["kpis"]["visits"] == 1 and s["kpis"]["coverage"] == {"visited": 1, "total": 2} and s["score_buckets"]["good"] == 1
+    assert s["answers"] == {"yes": 3, "no": 0} and s["process"]["not_visited"] == 1 and len(s["daily"]) == 14
+    t = (await ctx["hr"].get(f"{C}/status/time", params={"period": "all"})).json()
+    assert t["avg_minutes"] == 25.0 and t["by_coordinator"][0]["id"] == ctx["co_id"]
+    r = (await ctx["hr"].get(f"{C}/status/ranking", params={"span": "month"})).json()
+    assert r["items"][0]["id"] == ctx["co_id"] and r["items"][0]["points"] == 100 and r["items"][-1]["points"] == 0
+    cov = (await ctx["hr"].get(f"{C}/status/coverage", params={"month": "2026-11"})).json()
+    assert cov["visited"] == 1 and cov["total"] == 2 and cov["limit"] == 4
+    own = (await ctx["co"].get(f"{C}/status")).json()
+    assert own["kpis"]["coverage"]["total"] == 1

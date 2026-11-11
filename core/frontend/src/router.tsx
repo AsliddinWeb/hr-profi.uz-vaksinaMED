@@ -31,6 +31,8 @@ import { RatePage } from "./features/public/RatePage";
 import { RatingsPage, RatingsPrintPage } from "./features/ratings/RatingsPage";
 import { RevisionsPage } from "./features/revisions/RevisionsPage";
 import { DevicesPage } from "./features/devices/DevicesPage";
+import { ChecklistStatusPage } from "./features/checklists/StatusPage";
+import { CompanySettingsPage } from "./features/settings/CompanySettingsPage";
 import { SalesSheetPage } from "./features/payroll/SalesSheetPage";
 import {
   ConferenceDetailPage,
@@ -1653,6 +1655,8 @@ export function createRouter() {
                 { path: "revisions", element: <RevisionsPage /> },
                 { path: "ratings", element: <RatingsPage /> },
                 { path: "devices", element: <DevicesPage /> },
+                { path: "checklists/status", element: <ChecklistStatusPage /> },
+                { path: "settings/company", element: <CompanySettingsPage /> },
                 { path: "payroll/sheet", element: <SalesSheetPage /> },
                 {
                   path: "conferences/new",

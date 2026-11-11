@@ -6511,5 +6511,146 @@
       "gross": "Hisoblangan",
       "to_pay": "Qo‘lga / karta"
     }
+  },
+  "cls": {
+    "kicker": "NAZORAT · TASHRIFLAR",
+    "title": "Cheklist holati",
+    "subtitle": "Koordinatorlar filialga qachon kelgani, cheklistni qanday to‘ldirgani va qancha vaqt qolgani — bitta joyda.",
+    "rule": "Har filialga oyiga {{n}} tagacha tashrif",
+    "tab": {
+      "dashboard": "Dashboard",
+      "time": "Vaqt",
+      "ranking": "Reyting",
+      "visits": "Tashriflar",
+      "coverage": "Filial qamrovi"
+    },
+    "coordinator": "Koordinator",
+    "allCoordinators": "Barcha koordinatorlar",
+    "p": {
+      "all": "Barchasi",
+      "today": "Bugun",
+      "7d": "7 kun",
+      "30d": "30 kun"
+    },
+    "k": {
+      "visits": "Tashriflar",
+      "branches": "Filial (tashrif)",
+      "coordinators": "Koordinator",
+      "avg": "O‘rtacha ball",
+      "coverage": "Qamrov",
+      "ofVisits": "{{n}} ta tashrif"
+    },
+    "scoreState": "Ball holati",
+    "answers": "Javoblar",
+    "process": "Jarayon",
+    "yes": "Ha",
+    "no": "Yo‘q",
+    "gps": "GPS bor",
+    "noGps": "GPS yo‘q",
+    "notVisited": "Kiritilmagan filial",
+    "b": {
+      "good": "A’lo ≥85%",
+      "mid": "O‘rtacha 70–84%",
+      "low": "Past <70%",
+      "goodShort": "A’lo",
+      "midShort": "O‘rtacha",
+      "lowShort": "Past"
+    },
+    "daily": "Kunlik tashriflar",
+    "dailyHint": "Oxirgi 14 kun · nechta cheklist",
+    "distribution": "Ball taqsimoti",
+    "distributionHint": "Tashriflar qanday baholangan",
+    "ranking": "Koordinatorlar reytingi",
+    "rankingHint": "100 ballik baho: kim ko‘p, sifatli va GPS bilan cheklist qilgan bo‘lsa — yuqorida.",
+    "span": "Davr",
+    "s": {
+      "day": "Kunlik",
+      "week": "Haftalik",
+      "month": "Oylik"
+    },
+    "rankLine": "{{v}} ta cheklist · {{b}} ta filialga borgan · o‘rtacha ball {{s}}%",
+    "last": "oxirgi",
+    "lv": {
+      "good": "A’lo",
+      "mid": "Yaxshi",
+      "low": "Past",
+      "none": "Tashrif yo‘q"
+    },
+    "visitsHint": "Barcha tashriflar ro‘yxati, filtr va tafsilotlari",
+    "openVisits": "Tashriflarni ochish",
+    "covSummary": "{{v}}/{{t}} filialga borilgan · limitdan oshgan: {{o}}",
+    "min": "daq",
+    "t": {
+      "avg": "O‘rtacha davomiylik",
+      "short": "5 daqiqadan qisqa",
+      "long": "2 soatdan uzun",
+      "hours": "Kelish soatlari",
+      "byCoord": "Koordinator bo‘yicha o‘rtacha vaqt",
+      "recent": "So‘nggi tashriflar"
+    }
+  },
+  "seg": {
+    "title": "Davomat tahlili",
+    "settings": "Bo‘limlarni sozlash",
+    "emp": "xod",
+    "p": {
+      "today": "Bugun",
+      "7d": "7 kun",
+      "30d": "30 kun",
+      "month": "Oy"
+    },
+    "onTime": "Vaqtida",
+    "late": "Kech",
+    "absent": "Kelmagan",
+    "byDept": "Bo‘limlar jadvali",
+    "deptSearch": "Bo‘lim qidirish…",
+    "col": {
+      "dept": "Bo‘lim",
+      "emp": "Xodim",
+      "came": "Kelgan",
+      "late": "Kech",
+      "absent": "Kelmagan"
+    },
+    "disciplined": "Top 5 eng intizomli xodimlar",
+    "days": "kun",
+    "topLate": "Top 10 kechikuvchilar",
+    "byPosition": "Lavozim / rol bo‘yicha",
+    "recent": "So‘nggi kelishlar",
+    "noRecent": "Bugun hali hech kim kelmadi"
+  },
+  "cset": {
+    "title": "Kompaniya sozlamalari",
+    "subtitle": "Platformani kompaniyangizga moslang: xodim guruhlarini qo‘shing, o‘zgartiring va qoidalarni sozlang.",
+    "segments": "Xodim guruhlari (segmentlar)",
+    "segmentsHint": "Bosh sahifadagi davomat tahlili, jarima va xatlarda tugma bo‘lib chiqadi. Masalan: Ofis, Dorixona, Ombor, Filial A.",
+    "add": "Guruh qo‘shish",
+    "edit": "Tahrirlash",
+    "delete": "O‘chirish",
+    "deleteHint": "«{{name}}» guruhi o‘chiriladi. Xodimlar o‘zgarmaydi.",
+    "inactive": "o‘chirilgan",
+    "scope": {
+      "all": "Barcha xodimlar",
+      "office": "Faqat ofis (filialga biriktirilmagan)",
+      "branch": "Faqat filial xodimlari"
+    },
+    "nDepts": "{{n}} ta bo‘lim",
+    "nPos": "{{n}} ta lavozim",
+    "f": {
+      "name": "Nomi",
+      "desc": "Izoh",
+      "scope": "Kimlar kiradi",
+      "color": "Rangi",
+      "order": "Tartib",
+      "depts": "Faqat shu bo‘limlar (ixtiyoriy)",
+      "positions": "Faqat shu lavozimlar (ixtiyoriy)",
+      "active": "Faol"
+    },
+    "rules": "Qoidalar",
+    "rulesHint": "Kompaniyaga qarab o‘zgaradigan raqamlar.",
+    "key": {
+      "checklists_month_limit": "Cheklist: filialga oyiga tashrif limiti",
+      "revisions_cycle_days": "Reviziya sikli (kun)",
+      "revisions_soon_days": "Reviziya «tez orada» (kun)"
+    }
   }
 }

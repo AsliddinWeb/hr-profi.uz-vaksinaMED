@@ -7,6 +7,8 @@ import type { NavItem } from './extensions/registry'
  * `module` — backend modules ro'yxatidagi kalit (client.yaml orqali o'chirilishi mumkin).
  */
 const baseNav: NavItem[] = [
+  { id: 'checklist-status', group: 'attendance', label: { uz: 'Cheklist holati', ru: 'Статус чек-листов' }, to: '/checklists/status', icon: ClipboardCheck, anyPermission: ['checklists.own', 'checklists.read', 'checklists.manage'], module: 'checklists' },
+  { id: 'company-settings', group: 'system', label: { uz: 'Kompaniya sozlamalari', ru: 'Настройки компании' }, to: '/settings/company', icon: Building2, anyPermission: ['org.manage'] },
   { id: 'devices', group: 'system', label: { uz: 'Qurilmalar', ru: 'Устройства' }, to: '/devices', icon: MonitorSmartphone, anyPermission: ['devices.read', 'devices.manage'] },
   { id: 'payroll-sheet', group: 'payroll', label: { uz: 'Oylik hisob', ru: 'Расчёт зарплаты' }, to: '/payroll/sheet', icon: Table2, permission: 'payroll.read', module: 'payroll' },
   { id: 'revisions', group: 'main', label: { uz: 'Reviziya', ru: 'Ревизия' }, to: '/revisions', icon: ClipboardCheck, anyPermission: ['revision.own', 'revision.read', 'revision.manage'], module: 'pharmacy' },
@@ -125,14 +127,14 @@ const baseNav: NavItem[] = [
  * Ro'yxatda yo'q yangi band o'z guruhining oxiriga tushadi. */
 const LAYOUT: [NonNullable<NavItem['group']>, string[]][] = [
   ['main', ['home', 'reception', 'reception-new', 'reception-report', 'my-answers', 'answers-inbox', 'answers-calendar', 'answers-status', 'org', 'revisions', 'helpdesk', 'helpdesk-new', 'helpdesk-analytics', 'helpdesk-categories', 'complaints', 'calls', 'help']],
-  ['attendance', ['my-attendance', 'attendance-daily', 'attendance-dashboard', 'timesheet', 'attendance-issues', 'attendance-qr', 'rotations', 'schedule', 'shifts', 'work-groups', 'patterns', 'holidays', 'checklists', 'checklists-report', 'checklists-templates', 'duty-my', 'duty-control', 'duty-templates', 'letters', 'letter-templates', 'verify', 'hr-references', 'penalties', 'penalty-rules', 'penalty-report']],
+  ['attendance', ['my-attendance', 'attendance-daily', 'attendance-dashboard', 'timesheet', 'attendance-issues', 'attendance-qr', 'rotations', 'schedule', 'shifts', 'work-groups', 'patterns', 'holidays', 'checklist-status', 'checklists', 'checklists-report', 'checklists-templates', 'duty-my', 'duty-control', 'duty-templates', 'letters', 'letter-templates', 'verify', 'hr-references', 'penalties', 'penalty-rules', 'penalty-report']],
   ['tasks', ['tasks-list', 'tasks-board', 'tasks-analytics', 'tasks-templates', 'reminders']],
   ['people', ['employees', 'recruit-vacancies', 'recruit-candidates', 'internship', 'recruit-requests', 'pharmacy-needs', 'recruit-requirements', 'recruit-recruiter', 'recruit-funnel', 'recruit-compare', 'hr-library', 'hr-documents', 'kadr', 'conferences', 'internship-classes', 'attestation', 'internship-programs', 'preboarding-my', 'career', 'performance', 'control', 'retention', 'offboarding']],
   ['payroll', ['payroll', 'payroll-sheet', 'payroll-my', 'canteen', 'canteen-menus', 'canteen-comments', 'canteen-analytics', 'canteen-qr']],
   ['pharmacy', ['branches', 'pharmacy', 'pharmacy-map', 'pharmacy-quality', 'ratings', 'needs', 'needs-new', 'needs-analytics', 'needs-categories']],
   ['logistics', ['logistics', 'logistics-my']],
   ['warehouse', ['warehouse']],
-  ['system', ['coord-report', 'reports', 'departments', 'positions', 'position-duties', 'org-structures', 'preboarding', 'face-id', 'face-admin', 'face-eval', 'mobile', 'mobile-my', 'devices', 'users', 'roles', 'audit', 'ai-usage', 'migration', 'integrations', 'plan', 'system', 'notifications']],
+  ['system', ['coord-report', 'reports', 'departments', 'positions', 'position-duties', 'org-structures', 'preboarding', 'face-id', 'face-admin', 'face-eval', 'mobile', 'mobile-my', 'company-settings', 'devices', 'users', 'roles', 'audit', 'ai-usage', 'migration', 'integrations', 'plan', 'system', 'notifications']],
 ]
 
 function arrange(items: NavItem[]): NavItem[] {
@@ -140,14 +142,18 @@ function arrange(items: NavItem[]): NavItem[] {
   const out: NavItem[] = []
   const used = new Set<string>()
   for (const [group, ids] of LAYOUT) {
+    const chunk: NavItem[] = []
     for (const id of ids) {
       const it = byId.get(id)
       if (!it) continue
       used.add(id)
       // Kichik bo'limlar (sub) faqat XODIMLAR guruhida qoladi, boshqa joyda tekis ro'yxat
-      out.push({ ...it, group, sub: group === 'people' ? it.sub : undefined })
+      chunk.push({ ...it, group, sub: group === 'people' ? it.sub : undefined })
     }
-    out.push(...items.filter((i) => !used.has(i.id) && i.group === group).map((i) => (used.add(i.id), i)))
+    chunk.push(...items.filter((i) => !used.has(i.id) && i.group === group).map((i) => (used.add(i.id), i)))
+    // Bir xil kichik bo'lim bandlari yonma-yon turishi shart (yon panel ularni bitta blokka yig'adi)
+    const order = [...new Set(chunk.map((i) => i.sub ?? `#${i.id}`))]
+    out.push(...order.flatMap((k) => chunk.filter((i) => (i.sub ?? `#${i.id}`) === k)))
   }
   return [...out, ...items.filter((i) => !used.has(i.id))]
 }

@@ -17,6 +17,7 @@ from app.models.branch_ops import RevisionTask
 from app.models.org import Branch
 from app.rbac import matches
 from app.services.answers import users_with_permission
+from app.services.company import get_setting
 from app.services.notifications import deliver, notify, register_template
 from app.timeutil import local_date, now
 
@@ -77,6 +78,7 @@ async def _scope(db: AsyncSession, auth: AuthContext):
 async def branches(q: str | None = None, status: str | None = None, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(can_read)):
     """Filiallar sikli: oxirgi tasdiqlangan reviziya, keyingi muddat va holat (overdue/soon/in_progress/on_plan/never)."""
     today = local_date(now())
+    cycle_days, soon_days = await get_setting(db, "revisions.cycle_days"), await get_setting(db, "revisions.soon_days")
     bstmt = select(Branch).where(Branch.is_active.is_(True))
     if q:
         bstmt = bstmt.where(Branch.name.ilike(f"%{q.strip()}%"))
@@ -94,7 +96,7 @@ async def branches(q: str | None = None, status: str | None = None, db: AsyncSes
     items, counts = [], dict.fromkeys(("overdue", "cycle_done", "soon", "in_progress", "on_plan", "never"), 0)
     for b in blist:
         last = last_done.get(b.id)
-        due = last + timedelta(days=CYCLE_DAYS) if last else None
+        due = last + timedelta(days=cycle_days) if last else None
         t = open_by.get(b.id)
         if t:
             st = "in_progress"
@@ -102,7 +104,7 @@ async def branches(q: str | None = None, status: str | None = None, db: AsyncSes
             st = "never"
         elif due < today:
             st = "overdue"
-        elif (due - today).days < SOON_DAYS:
+        elif (due - today).days < soon_days:
             st = "soon"
         else:
             st = "on_plan"
@@ -114,7 +116,7 @@ async def branches(q: str | None = None, status: str | None = None, db: AsyncSes
         items.append({"id": b.id, "name": _bname(b), "manager": names.get(b.manager_user_id or 0), "coordinator": names.get(b.coordinator_user_id or 0),
                       "last_done": last, "next_due": due, "days_left": (due - today).days if due else None, "status": st,
                       "open_task": {"id": t.id, "status": t.status, "planned_date": t.planned_date, "revizor": names.get(t.revizor_user_id or 0)} if t else None})  # fmt: skip
-    return {"cycle_days": CYCLE_DAYS, "counts": counts, "items": items}
+    return {"cycle_days": cycle_days, "counts": counts, "items": items}
 
 
 @router.get("/branches/{bid}/history")

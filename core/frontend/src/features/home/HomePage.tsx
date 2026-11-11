@@ -23,6 +23,7 @@ import { useOpenNotification } from '../notifications/useNotifications'
 import { usePendingPenalties } from '../penalties/usePendingCount'
 import { useTaskCount } from '../tasks/useTaskCount'
 import { HomeDashboard } from './HomeDashboard'
+import { SegmentDashboard } from './SegmentDashboard'
 
 /** Bosh sahifa: salomlashuv, "sizni kutmoqda" topshiriqlari, bugungi davomat, so'nggi xabarlar va barcha bo'limlar (ishga tushirgich). */
 export function HomePage() {
@@ -96,6 +97,8 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      <SegmentDashboard />
 
       <HomeDashboard />
 

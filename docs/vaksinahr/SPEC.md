@@ -9,7 +9,7 @@ hr-profi menyusi shu guruhlar va shu tartibga keltiriladi.
 
 | Guruh | vaksinahr bandi (yo'l) | hr-profi | Holat |
 |---|---|---|---|
-| ASOSIY | Dashboard (/dashboard) | / (davomat tahlili ko'rinishida) | 🟡 |
+| ASOSIY | Dashboard (/dashboard) | / (segmentlar: /settings/company) | ✅ |
 | ASOSIY | Qabulxona (/resepsion) | /reception | ✅ |
 | ASOSIY | Javob olish | /answers | ✅ |
 | ASOSIY | Javob olish holati | /answers/holat | ✅ |
@@ -20,7 +20,7 @@ hr-profi menyusi shu guruhlar va shu tartibga keltiriladi.
 | DAVOMAT | Davomat hisobot | /attendance/daily | 🟡 |
 | DAVOMAT | Davomat QR | /attendance/qr | ✅ |
 | DAVOMAT | Smena va filial | /org/rotations | 🟡 |
-| DAVOMAT | Cheklist holati | /checklists | 🟡 |
+| DAVOMAT | Cheklist holati | /checklists/status | ✅ |
 | DAVOMAT | Tushuntirish xatlari | /letters | ✅ |
 | DAVOMAT | Ma'lumotnoma | /hr/references | ✅ |
 | DAVOMAT | Jarimalar | /penalties | ✅ |
