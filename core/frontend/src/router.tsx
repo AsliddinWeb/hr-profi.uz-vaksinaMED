@@ -195,6 +195,8 @@ import { ListPage as HelpListPage } from "./features/helpdesk/ListPage";
 import { DetailPage as VisitDetailPage } from "./features/reception/DetailPage";
 import { FormPage as VisitFormPage } from "./features/reception/FormPage";
 import { ListPage as VisitListPage } from "./features/reception/ListPage";
+import { PanelPage as ReceptionPanelPage } from "./features/reception/PanelPage";
+import { CoffeePage } from "./features/reception/CoffeePage";
 import { ReportPage as VisitReportPage } from "./features/reception/ReportPage";
 import { AnalyticsPage as ReqAnalyticsPage } from "./features/needs/AnalyticsPage";
 import { CategoriesPage as ReqCategoriesPage } from "./features/needs/CategoriesPage";
@@ -2551,6 +2553,8 @@ export function createRouter() {
                     </RequirePerm>
                   ),
                 },
+                { path: "reception/panel", element: <ReceptionPanelPage /> },
+                { path: "reception/coffee", element: <CoffeePage /> },
                 {
                   path: "reception",
                   element: (

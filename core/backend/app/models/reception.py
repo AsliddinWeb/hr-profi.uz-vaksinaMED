@@ -31,3 +31,22 @@ class Visit(Base):
     checked_in_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     checked_out_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class CoffeeOrder(Base):
+    """Kofe-ledi: choy/kofe buyurtmasi (mehmon yoki yig'ilish uchun)."""
+
+    __tablename__ = "coffee_orders"
+    __table_args__ = (Index("ix_coffee_orders_status", "status"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    place: Mapped[str] = mapped_column(String(120))
+    items: Mapped[str] = mapped_column(String(300))
+    guests: Mapped[int] = mapped_column(Integer, default=1)
+    note: Mapped[str | None] = mapped_column(String(300))
+    status: Mapped[str] = mapped_column(String(12), default="new")  # new | accepted | done | cancelled
+    requested_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)
+    handled_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    done_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -21,6 +21,7 @@ from app.models.internship import InternshipEnrollment
 from app.models.letters import ExplanationLetter
 from app.models.needs import NeedRequest
 from app.models.penalties import Penalty
+from app.models.reception import CoffeeOrder, Visit
 from app.models.recruit import Application, Candidate, HireRequest, Vacancy
 from app.models.smart import Conference
 from app.models.tasks import Task
@@ -164,3 +165,58 @@ async def overview(days: int = Query(default=7, ge=3, le=31), db: AsyncSession =
 
 
 
+
+
+# --- Resepshn paneli: xodimning o'z ishlari va rahbar uchun umumiy nazorat --------------------
+
+
+@router.get("/desk")
+async def desk(db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
+    """Har soha bo'yicha raqamlar. `mine` — foydalanuvchining o'zi (hamma ko'radi, ruxsatiga qarab),
+    `all` — butun kompaniya bo'yicha (faqat shu sohani ko'rish/boshqarish ruxsati borlarga)."""
+    uid = auth.user.id
+    moment = now()
+    start = _dt(local_date(moment))
+    emp_ids = list((await db.scalars(select(Employee.id).where(Employee.user_id == uid))).all())
+    mine: list[dict[str, Any]] = []
+    total: list[dict[str, Any]] = []
+
+    def card(out: list, key: str, to: str, value: int, tone: str = "neutral") -> None:
+        out.append({"key": key, "to": to, "value": value, "tone": tone if value else "neutral"})
+
+    if _any(auth, "reception.desk", "reception.read"):
+        card(total, "guests_inside", "/reception", await _count(db, Visit, Visit.status == "arrived"), "info")
+        card(total, "guests_expected", "/reception", await _count(db, Visit, Visit.status == "expected", Visit.expected_at >= start), "warning")
+        card(total, "guests_today", "/reception/report", await _count(db, Visit, Visit.arrived_at >= start))
+    if _any(auth, "answers.request") and emp_ids:
+        card(mine, "my_requests", "/answers", await _count(db, LeaveRequest, LeaveRequest.employee_id.in_(emp_ids), LeaveRequest.status.in_(answers_svc.PENDING)), "info")
+    if _any(auth, "answers.decide", "answers.read"):
+        card(mine, "inbox", "/answers/inbox", await _count(db, LeaveRequest, LeaveRequest.status == "pending_coordinator", LeaveRequest.coordinator_user_id == uid), "danger")
+        card(total, "requests_pending", "/answers/inbox", await _count(db, LeaveRequest, LeaveRequest.status.in_(answers_svc.PENDING)), "warning")
+    if _any(auth, "tasks.own", "tasks.read", "tasks.manage"):
+        live = (Task.archived_at.is_(None), Task.status != "done")
+        card(mine, "my_tasks", "/tasks", await _count(db, Task, *live, Task.assignee_id == uid), "info")
+        card(mine, "my_tasks_overdue", "/tasks", await _count(db, Task, *live, Task.assignee_id == uid, Task.due_at < moment), "danger")
+        if _any(auth, "tasks.read", "tasks.manage"):
+            card(total, "tasks_overdue", "/tasks/analytics", await _count(db, Task, *live, Task.due_at < moment), "danger")
+    if _any(auth, "helpdesk.own", "helpdesk.work", "helpdesk.read", "helpdesk.manage"):
+        card(mine, "my_tickets", "/helpdesk", await _count(db, Ticket, Ticket.status.in_(desk_svc.OPEN), (Ticket.requester_id == uid) | (Ticket.assignee_id == uid)), "info")
+        if _any(auth, "helpdesk.work", "helpdesk.read", "helpdesk.manage"):
+            card(total, "tickets_open", "/helpdesk", await _count(db, Ticket, Ticket.status.in_(desk_svc.OPEN)), "warning")
+    if _any(auth, "needs.own", "needs.work", "needs.dispatch", "needs.manage"):
+        card(mine, "my_needs", "/needs", await _count(db, NeedRequest, NeedRequest.status.in_(needs_svc.OPEN), (NeedRequest.requester_id == uid) | (NeedRequest.assignee_id == uid)), "info")
+        if _any(auth, "needs.dispatch", "needs.manage"):
+            card(total, "needs_open", "/needs", await _count(db, NeedRequest, NeedRequest.status.in_(needs_svc.OPEN)), "warning")
+    if _any(auth, "complaints.own", "complaints.manage"):
+        card(mine, "my_complaints", "/complaints", await _count(db, Complaint, Complaint.author_user_id == uid, Complaint.status.in_(("new", "in_progress"))), "info")
+        if _any(auth, "complaints.manage"):
+            card(total, "complaints_open", "/complaints", await _count(db, Complaint, Complaint.status.in_(("new", "in_progress"))), "danger")
+    if _any(auth, "letters.own", "letters.issue", "letters.read", "letters.manage"):
+        if emp_ids:
+            card(mine, "my_letters", "/letters", await _count(db, ExplanationLetter, ExplanationLetter.employee_id.in_(emp_ids), ExplanationLetter.status.in_(letters_svc.OPEN)), "danger")
+        if _any(auth, "letters.read", "letters.manage"):
+            card(total, "letters_open", "/letters", await _count(db, ExplanationLetter, ExplanationLetter.status.in_(letters_svc.OPEN)), "warning")
+    card(mine, "my_coffee", "/reception/coffee", await _count(db, CoffeeOrder, CoffeeOrder.requested_by == uid, CoffeeOrder.status.in_(("new", "accepted"))), "info")
+    if _any(auth, "reception.coffee", "reception.desk"):
+        card(total, "coffee_open", "/reception/coffee", await _count(db, CoffeeOrder, CoffeeOrder.status.in_(("new", "accepted"))), "warning")
+    return {"mine": mine, "all": total}

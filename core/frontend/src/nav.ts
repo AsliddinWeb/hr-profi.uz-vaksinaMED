@@ -1,4 +1,4 @@
-import { Video, Eye, FileWarning, MonitorPlay, PlayCircle, Activity, DatabaseZap, FileBarChart, Sparkles, PhoneCall, DoorOpen, LifeBuoy, BookUser, MonitorSmartphone, Radar, Smartphone, Warehouse as WarehouseIcon, Truck, Navigation, QrCode as QrIcon, MessageSquareQuote, Salad, UtensilsCrossed, Banknote, ReceiptText, GraduationCap, BookOpen, Briefcase, Users2, FileCheck2, LineChart, MapPinCheck, ClipboardList, PackagePlus, Tags, HeartPulse, MapPinned, UserPlus, ShieldCheck as QualityShield, AlarmClock, BarChart2, KanbanSquare, ListChecks, ListTodo, Gavel, Receipt, Scale, FileSignature, FileStack, ShieldQuestion, CalendarRange, Inbox, MessageSquareText, LayoutDashboard, BarChart3, ScanFace, ShieldAlert, ClipboardCheck, QrCode, Table2, UserCheck, Bell, CalendarDays, CalendarOff, Building2, Clock, Contact, Layers, Network, Repeat, ScrollText, ShieldCheck, Store, Users } from 'lucide-react'
+import { Coffee, Video, Eye, FileWarning, MonitorPlay, PlayCircle, Activity, DatabaseZap, FileBarChart, Sparkles, PhoneCall, DoorOpen, LifeBuoy, BookUser, MonitorSmartphone, Radar, Smartphone, Warehouse as WarehouseIcon, Truck, Navigation, QrCode as QrIcon, MessageSquareQuote, Salad, UtensilsCrossed, Banknote, ReceiptText, GraduationCap, BookOpen, Briefcase, Users2, FileCheck2, LineChart, MapPinCheck, ClipboardList, PackagePlus, Tags, HeartPulse, MapPinned, UserPlus, ShieldCheck as QualityShield, AlarmClock, BarChart2, KanbanSquare, ListChecks, ListTodo, Gavel, Receipt, Scale, FileSignature, FileStack, ShieldQuestion, CalendarRange, Inbox, MessageSquareText, LayoutDashboard, BarChart3, ScanFace, ShieldAlert, ClipboardCheck, QrCode, Table2, UserCheck, Bell, CalendarDays, CalendarOff, Building2, Clock, Contact, Layers, Network, Repeat, ScrollText, ShieldCheck, Store, Users } from 'lucide-react'
 
 import type { NavItem } from './extensions/registry'
 
@@ -83,6 +83,8 @@ const baseNav: NavItem[] = [
   { id: 'reports', group: 'reports', label: { uz: 'Hisobotlar markazi', ru: 'Центр отчётов' }, to: '/reports', icon: FileBarChart, anyPermission: ['reports.read', 'reports.manage'], module: 'reports' },
   { id: 'ai-usage', group: 'ai', label: { uz: 'AI foydalanish', ru: 'Использование AI' }, to: '/ai/usage', icon: Sparkles, permission: 'ai.manage', module: 'ai' },
   { id: 'calls', group: 'calls', label: { uz: "Qo'ng'iroqlar", ru: 'Звонки' }, to: '/calls', icon: PhoneCall, anyPermission: ['calls.own', 'calls.read', 'calls.manage'], module: 'calls' },
+  { id: 'reception-panel', group: 'reception', label: { uz: 'Resepshin', ru: 'Ресепшн' }, to: '/reception/panel', icon: LayoutDashboard },
+  { id: 'coffee', group: 'reception', label: { uz: 'Kofe-ledi', ru: 'Кофе-леди' }, to: '/reception/coffee', icon: Coffee },
   { id: 'reception', group: 'reception', label: { uz: 'Mehmonlar', ru: 'Гости' }, to: '/reception', icon: DoorOpen, anyPermission: ['reception.own', 'reception.desk', 'reception.read'], module: 'reception' },
   { id: 'reception-new', group: 'reception', label: { uz: 'Mehmon qaydi', ru: 'Регистрация гостя' }, to: '/reception/new', icon: BookUser, anyPermission: ['reception.own', 'reception.desk', 'reception.read'], module: 'reception' },
   { id: 'reception-report', group: 'reception', label: { uz: 'Mehmonlar hisoboti', ru: 'Отчёт по гостям' }, to: '/reception/report', icon: BarChart2, anyPermission: ['reception.desk', 'reception.read'], module: 'reception' },
@@ -128,7 +130,7 @@ const baseNav: NavItem[] = [
  * qolganlari sahifa tepasida tab bo'lib chiqadi (ClusterTabs). tabs: false — sahifaning o'z tablari bor.
  */
 export const NAV_CLUSTERS: { ids: string[]; tabs?: false }[] = [
-  { ids: ['reception', 'reception-new', 'reception-report'] },
+  { ids: ['reception-panel', 'reception', 'reception-new', 'reception-report', 'coffee', 'my-answers', 'answers-inbox'] },
 ]
 export const clusterOf = new Map(NAV_CLUSTERS.flatMap((c) => c.ids.map((id) => [id, c] as const)))
 
@@ -152,10 +154,13 @@ export const navById = new Map(baseNav.map((i) => [i.id, i]))
 /** Keyin qo'shilgan bandlar (baseNav boshida): o'z guruhining oxiriga qo'yiladi, qolgan menyu asl tartibida. */
 const ADDED = new Set(['checklist-status', 'company-settings', 'devices', 'payroll-sheet', 'revisions', 'ratings'])
 
+/** Menyuda birinchi turadigan guruhlar: Bosh sahifa, HR, Resepshin; qolganlari keyin. */
+const FIRST = ['main', 'people', 'hr', 'reception']
+
 /** Menyu asl holicha: guruhlar va bandlar baseNav tartibida, bir xil kichik bo'lim (sub) bandlari yonma-yon. */
 function original(items: NavItem[]): NavItem[] {
   const g = (i: NavItem) => i.group ?? 'main'
-  const groups = [...new Set([...items.filter((i) => !ADDED.has(i.id)), ...items].map(g))]
+  const groups = [...new Set([...FIRST, ...[...items.filter((i) => !ADDED.has(i.id)), ...items].map(g)])]
   return groups.flatMap((grp) => {
     const chunk = [...items.filter((i) => !ADDED.has(i.id) && g(i) === grp), ...items.filter((i) => ADDED.has(i.id) && g(i) === grp)]
     const subs = [...new Set(chunk.map((i) => i.sub ?? `#${i.id}`))]

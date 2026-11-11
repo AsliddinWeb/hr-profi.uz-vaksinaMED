@@ -6689,5 +6689,69 @@
       "revisions_cycle_days": "Reviziya sikli (kun)",
       "revisions_soon_days": "Reviziya «tez orada» (kun)"
     }
+  },
+  "desk": {
+    "title": "Resepshin",
+    "subtitle": "Hamma soha bo'yicha ishingiz va umumiy nazorat bitta joyda",
+    "mine": "Mening ishim",
+    "all": "Umumiy nazorat",
+    "guests_inside": "Hozir binoda",
+    "guests_expected": "Bugun kutilmoqda",
+    "guests_today": "Bugun kelgan mehmon",
+    "my_requests": "Mening so'rovlarim",
+    "inbox": "Qaror kutayotganlar",
+    "requests_pending": "Ko'rib chiqilmagan so'rovlar",
+    "my_tasks": "Topshiriqlarim",
+    "my_tasks_overdue": "Muddati o'tgan topshiriqlarim",
+    "tasks_overdue": "Muddati o'tgan topshiriqlar",
+    "my_tickets": "AyTi ticketlarim",
+    "tickets_open": "Ochiq AyTi ticketlar",
+    "my_needs": "Ehtiyojlarim",
+    "needs_open": "Ochiq ehtiyojlar",
+    "my_complaints": "Murojaatlarim",
+    "complaints_open": "Ochiq shikoyatlar",
+    "my_letters": "Tushuntirish xatim",
+    "letters_open": "Javobsiz tushuntirish xatlari",
+    "coffee_open": "Kofe buyurtmalari",
+    "my_coffee": "Buyurtmalarim",
+    "action": {
+      "guest": "Mehmon qaydi",
+      "coffee": "Choy/kofe buyurtma",
+      "request": "Yangi so'rov",
+      "ticket": "AyTi ticket",
+      "need": "Ehtiyoj so'rovi"
+    }
+  },
+  "coffee": {
+    "title": "Kofe-ledi",
+    "subtitle": "Mehmon yoki yig'ilish uchun choy/kofe buyurtma qiling",
+    "new": "Yangi buyurtma",
+    "place": "Qayerga",
+    "placeHint": "Masalan: majlislar zali, 205-xona",
+    "items": "Nima kerak",
+    "guests": "Necha kishi",
+    "note": "Izoh",
+    "send": "Buyurtma berish",
+    "empty": "Buyurtmalar yo'q",
+    "guestsN": "{{n}} kishi",
+    "by": "bajardi:",
+    "accept": "Qabul qilish",
+    "done": "Yetkazildi",
+    "quick": {
+      "tea": "Choy",
+      "coffee": "Kofe",
+      "water": "Suv",
+      "sweets": "Shirinlik"
+    },
+    "scope": {
+      "mine": "Mening buyurtmalarim",
+      "all": "Hamma buyurtmalar"
+    },
+    "status": {
+      "new": "Yangi",
+      "accepted": "Tayyorlanmoqda",
+      "done": "Yetkazildi",
+      "cancelled": "Bekor qilindi"
+    }
   }
 }

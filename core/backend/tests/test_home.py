@@ -41,3 +41,38 @@ async def test_home_overview_sections(new_client):
     assert (await login(emp, "plain")).status_code == 200
     d2 = (await emp.get("/api/v1/home/overview")).json()
     assert "attendance" not in d2 and "problems" not in d2
+
+
+async def test_desk_panel_mine_and_all(new_client):
+    from tests.conftest import login, make_user
+
+    await make_user("deskhr", "hr_direktor")
+    await make_user("deskfar", "farmasevt")
+    hr, far = new_client(), new_client()
+    assert (await login(hr, "deskhr")).status_code == 200
+    assert (await login(far, "deskfar")).status_code == 200
+    a = (await hr.get("/api/v1/home/desk")).json()
+    b = (await far.get("/api/v1/home/desk")).json()
+    assert a["all"] and all({"key", "to", "value", "tone"} <= set(c) for c in a["all"] + a["mine"])
+    assert b["all"] == [] or len(b["all"]) < len(a["all"])
+
+
+async def test_coffee_order_flow(new_client):
+    from tests.conftest import login, make_user
+
+    await make_user("cofhr", "hr_direktor")
+    await make_user("coffar", "farmasevt")
+    hr, far = new_client(), new_client()
+    assert (await login(hr, "cofhr")).status_code == 200
+    assert (await login(far, "coffar")).status_code == 200
+    r = await far.post("/api/v1/reception/coffee", json={"place": "Majlislar zali", "items": "Kofe x2, choy", "guests": 3})
+    assert r.status_code == 201, r.text
+    oid = r.json()["id"]
+    assert (await far.get("/api/v1/reception/coffee", params={"scope": "all"})).status_code == 403
+    assert (await far.post(f"/api/v1/reception/coffee/{oid}/done")).status_code == 403
+    allq = (await hr.get("/api/v1/reception/coffee", params={"scope": "all"})).json()
+    assert allq["can_serve"] and allq["items"][0]["id"] == oid
+    assert (await hr.post(f"/api/v1/reception/coffee/{oid}/accept")).json()["status"] == "accepted"
+    assert (await hr.post(f"/api/v1/reception/coffee/{oid}/done")).json()["status"] == "done"
+    mine = (await far.get("/api/v1/reception/coffee")).json()["items"]
+    assert mine[0]["status"] == "done" and mine[0]["mine"]

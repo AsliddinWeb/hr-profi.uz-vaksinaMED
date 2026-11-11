@@ -22,6 +22,7 @@ import { NotificationItemRow } from '../notifications/NotificationItemRow'
 import { useOpenNotification } from '../notifications/useNotifications'
 import { usePendingPenalties } from '../penalties/usePendingCount'
 import { useTaskCount } from '../tasks/useTaskCount'
+import { DeskPanel } from './DeskPanel'
 import { HomeDashboard } from './HomeDashboard'
 import { SegmentDashboard } from './SegmentDashboard'
 
@@ -97,6 +98,8 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      <DeskPanel />
 
       <SegmentDashboard />
 

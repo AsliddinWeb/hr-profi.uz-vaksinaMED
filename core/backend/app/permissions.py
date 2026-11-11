@@ -104,6 +104,7 @@ register_permission("mobile.read", "Jonli xarita, treklar va xavfsizlik hodisala
 register_permission("mobile.manage", "Kuzatuv ruxsatlari, hodisalarni ko'rib chiqish va xabarlar", "Разрешения на отслеживание, разбор событий и оповещения")
 register_permission("reception.own", "O'z mehmonlarini oldindan ro'yxatdan o'tkazish va ko'rish", "Предварительная регистрация и просмотр своих гостей")
 register_permission("reception.desk", "Resepshin: mehmon qaydi, kirish/chiqish belgilash", "Ресепшн: журнал гостей, отметка прихода/ухода")
+register_permission("reception.coffee", "Kofe-ledi: choy/kofe buyurtmalarini qabul qilish va yetkazish", "Кофе-леди: приём и доставка заказов чай/кофе")
 register_permission("reception.read", "Mehmonlar tarixi va hisobotni ko'rish", "Просмотр истории гостей и отчётов")
 register_permission("helpdesk.own", "AyTi ticket yaratish va o'z ticketlarini kuzatish", "Создание заявок в ИТ и просмотр своих заявок")
 register_permission("helpdesk.work", "AyTi: ticketlar navbati, olish va hal qilish", "ИТ: очередь заявок, взятие в работу и решение")
