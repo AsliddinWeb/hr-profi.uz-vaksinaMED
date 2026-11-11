@@ -25,6 +25,7 @@ const COLORS: Record<GroupKey, string> = {
   warehouse: 'amber',
   mobile: 'blue',
   reception: 'rose',
+  revision: 'teal',
   helpdesk: 'indigo',
   calls: 'green',
   ai: 'violet',

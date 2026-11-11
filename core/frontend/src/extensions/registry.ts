@@ -18,7 +18,7 @@ export interface NavItem {
   /** Yon paneldagi bo'lim sarlavhasi (bir xil `group` ketma-ket joylashadi) */
   /** Bo'lim ichidagi yig'iladigan papka (ketma-ket bir xil `sub` lar bitta papkada), masalan 'preboarding' */
   sub?: string
-  group?: 'main' | 'people' | 'org' | 'hr' | 'schedule' | 'attendance' | 'requests' | 'tasks' | 'needs' | 'checklists' | 'recruit' | 'internship' | 'payroll' | 'canteen' | 'logistics' | 'warehouse' | 'mobile' | 'reception' | 'helpdesk' | 'calls' | 'ai' | 'reports' | 'migration' | 'pharmacy' | 'admin' | 'system'
+  group?: 'main' | 'people' | 'org' | 'hr' | 'schedule' | 'attendance' | 'requests' | 'tasks' | 'needs' | 'checklists' | 'recruit' | 'internship' | 'payroll' | 'canteen' | 'logistics' | 'warehouse' | 'mobile' | 'reception' | 'revision' | 'helpdesk' | 'calls' | 'ai' | 'reports' | 'migration' | 'pharmacy' | 'admin' | 'system'
 }
 
 /** Mijoz extension shu API orqali core'ga ulanadi. */

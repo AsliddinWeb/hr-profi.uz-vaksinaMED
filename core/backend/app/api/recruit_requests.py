@@ -128,6 +128,12 @@ async def create_request(body: RequestIn, request: Request, db: AsyncSession = D
         raise error(400, "position_department_mismatch")
     if body.salary_from is not None and body.salary_to is not None and body.salary_from > body.salary_to:
         raise error(400, "salary_range_invalid")
+    from app.models.competency import PositionProfile
+    from app.services.company import get_setting
+
+    profile = await db.scalar(select(PositionProfile).where(PositionProfile.position_id == pos.id, PositionProfile.status == "approved").order_by(PositionProfile.version.desc()).limit(1))
+    if profile is None and await get_setting(db, "recruit.require_profile"):
+        raise error(400, "profile_not_approved")
     reqs = (body.requirements or "").strip() or None
     if reqs is None:
         card = await db.scalar(select(PositionRequirement).where(PositionRequirement.position_id == pos.id))
@@ -136,7 +142,7 @@ async def create_request(body: RequestIn, request: Request, db: AsyncSession = D
     r = HireRequest(
         number=await _number(db, moment), department_id=body.department_id, branch_id=body.branch_id, position_id=pos.id, count=body.count, urgency=body.urgency,
         needed_from=body.needed_from, reason=(body.reason or "").strip() or None, requirements=reqs, salary_from=body.salary_from, salary_to=body.salary_to,
-        status="pending", created_by=auth.user.id,
+        status="pending", created_by=auth.user.id, profile_id=profile.id if profile else None,
     )  # fmt: skip
     db.add(r)
     await db.flush()

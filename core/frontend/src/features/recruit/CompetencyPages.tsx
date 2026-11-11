@@ -1,0 +1,828 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import clsx from 'clsx'
+import { ArrowLeft, ArrowRight, Check, Eye, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+
+import { PageHeader } from '../../components/layout/PageHeader'
+import { Badge } from '../../components/ui/Badge'
+import { Button } from '../../components/ui/Button'
+import { Card } from '../../components/ui/Card'
+import { EmptyState } from '../../components/ui/EmptyState'
+import { Field, Input, Select } from '../../components/ui/Input'
+import { Pagination } from '../../components/ui/Pagination'
+import { Skeleton } from '../../components/ui/Skeleton'
+import { Tabs } from '../../components/ui/Tabs'
+import { useConfirm } from '../../components/ui/confirmContext'
+import { api, ApiError, send } from '../../lib/api'
+import { formatDate } from '../../lib/format'
+import { NotFound } from '../../pages/NotFound'
+import { errorText } from '../auth/errorText'
+import { useCan } from '../auth/useAuth'
+
+type Cat = 'hard' | 'soft' | 'management' | 'knowledge' | 'experience'
+const CATS: Cat[] = ['hard', 'soft', 'management', 'knowledge', 'experience']
+type Comp = { id: number; name: string; category: Cat; description: string | null; is_active: boolean; positions: number }
+type CompPage = { total: number; page: number; size: number; counts: Record<Cat, number>; items: Comp[] }
+type PStatus = 'none' | 'draft' | 'pending' | 'approved' | 'returned' | 'archived'
+type ProfileComp = { competency_id: number; name: string; category: Cat; required_level: number; ideal_level: number; mandatory: boolean; method: string }
+export type Profile = {
+  id: number
+  code: string
+  position: { id: number; name: string | null }
+  department: string | null
+  version: number
+  status: PStatus
+  data: Record<string, unknown>
+  filled_pct: number
+  note: string | null
+  created_by: string | null
+  decided_by: string | null
+  decided_at: string | null
+  updated_at: string
+  competencies: ProfileComp[]
+  can?: { edit: boolean; submit: boolean; decide: boolean; new_version: boolean }
+}
+const TONE = { none: 'neutral', draft: 'neutral', pending: 'warning', approved: 'success', returned: 'danger', archived: 'neutral' } as const
+const METHODS = ['practical', 'test', 'portfolio', 'interview'] as const
+const pill = (on: boolean) => 'rounded-full border px-3 py-1.5 text-xs font-medium ' + (on ? 'border-primary bg-primary text-primary-fg' : 'border-border bg-surface text-muted hover:text-text')
+const area = 'w-full rounded-control border border-border bg-surface px-3 py-2 text-sm'
+
+/** /recruit/competencies: kompaniyadagi barcha lavozimlar uchun yagona kompetensiyalar bazasi. */
+export function CompetenciesPage() {
+  const { t } = useTranslation()
+  const can = useCan()
+  const qc = useQueryClient()
+  const confirm = useConfirm()
+  const edit = can('recruit.manage') || can('org.manage')
+  const [cat, setCat] = useState<Cat>('hard')
+  const [q, setQ] = useState('')
+  const [page, setPage] = useState(1)
+  const [form, setForm] = useState<Partial<Comp> | null>(null)
+  const params = new URLSearchParams({ category: cat, page: String(page), size: '10' })
+  if (q.trim()) params.set('q', q.trim())
+  const list = useQuery({ queryKey: ['competencies', params.toString()], queryFn: () => api<CompPage>(`/api/v1/recruit/competencies?${params}`), placeholderData: (p) => p })
+  const save = useMutation({
+    mutationFn: (c: Partial<Comp>) => send(c.id ? 'PUT' : 'POST', c.id ? `/api/v1/recruit/competencies/${c.id}` : '/api/v1/recruit/competencies', { name: c.name, category: c.category, description: c.description || null, is_active: c.is_active ?? true }),
+    onSuccess: () => {
+      setForm(null)
+      void qc.invalidateQueries({ queryKey: ['competencies'] })
+    },
+  })
+  const del = useMutation({ mutationFn: (id: number) => send('DELETE', `/api/v1/recruit/competencies/${id}`), onSuccess: () => void qc.invalidateQueries({ queryKey: ['competencies'] }) })
+  const d = list.data
+  return (
+    <div className="mx-auto flex max-w-6xl flex-col gap-5">
+      <PageHeader
+        title={t('comp.base.title')}
+        subtitle={t('comp.base.subtitle')}
+        actions={
+          edit && (
+            <Button onClick={() => setForm({ category: cat, is_active: true })}>
+              <Plus className="size-4" />
+              {t('comp.base.add')}
+            </Button>
+          )
+        }
+      />
+      <Tabs items={CATS.map((k) => ({ key: k, label: t(`comp.cat.${k}`), count: d?.counts[k] ?? 0 }))} value={cat} onChange={(k) => (setCat(k), setPage(1))} />
+      {form && (
+        <Card className="flex flex-col gap-3 p-5">
+          <div className="grid gap-3 sm:grid-cols-[1fr_200px]">
+            <Field label={t('comp.base.name')}>{(id) => <Input id={id} value={form.name ?? ''} onChange={(e) => setForm({ ...form, name: e.target.value })} maxLength={160} autoFocus />}</Field>
+            <Field label={t('comp.base.category')}>
+              {(id) => (
+                <Select id={id} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as Cat })}>
+                  {CATS.map((k) => (
+                    <option key={k} value={k}>
+                      {t(`comp.cat.${k}`)}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+          </div>
+          <Field label={t('comp.base.description')}>{(id) => <textarea id={id} rows={2} className={area} value={form.description ?? ''} onChange={(e) => setForm({ ...form, description: e.target.value })} />}</Field>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={form.is_active ?? true} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
+            {t('comp.base.active')}
+          </label>
+          {save.isError && <p role="alert" className="text-sm text-danger">{errorText(t, save.error)}</p>}
+          <div className="flex gap-2">
+            <Button disabled={save.isPending || (form.name ?? '').trim().length < 2} onClick={() => save.mutate(form)}>
+              {t('common.save')}
+            </Button>
+            <Button variant="outline" onClick={() => setForm(null)}>
+              {t('common.cancel')}
+            </Button>
+          </div>
+        </Card>
+      )}
+      <Card className="overflow-hidden">
+        <div className="flex items-center gap-2 border-b border-border p-3">
+          <Search className="size-4 text-muted" />
+          <Input value={q} onChange={(e) => (setQ(e.target.value), setPage(1))} placeholder={t('comp.base.search')} className="max-w-sm border-0 shadow-none" aria-label={t('comp.base.search')} />
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-border text-xs text-muted">
+              <tr>
+                <th className="w-10 px-4 py-2.5 font-medium">№</th>
+                <th className="px-4 py-2.5 font-medium">{t('comp.base.name')}</th>
+                <th className="px-4 py-2.5 font-medium">{t('comp.base.category')}</th>
+                <th className="hidden px-4 py-2.5 font-medium md:table-cell">{t('comp.base.description')}</th>
+                <th className="px-4 py-2.5 font-medium">{t('comp.base.levels')}</th>
+                <th className="px-4 py-2.5 font-medium">{t('comp.base.linked')}</th>
+                <th className="px-4 py-2.5 font-medium">{t('comp.base.status')}</th>
+                {edit && <th className="px-4 py-2.5" />}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {!d && (
+                <tr>
+                  <td colSpan={8} className="p-4">
+                    <Skeleton className="h-32" />
+                  </td>
+                </tr>
+              )}
+              {d?.items.map((c, i) => (
+                <tr key={c.id}>
+                  <td className="px-4 py-2.5 tabular-nums text-muted">{(page - 1) * 10 + i + 1}</td>
+                  <td className="px-4 py-2.5 font-medium">{c.name}</td>
+                  <td className="px-4 py-2.5">
+                    <Badge tone="info">{t(`comp.cat.${c.category}`)}</Badge>
+                  </td>
+                  <td className="hidden max-w-xs truncate px-4 py-2.5 text-muted md:table-cell">{c.description ?? '—'}</td>
+                  <td className="px-4 py-2.5 tabular-nums">L1 – L5</td>
+                  <td className="px-4 py-2.5 tabular-nums">{t('comp.base.nPositions', { n: c.positions })}</td>
+                  <td className="px-4 py-2.5">
+                    <Badge tone={c.is_active ? 'success' : 'neutral'}>{t(c.is_active ? 'comp.base.on' : 'comp.base.off')}</Badge>
+                  </td>
+                  {edit && (
+                    <td className="whitespace-nowrap px-4 py-2.5 text-right">
+                      <Button variant="ghost" className="h-8 px-2" aria-label={t('common.edit')} onClick={() => setForm(c)}>
+                        <Pencil className="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="h-8 px-2 text-danger"
+                        aria-label={t('common.delete')}
+                        onClick={async () => (await confirm({ title: t('comp.base.deleteQ', { name: c.name }), danger: true, confirmLabel: t('common.delete') })) && del.mutate(c.id)}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+              {d && d.items.length === 0 && (
+                <tr>
+                  <td colSpan={8}>
+                    <EmptyState icon={Search} title={t('common.empty')} />
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        {d && (
+          <div className="flex items-center justify-between border-t border-border px-4 py-2.5 text-sm text-muted">
+            <span>{t('comp.base.total', { n: d.total })}</span>
+            <Pagination page={page} size={10} total={d.total} onPage={setPage} />
+          </div>
+        )}
+      </Card>
+    </div>
+  )
+}
+
+type Dash = {
+  positions: number
+  competencies: number
+  approved: number
+  returned: number
+  pending: number
+  open_vacancies: number
+  pending_requests: number
+  status: Record<'approved' | 'pending' | 'draft' | 'returned' | 'none', number>
+  coverage: { department: string; positions: number; pct: number }[]
+}
+type ProfileRow = { position: { id: number; name: string }; department: string | null; profile: { id: number; version: number; status: PStatus; filled_pct: number; updated_at: string } | null; status: PStatus }
+
+/** /recruit/profiles: kompetensiya dashboardi va lavozim profillari ro'yxati. */
+export function ProfilesPage() {
+  const { t, i18n } = useTranslation()
+  const can = useCan()
+  const navigate = useNavigate()
+  const edit = can('recruit.manage') || can('org.manage')
+  const [status, setStatus] = useState<string>('')
+  const [q, setQ] = useState('')
+  const dash = useQuery({ queryKey: ['comp', 'dash'], queryFn: () => api<Dash>('/api/v1/recruit/competency-dashboard') })
+  const list = useQuery({ queryKey: ['profiles', status], queryFn: () => api<{ items: ProfileRow[] }>(`/api/v1/recruit/profiles${status ? `?status=${status}` : ''}`) })
+  const create = useMutation({ mutationFn: (pid: number) => send<Profile>('POST', '/api/v1/recruit/profiles', { position_id: pid }), onSuccess: (p) => navigate(`/recruit/profiles/${p.id}`) })
+  const d = dash.data
+  const cards: [string, number | undefined, string][] = [
+    ['positions', d?.positions, 'text-text'],
+    ['competencies', d?.competencies, 'text-primary'],
+    ['approved', d?.approved, 'text-success'],
+    ['returned', d?.returned, 'text-danger'],
+    ['openVacancies', d?.open_vacancies, 'text-primary'],
+    ['pendingRequests', d?.pending_requests, 'text-warning'],
+  ]
+  const totalP = d ? Object.values(d.status).reduce((a, b) => a + b, 0) : 0
+  const rows = list.data?.items.filter((r) => !q || r.position.name.toLowerCase().includes(q.toLowerCase()))
+  return (
+    <div className="mx-auto flex max-w-6xl flex-col gap-5">
+      <PageHeader title={t('comp.prof.title')} subtitle={t('comp.prof.subtitle')} />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {cards.map(([k, v, tone]) => (
+          <Card key={k} className="p-4">
+            <div className="text-xs text-muted">{t(`comp.dash.${k}`)}</div>
+            <div className={clsx('mt-2 font-mono text-[26px] font-medium leading-none tabular-nums', tone)}>{v ?? '—'}</div>
+          </Card>
+        ))}
+      </div>
+      {d && (
+        <div className="grid gap-3 lg:grid-cols-2">
+          <Card className="flex flex-col gap-3 p-5">
+            <div className="font-medium">{t('comp.dash.statusTitle')}</div>
+            <div className="flex h-3 overflow-hidden rounded-full bg-surface-2">
+              {(['approved', 'pending', 'draft', 'returned'] as const).map((k) => (
+                <span key={k} className={clsx('h-full', { approved: 'bg-success', pending: 'bg-warning', draft: 'bg-primary/50', returned: 'bg-danger' }[k])} style={{ width: `${totalP ? (d.status[k] / totalP) * 100 : 0}%` }} />
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-1.5 text-sm sm:grid-cols-3">
+              {(['approved', 'pending', 'draft', 'returned', 'none'] as const).map((k) => (
+                <div key={k} className="flex justify-between gap-2">
+                  <span className="text-muted">{t(`comp.st.${k}`)}</span>
+                  <span className="tabular-nums">
+                    {d.status[k]} ({totalP ? Math.round((d.status[k] / totalP) * 100) : 0}%)
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Card>
+          <Card className="flex flex-col gap-2.5 p-5">
+            <div className="font-medium">{t('comp.dash.coverage')}</div>
+            {d.coverage.length === 0 && <div className="text-sm text-muted">{t('common.empty')}</div>}
+            {d.coverage.map((c) => (
+              <div key={c.department} className="grid grid-cols-[140px_1fr_44px] items-center gap-3 text-sm">
+                <span className="truncate">{c.department}</span>
+                <span className="h-2 overflow-hidden rounded-full bg-surface-2">
+                  <span className="block h-full rounded-full bg-primary" style={{ width: `${c.pct}%` }} />
+                </span>
+                <span className="text-right tabular-nums text-muted">{c.pct}%</span>
+              </div>
+            ))}
+          </Card>
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        {['', 'none', 'draft', 'pending', 'returned', 'approved'].map((s) => (
+          <button key={s} aria-pressed={status === s} onClick={() => setStatus(s)} className={pill(status === s)}>
+            {s ? t(`comp.st.${s}`) : t('comp.prof.all')}
+          </button>
+        ))}
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('comp.prof.search')} className="ml-auto w-full sm:w-64" aria-label={t('comp.prof.search')} />
+      </div>
+      {create.isError && <p role="alert" className="text-sm text-danger">{errorText(t, create.error)}</p>}
+      <Card className="overflow-hidden">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-border text-xs text-muted">
+            <tr>
+              <th className="px-4 py-2.5 font-medium">{t('comp.prof.position')}</th>
+              <th className="hidden px-4 py-2.5 font-medium sm:table-cell">{t('comp.prof.department')}</th>
+              <th className="px-4 py-2.5 font-medium">{t('comp.prof.version')}</th>
+              <th className="hidden px-4 py-2.5 font-medium md:table-cell">{t('comp.prof.filled')}</th>
+              <th className="px-4 py-2.5 font-medium">{t('comp.base.status')}</th>
+              <th className="px-4 py-2.5" />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {!rows && (
+              <tr>
+                <td colSpan={6} className="p-4">
+                  <Skeleton className="h-32" />
+                </td>
+              </tr>
+            )}
+            {rows?.map((r) => (
+              <tr key={r.position.id}>
+                <td className="px-4 py-2.5 font-medium">{r.position.name}</td>
+                <td className="hidden px-4 py-2.5 text-muted sm:table-cell">{r.department ?? '—'}</td>
+                <td className="px-4 py-2.5 tabular-nums">{r.profile ? `v${r.profile.version}.0` : '—'}</td>
+                <td className="hidden px-4 py-2.5 md:table-cell">
+                  {r.profile && (
+                    <span className="flex items-center gap-2">
+                      <span className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-2">
+                        <span className="block h-full bg-primary" style={{ width: `${r.profile.filled_pct}%` }} />
+                      </span>
+                      <span className="text-xs tabular-nums text-muted">{r.profile.filled_pct}%</span>
+                    </span>
+                  )}
+                </td>
+                <td className="px-4 py-2.5">
+                  <Badge tone={TONE[r.status]}>{t(`comp.st.${r.status}`)}</Badge>
+                  {r.profile && <span className="ml-2 hidden text-xs text-muted lg:inline">{formatDate(r.profile.updated_at, i18n.language)}</span>}
+                </td>
+                <td className="whitespace-nowrap px-4 py-2.5 text-right">
+                  {r.profile ? (
+                    <Link to={`/recruit/profiles/${r.profile.id}`}>
+                      <Button variant="ghost" className="h-8 px-2">
+                        <Eye className="size-4" />
+                        {t('comp.prof.open')}
+                      </Button>
+                    </Link>
+                  ) : (
+                    edit && (
+                      <Button variant="outline" className="h-8" disabled={create.isPending} onClick={() => create.mutate(r.position.id)}>
+                        <Plus className="size-4" />
+                        {t('comp.prof.create')}
+                      </Button>
+                    )
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  )
+}
+
+const STEPS = ['general', 'goal', 'functions', 'education', 'hard', 'soft', 'management', 'kpi', 'portrait', 'review'] as const
+type StepKey = (typeof STEPS)[number]
+type Data = {
+  general?: { title?: string; grade?: string; reports_to?: string; work_mode?: string }
+  goal?: string
+  functions?: string[]
+  education?: { level?: string; field?: string; experience?: string; languages?: string }
+  kpi?: { name: string; target: string }[]
+  portrait?: string
+}
+
+/** /recruit/profiles/:id — lavozim profilini 10 qadamda yaratish, tasdiqlashga yuborish va tasdiqlash. */
+export function ProfileWizardPage() {
+  const { t, i18n } = useTranslation()
+  const id = Number(useParams().id)
+  const qc = useQueryClient()
+  const navigate = useNavigate()
+  const q = useQuery({ queryKey: ['profiles', 'one', id], queryFn: () => api<Profile>(`/api/v1/recruit/profiles/${id}`), retry: false })
+  const all = useQuery({ queryKey: ['competencies', 'all'], queryFn: () => api<CompPage>('/api/v1/recruit/competencies?size=500&active=true') })
+  const [step, setStep] = useState(0)
+  const [data, setData] = useState<Data>({})
+  const [comps, setComps] = useState<ProfileComp[]>([])
+  const [note, setNote] = useState('')
+  const [saved, setSaved] = useState(false)
+  const [loaded, setLoaded] = useState('')
+  const stamp = q.data ? `${q.data.id}:${q.data.updated_at}:${q.data.status}` : ''
+  if (q.data && loaded !== stamp) {
+    setLoaded(stamp)
+    setData(q.data.data as Data)
+    setComps(q.data.competencies)
+  }
+  const save = useMutation({
+    mutationFn: () => send<Profile>('PUT', `/api/v1/recruit/profiles/${id}`, { data, competencies: comps }),
+    onSuccess: (p) => {
+      qc.setQueryData(['profiles', 'one', id], p)
+      void qc.invalidateQueries({ queryKey: ['profiles'] })
+      setSaved(true)
+    },
+  })
+  const action = useMutation({
+    mutationFn: (a: string) => send<Profile>('POST', `/api/v1/recruit/profiles/${id}/action`, { action: a, note: note || null }),
+    onSuccess: (p) => {
+      qc.setQueryData(['profiles', 'one', id], p)
+      void qc.invalidateQueries({ queryKey: ['profiles'] })
+      void qc.invalidateQueries({ queryKey: ['comp'] })
+    },
+  })
+  const newVersion = useMutation({ mutationFn: () => send<Profile>('POST', '/api/v1/recruit/profiles', { position_id: q.data?.position.id }), onSuccess: (p) => navigate(`/recruit/profiles/${p.id}`) })
+  if (q.error instanceof ApiError && q.error.status === 404) return <NotFound />
+  const p = q.data
+  if (!p) return <Skeleton className="mx-auto h-96 max-w-6xl" />
+  const ro = !p.can?.edit
+  const key: StepKey = STEPS[step]
+  const set = <K extends keyof Data>(k: K, v: Data[K]) => (setData((d) => ({ ...d, [k]: v })), setSaved(false))
+  const stepDone = (k: StepKey) => {
+    if (k === 'review') return false
+    if (k === 'hard' || k === 'soft' || k === 'management') return comps.some((c) => c.category === k)
+    const v = data[k as keyof Data]
+    return Array.isArray(v) ? v.some((x) => (typeof x === 'string' ? x.trim() : x.name.trim())) : typeof v === 'object' && v ? Object.values(v).some((x) => x && String(x).trim()) : !!(v && String(v).trim())
+  }
+  const pct = Math.round((STEPS.slice(0, 9).filter(stepDone).length / 9) * 100)
+  const txt = (k: 'goal' | 'portrait') => <textarea rows={6} className={area} value={(data[k] as string) ?? ''} onChange={(e) => set(k, e.target.value)} disabled={ro} />
+  const sub = <K extends 'general' | 'education'>(k: K, f: string, label: string) => (
+    <Field label={label}>
+      {(fid) => <Input id={fid} value={((data[k] as Record<string, string> | undefined)?.[f] as string) ?? ''} onChange={(e) => set(k, { ...(data[k] ?? {}), [f]: e.target.value } as Data[K])} disabled={ro} />}
+    </Field>
+  )
+  const list = (k: 'functions') => {
+    const arr = data[k] ?? ['']
+    return (
+      <div className="flex flex-col gap-2">
+        {arr.map((v, i) => (
+          <div key={i} className="flex gap-2">
+            <Input value={v} onChange={(e) => set(k, arr.map((x, j) => (j === i ? e.target.value : x)))} disabled={ro} aria-label={`${i + 1}`} />
+            {!ro && (
+              <Button variant="ghost" className="px-2" aria-label={t('common.delete')} onClick={() => set(k, arr.filter((_, j) => j !== i))}>
+                <Trash2 className="size-4" />
+              </Button>
+            )}
+          </div>
+        ))}
+        {!ro && (
+          <Button variant="outline" className="w-fit" onClick={() => set(k, [...arr, ''])}>
+            <Plus className="size-4" />
+            {t('comp.wiz.addRow')}
+          </Button>
+        )}
+      </div>
+    )
+  }
+  const compStep = (cat: Cat) => {
+    const options = (all.data?.items ?? []).filter((c) => c.category === cat && !comps.some((x) => x.competency_id === c.id))
+    const mine = comps.filter((c) => c.category === cat)
+    const upd = (cid: number, patch: Partial<ProfileComp>) => (setComps((cs) => cs.map((c) => (c.competency_id === cid ? { ...c, ...patch } : c))), setSaved(false))
+    return (
+      <div className="flex flex-col gap-3">
+        {!ro && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              className="w-auto min-w-64"
+              value=""
+              aria-label={t('comp.wiz.addComp')}
+              onChange={(e) => {
+                const c = all.data?.items.find((x) => x.id === Number(e.target.value))
+                if (c) {
+                  setComps((cs) => [...cs, { competency_id: c.id, name: c.name, category: c.category, required_level: 3, ideal_level: 4, mandatory: true, method: 'interview' }])
+                  setSaved(false)
+                }
+              }}
+            >
+              <option value="">+ {t('comp.wiz.addComp')}</option>
+              {options.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+            <Link to="/recruit/competencies" className="text-xs text-primary hover:underline">
+              {t('comp.wiz.toBase')}
+            </Link>
+          </div>
+        )}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-border text-xs text-muted">
+              <tr>
+                <th className="px-3 py-2 font-medium">{t('comp.base.name')}</th>
+                <th className="px-3 py-2 font-medium">{t('comp.wiz.required')}</th>
+                <th className="px-3 py-2 font-medium">{t('comp.wiz.ideal')}</th>
+                <th className="px-3 py-2 font-medium">{t('comp.wiz.mandatory')}</th>
+                <th className="px-3 py-2 font-medium">{t('comp.wiz.method')}</th>
+                <th className="px-3 py-2" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {mine.map((c) => (
+                <tr key={c.competency_id}>
+                  <td className="px-3 py-2 font-medium">{c.name}</td>
+                  {(['required_level', 'ideal_level'] as const).map((f) => (
+                    <td key={f} className="px-3 py-2">
+                      <Select className="w-20" value={c[f]} disabled={ro} onChange={(e) => upd(c.competency_id, { [f]: Number(e.target.value) })} aria-label={t(f === 'required_level' ? 'comp.wiz.required' : 'comp.wiz.ideal')}>
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <option key={n} value={n}>
+                            {n}
+                          </option>
+                        ))}
+                      </Select>
+                    </td>
+                  ))}
+                  <td className="px-3 py-2">
+                    <button type="button" disabled={ro} onClick={() => upd(c.competency_id, { mandatory: !c.mandatory })}>
+                      <Badge tone={c.mandatory ? 'danger' : 'warning'}>{t(c.mandatory ? 'comp.wiz.must' : 'comp.wiz.extra')}</Badge>
+                    </button>
+                  </td>
+                  <td className="px-3 py-2">
+                    <Select className="w-36" value={c.method} disabled={ro} onChange={(e) => upd(c.competency_id, { method: e.target.value })} aria-label={t('comp.wiz.method')}>
+                      {METHODS.map((m) => (
+                        <option key={m} value={m}>
+                          {t(`comp.method.${m}`)}
+                        </option>
+                      ))}
+                    </Select>
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    {!ro && (
+                      <Button variant="ghost" className="h-8 px-2 text-danger" aria-label={t('common.delete')} onClick={() => (setComps((cs) => cs.filter((x) => x.competency_id !== c.competency_id)), setSaved(false))}>
+                        <Trash2 className="size-4" />
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {mine.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-3 py-6 text-center text-muted">
+                    {t('comp.wiz.noComps')}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+  const body: Record<StepKey, ReactNode> = {
+    general: (
+      <div className="grid gap-3 sm:grid-cols-2">
+        {sub('general', 'title', t('comp.wiz.f.title'))}
+        {sub('general', 'grade', t('comp.wiz.f.grade'))}
+        {sub('general', 'reports_to', t('comp.wiz.f.reportsTo'))}
+        {sub('general', 'work_mode', t('comp.wiz.f.workMode'))}
+      </div>
+    ),
+    goal: txt('goal'),
+    functions: list('functions'),
+    education: (
+      <div className="grid gap-3 sm:grid-cols-2">
+        {sub('education', 'level', t('comp.wiz.f.eduLevel'))}
+        {sub('education', 'field', t('comp.wiz.f.eduField'))}
+        {sub('education', 'experience', t('comp.wiz.f.experience'))}
+        {sub('education', 'languages', t('comp.wiz.f.languages'))}
+      </div>
+    ),
+    hard: compStep('hard'),
+    soft: compStep('soft'),
+    management: compStep('management'),
+    kpi: (
+      <div className="flex flex-col gap-2">
+        {(data.kpi ?? [{ name: '', target: '' }]).map((k, i, arr) => (
+          <div key={i} className="grid grid-cols-[1fr_160px_auto] gap-2">
+            <Input value={k.name} placeholder={t('comp.wiz.f.kpiName')} disabled={ro} onChange={(e) => set('kpi', arr.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} aria-label={t('comp.wiz.f.kpiName')} />
+            <Input value={k.target} placeholder={t('comp.wiz.f.kpiTarget')} disabled={ro} onChange={(e) => set('kpi', arr.map((x, j) => (j === i ? { ...x, target: e.target.value } : x)))} aria-label={t('comp.wiz.f.kpiTarget')} />
+            {!ro && (
+              <Button variant="ghost" className="px-2" aria-label={t('common.delete')} onClick={() => set('kpi', arr.filter((_, j) => j !== i))}>
+                <Trash2 className="size-4" />
+              </Button>
+            )}
+          </div>
+        ))}
+        {!ro && (
+          <Button variant="outline" className="w-fit" onClick={() => set('kpi', [...(data.kpi ?? []), { name: '', target: '' }])}>
+            <Plus className="size-4" />
+            {t('comp.wiz.addRow')}
+          </Button>
+        )}
+      </div>
+    ),
+    portrait: txt('portrait'),
+    review: (
+      <div className="flex flex-col gap-3 text-sm">
+        {STEPS.slice(0, 9).map((k, i) => (
+          <button key={k} type="button" onClick={() => setStep(i)} className="flex items-center justify-between rounded-control border border-border px-3 py-2 text-left hover:bg-surface-2">
+            <span>
+              {i + 1}. {t(`comp.wiz.step.${k}`)}
+            </span>
+            <Badge tone={stepDone(k) ? 'success' : 'warning'}>{t(stepDone(k) ? 'comp.wiz.done' : 'comp.wiz.empty')}</Badge>
+          </button>
+        ))}
+        {p.note && (
+          <Card className="p-3 text-danger">
+            {t('comp.wiz.returnNote')}: {p.note}
+          </Card>
+        )}
+        {p.can?.decide && (
+          <Field label={t('comp.wiz.decisionNote')}>{(fid) => <textarea id={fid} rows={2} className={area} value={note} onChange={(e) => setNote(e.target.value)} />}</Field>
+        )}
+      </div>
+    ),
+  }
+  return (
+    <div className="mx-auto flex max-w-6xl flex-col gap-5">
+      <PageHeader
+        title={t('comp.wiz.title', { name: p.position.name })}
+        subtitle={`${p.code} · v${p.version}.0${p.department ? ` · ${p.department}` : ''}`}
+        backTo="/recruit/profiles"
+        backLabel={t('comp.prof.title')}
+        actions={
+          <div className="flex items-center gap-3">
+            <Badge tone={TONE[p.status]}>{t(`comp.st.${p.status}`)}</Badge>
+            <span className="hidden text-xs text-muted sm:inline">{t('comp.wiz.filled', { n: ro ? p.filled_pct : pct })}</span>
+            <span className="hidden h-1.5 w-32 overflow-hidden rounded-full bg-surface-2 sm:block">
+              <span className="block h-full bg-primary" style={{ width: `${ro ? p.filled_pct : pct}%` }} />
+            </span>
+          </div>
+        }
+      />
+      <div className="grid gap-5 lg:grid-cols-[240px_1fr]">
+        <Card className="h-fit p-2">
+          <ol className="flex flex-col gap-0.5">
+            {STEPS.map((k, i) => (
+              <li key={k}>
+                <button type="button" onClick={() => setStep(i)} aria-current={i === step ? 'step' : undefined} className={clsx('flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm', i === step ? 'bg-primary text-primary-fg' : 'hover:bg-surface-2')}>
+                  <span className={clsx('grid size-6 shrink-0 place-items-center rounded-full text-xs', i === step ? 'bg-white/20' : stepDone(k) ? 'bg-success text-white' : 'bg-surface-2 text-muted')}>{stepDone(k) && i !== step ? <Check className="size-3.5" /> : i + 1}</span>
+                  {t(`comp.wiz.step.${k}`)}
+                </button>
+              </li>
+            ))}
+          </ol>
+        </Card>
+        <Card className="flex flex-col gap-4 p-5">
+          <div>
+            <div className="font-medium">
+              {step + 1}-{t('comp.wiz.stepWord')}. {t(`comp.wiz.step.${key}`)}
+            </div>
+            <div className="text-sm text-muted">{t(`comp.wiz.hint.${key}`)}</div>
+          </div>
+          {body[key]}
+          {(save.isError || action.isError || newVersion.isError) && <p role="alert" className="text-sm text-danger">{errorText(t, save.error ?? action.error ?? newVersion.error)}</p>}
+          <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+            {!ro && (
+              <Button variant="outline" disabled={save.isPending} onClick={() => save.mutate()}>
+                {saved ? t('comp.wiz.saved') : t('comp.wiz.saveDraft')}
+              </Button>
+            )}
+            <span className="flex-1" />
+            {step > 0 && (
+              <Button variant="outline" onClick={() => setStep(step - 1)}>
+                <ArrowLeft className="size-4" />
+                {t('comp.wiz.back')}
+              </Button>
+            )}
+            {step < STEPS.length - 1 ? (
+              <Button onClick={() => (!ro && save.mutate(), setStep(step + 1))}>
+                {t('comp.wiz.next')}
+                <ArrowRight className="size-4" />
+              </Button>
+            ) : (
+              <>
+                {p.can?.submit && (
+                  <Button disabled={action.isPending || save.isPending} onClick={() => save.mutate(undefined, { onSuccess: () => action.mutate('submit') })}>
+                    {t('comp.wiz.submit')}
+                  </Button>
+                )}
+                {p.can?.decide && (
+                  <>
+                    <Button variant="outline" disabled={action.isPending} onClick={() => action.mutate('return')}>
+                      {t('comp.wiz.return')}
+                    </Button>
+                    <Button disabled={action.isPending} onClick={() => action.mutate('approve')}>
+                      {t('comp.wiz.approve')}
+                    </Button>
+                  </>
+                )}
+                {p.can?.new_version && (
+                  <Button variant="outline" disabled={newVersion.isPending} onClick={() => newVersion.mutate()}>
+                    {t('comp.wiz.newVersion')}
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+          {p.decided_at && (
+            <div className="text-xs text-muted">
+              {t(`comp.st.${p.status}`)}: {p.decided_by} · {formatDate(p.decided_at, i18n.language)}
+            </div>
+          )}
+        </Card>
+      </div>
+    </div>
+  )
+}
+
+type Approval = { type: 'profile' | 'request'; id: number; code: string; title: string; requester: string | null; unit: string | null; sent_at: string | null; approver: string; status: 'pending' | 'returned' | 'approved'; link: string }
+const ATONE = { pending: 'warning', returned: 'danger', approved: 'success' } as const
+
+/** /recruit/approvals — Tasdiqlash markazi: lavozim profillari va rekruting zayavkalari bitta ro'yxatda. */
+export function ApprovalsPage() {
+  const { t, i18n } = useTranslation()
+  const [type, setType] = useState<'all' | 'profile' | 'request'>('all')
+  const [q, setQ] = useState('')
+  const [st, setSt] = useState('')
+  const list = useQuery({ queryKey: ['approvals', type], queryFn: () => api<{ counts: Record<string, number>; items: Approval[] }>(`/api/v1/recruit/approvals?type=${type}`), refetchInterval: 60_000 })
+  const items = list.data?.items.filter((i) => (!st || i.status === st) && (!q || `${i.code} ${i.title} ${i.requester}`.toLowerCase().includes(q.toLowerCase())))
+  const c = list.data?.counts
+  return (
+    <div className="mx-auto flex max-w-6xl flex-col gap-5">
+      <PageHeader title={t('comp.appr.title')} subtitle={t('comp.appr.subtitle')} />
+      <Tabs
+        items={[
+          { key: 'all' as const, label: t('comp.appr.all'), count: c?.all ?? 0 },
+          { key: 'profile' as const, label: t('comp.appr.profiles'), count: c?.profile ?? 0 },
+          { key: 'request' as const, label: t('comp.appr.requests'), count: c?.request ?? 0 },
+        ]}
+        value={type}
+        onChange={setType}
+      />
+      <div className="flex flex-wrap gap-2">
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('comp.appr.search')} className="w-full sm:w-80" aria-label={t('comp.appr.search')} />
+        <Select className="w-auto" value={st} onChange={(e) => setSt(e.target.value)} aria-label={t('comp.base.status')}>
+          <option value="">{t('comp.appr.anyStatus')}</option>
+          {(['pending', 'returned', 'approved'] as const).map((s) => (
+            <option key={s} value={s}>
+              {t(`comp.appr.st.${s}`)}
+            </option>
+          ))}
+        </Select>
+      </div>
+      <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-border text-xs text-muted">
+              <tr>
+                <th className="px-4 py-2.5 font-medium">ID</th>
+                <th className="px-4 py-2.5 font-medium">{t('comp.appr.doc')}</th>
+                <th className="px-4 py-2.5 font-medium">{t('comp.appr.type')}</th>
+                <th className="hidden px-4 py-2.5 font-medium md:table-cell">{t('comp.appr.requester')}</th>
+                <th className="hidden px-4 py-2.5 font-medium lg:table-cell">{t('comp.prof.department')}</th>
+                <th className="hidden px-4 py-2.5 font-medium sm:table-cell">{t('comp.appr.sent')}</th>
+                <th className="hidden px-4 py-2.5 font-medium lg:table-cell">{t('comp.appr.approver')}</th>
+                <th className="px-4 py-2.5 font-medium">{t('comp.base.status')}</th>
+                <th className="px-4 py-2.5" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {!items && (
+                <tr>
+                  <td colSpan={9} className="p-4">
+                    <Skeleton className="h-32" />
+                  </td>
+                </tr>
+              )}
+              {items?.map((i) => (
+                <tr key={`${i.type}${i.id}`}>
+                  <td className="whitespace-nowrap px-4 py-2.5 font-mono text-xs">{i.code}</td>
+                  <td className="px-4 py-2.5 font-medium">{i.title}</td>
+                  <td className="px-4 py-2.5">
+                    <Badge tone={i.type === 'profile' ? 'warning' : 'info'}>{t(i.type === 'profile' ? 'comp.appr.profile' : 'comp.appr.request')}</Badge>
+                  </td>
+                  <td className="hidden px-4 py-2.5 md:table-cell">{i.requester ?? '—'}</td>
+                  <td className="hidden px-4 py-2.5 text-muted lg:table-cell">{i.unit ?? '—'}</td>
+                  <td className="hidden px-4 py-2.5 tabular-nums text-muted sm:table-cell">{i.sent_at ? formatDate(i.sent_at, i18n.language) : '—'}</td>
+                  <td className="hidden px-4 py-2.5 lg:table-cell">{i.approver}</td>
+                  <td className="px-4 py-2.5">
+                    <Badge tone={ATONE[i.status]}>{t(`comp.appr.st.${i.status}`)}</Badge>
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <Link to={i.link}>
+                      <Button variant="ghost" className="h-8 px-2" aria-label={t('comp.prof.open')}>
+                        <Eye className="size-4" />
+                      </Button>
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+              {items && items.length === 0 && (
+                <tr>
+                  <td colSpan={9}>
+                    <EmptyState icon={Check} title={t('common.empty')} />
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  )
+}
+
+/** Zayafka formasida: tanlangan lavozimning tasdiqlangan profili (yoki uni tuzish kerakligi haqida ogohlantirish). */
+export function ApprovedProfileCard({ positionId, onState }: { positionId: string; onState?: (blocked: boolean) => void }) {
+  const { t, i18n } = useTranslation()
+  const q = useQuery({ queryKey: ['profiles', 'approved', positionId], queryFn: () => api<{ profile: Profile | null; required: boolean }>(`/api/v1/recruit/profiles/approved/${positionId}`), enabled: !!positionId })
+  const blocked = !!q.data && !q.data.profile && q.data.required
+  useEffect(() => onState?.(blocked), [blocked, onState])
+  if (!positionId || !q.data) return null
+  const p = q.data.profile
+  if (!p)
+    return (
+      <Card className={clsx('flex flex-col gap-2 p-4 text-sm', q.data.required ? 'text-danger' : 'text-warning')}>
+        <div className="font-medium">{t('comp.req.noProfile')}</div>
+        <div className="text-muted">{t('comp.req.noProfileHint')}</div>
+        <Link to="/recruit/profiles" className="w-fit text-primary hover:underline">
+          {t('comp.req.toProfiles')}
+        </Link>
+      </Card>
+    )
+  return (
+    <Card className="flex flex-col gap-1.5 border-success/40 p-4 text-sm">
+      <div className="flex items-center gap-2 font-medium text-success">
+        <Check className="size-4" />
+        {t('comp.req.approved')}
+      </div>
+      <div className="font-medium">{p.position.name}</div>
+      <div className="text-muted">
+        {t('comp.req.version', { v: p.version })} · {p.decided_at ? formatDate(p.decided_at, i18n.language) : ''} · {t('comp.req.nComps', { n: p.competencies.length })}
+      </div>
+      <Link to={`/recruit/profiles/${p.id}`} className="w-fit text-primary hover:underline">
+        {t('comp.req.view')}
+      </Link>
+    </Card>
+  )
+}

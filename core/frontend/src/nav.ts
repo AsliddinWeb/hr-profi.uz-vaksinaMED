@@ -11,7 +11,7 @@ const baseNav: NavItem[] = [
   { id: 'company-settings', group: 'system', label: { uz: 'Kompaniya sozlamalari', ru: 'Настройки компании' }, to: '/settings/company', icon: Building2, anyPermission: ['org.manage'] },
   { id: 'devices', group: 'system', label: { uz: 'Qurilmalar', ru: 'Устройства' }, to: '/devices', icon: MonitorSmartphone, anyPermission: ['devices.read', 'devices.manage'] },
   { id: 'payroll-sheet', group: 'payroll', label: { uz: 'Oylik hisob', ru: 'Расчёт зарплаты' }, to: '/payroll/sheet', icon: Table2, permission: 'payroll.read', module: 'payroll' },
-  { id: 'revisions', group: 'main', label: { uz: 'Reviziya', ru: 'Ревизия' }, to: '/revisions', icon: ClipboardCheck, anyPermission: ['revision.own', 'revision.read', 'revision.manage'], module: 'pharmacy' },
+  { id: 'revisions', group: 'revision', label: { uz: 'Reviziya', ru: 'Ревизия' }, to: '/revisions', icon: ClipboardCheck, anyPermission: ['revision.own', 'revision.read', 'revision.manage'], module: 'pharmacy' },
   { id: 'ratings', group: 'pharmacy', label: { uz: 'Mijozlar baholashi', ru: 'Оценки клиентов' }, to: '/ratings', icon: MessageSquareQuote, anyPermission: ['ratings.own', 'ratings.read', 'ratings.manage'], module: 'pharmacy' },
   { id: 'home', group: 'main', label: { uz: 'Bosh sahifa', ru: 'Главная' }, to: '/', icon: LayoutDashboard },
   { id: 'help', group: 'main', label: { uz: 'Jarayonlar qo\'llanmasi', ru: 'Справочник процессов' }, to: '/help', icon: BookOpen },
@@ -27,6 +27,9 @@ const baseNav: NavItem[] = [
   { id: 'hr-documents', group: 'hr', sub: 'kadrdocs', label: { uz: 'Ariza va buyruqlar', ru: 'Заявления и приказы' }, to: '/hr/documents', icon: FileStack, anyPermission: ['staffdocs.apply', 'staffdocs.read', 'staffdocs.manage'], module: 'employees' },
   { id: 'hr-references', group: 'hr', sub: 'kadrdocs', label: { uz: "Ma'lumotnomalar", ru: 'Справки' }, to: '/hr/references', icon: FileCheck2, permission: 'staffdocs.manage', module: 'employees' },
   { id: 'kadr', group: 'hr', sub: 'kadrdocs', label: { uz: 'Kadrovik', ru: 'Кадровик' }, to: '/kadr', icon: FileCheck2, permission: 'employees.documents', module: 'employees' },
+  { id: 'competencies', group: 'hr', sub: 'recruit', label: { uz: 'Kompetensiyalar bazasi', ru: 'База компетенций' }, to: '/recruit/competencies', icon: ListChecks, anyPermission: ['recruit.read', 'recruit.manage', 'recruit.approve', 'org.read', 'org.manage'], module: 'recruit' },
+  { id: 'position-profiles', group: 'hr', sub: 'recruit', label: { uz: 'Lavozim profillari', ru: 'Профили должностей' }, to: '/recruit/profiles', icon: FileCheck2, anyPermission: ['recruit.read', 'recruit.manage', 'recruit.approve', 'org.read', 'org.manage'], module: 'recruit' },
+  { id: 'recruit-approvals', group: 'hr', sub: 'recruit', label: { uz: 'Tasdiqlash markazi', ru: 'Центр согласования' }, to: '/recruit/approvals', icon: ShieldCheck, anyPermission: ['recruit.read', 'recruit.manage', 'recruit.approve', 'org.read', 'org.manage'], module: 'recruit' },
   { id: 'recruit-requests', group: 'hr', sub: 'recruit', label: { uz: 'Zayafkalar', ru: 'Заявки' }, to: '/recruit/requests', icon: ClipboardList, anyPermission: ['recruit.read', 'recruit.manage', 'recruit.approve', 'org.read'], module: 'recruit' },
   { id: 'recruit-vacancies', group: 'hr', sub: 'recruit', label: { uz: 'Vakansiyalar', ru: 'Вакансии' }, to: '/recruit/vacancies', icon: Briefcase, permission: 'recruit.read', module: 'recruit' },
   { id: 'recruit-candidates', group: 'hr', sub: 'recruit', label: { uz: 'Nomzodlar bazasi', ru: 'База кандидатов' }, to: '/recruit/candidates', icon: Users2, permission: 'recruit.read', module: 'recruit' },
@@ -155,7 +158,7 @@ export const navById = new Map(baseNav.map((i) => [i.id, i]))
 const ADDED = new Set(['checklist-status', 'company-settings', 'devices', 'payroll-sheet', 'revisions', 'ratings'])
 
 /** Menyuda birinchi turadigan guruhlar: Bosh sahifa, HR, Resepshin; qolganlari keyin. */
-const FIRST = ['main', 'people', 'hr', 'reception']
+const FIRST = ['main', 'people', 'hr', 'revision', 'reception']
 
 /** Menyu asl holicha: guruhlar va bandlar baseNav tartibida, bir xil kichik bo'lim (sub) bandlari yonma-yon. */
 function original(items: NavItem[]): NavItem[] {
@@ -168,4 +171,4 @@ function original(items: NavItem[]): NavItem[] {
   })
 }
 
-export const coreNav: NavItem[] = original(baseNav)
+export const coreNav: NavItem[] = original(baseNav).filter((i) => i.id !== 'help')

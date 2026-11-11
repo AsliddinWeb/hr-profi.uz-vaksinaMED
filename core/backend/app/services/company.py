@@ -13,6 +13,7 @@ SETTINGS: dict[str, tuple[int, int, int]] = {
     "checklists.month_limit": (4, 1, 31),
     "revisions.cycle_days": (90, 7, 730),
     "revisions.soon_days": (14, 1, 90),
+    "recruit.require_profile": (1, 0, 1),
 }
 
 

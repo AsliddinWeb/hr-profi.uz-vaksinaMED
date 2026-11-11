@@ -8,6 +8,7 @@ from app.models.calls import Call, CallParticipant
 from app.models.canteen import CanteenDish, CanteenMenu, CanteenRating, CanteenSettings
 from app.models.checklists import ChecklistFile, ChecklistTemplate, ChecklistVisit
 from app.models.company import CompanySetting, EmployeeSegment
+from app.models.competency import Competency, PositionProfile, ProfileCompetency
 from app.models.devices import DeviceSettings, UserDevice
 from app.models.duty import DutyChecklist, DutyRun
 from app.models.employees import Employee, EmployeeDocument, EmployeeEvent
@@ -75,6 +76,9 @@ from app.models.warehouse import Warehouse
 
 __all__ = [
     "CompanySetting",
+    "Competency",
+    "PositionProfile",
+    "ProfileCompetency",
     "EmployeeSegment",
     "DeviceSettings",
     "UserDevice",

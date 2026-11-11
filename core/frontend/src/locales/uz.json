@@ -108,7 +108,8 @@
       "migration": "Migratsiya",
       "org": "Tashkiliy tuzilma",
       "hr": "HR bo'limi",
-      "main": "Asosiy"
+      "main": "Asosiy",
+      "revision": "Reviziya"
     },
     "sub": {
       "preboarding": "Prebording",
@@ -476,7 +477,12 @@
     "rewind_invalid": "Noto'g'ri qaytish",
     "device_pending": "Bu qurilmadan kirishga ruxsat so‘raldi. HR tasdiqlagach qayta kiring.",
     "device_blocked": "Bu qurilma bloklangan. HR bo‘limiga murojaat qiling.",
-    "device_unknown": "Qurilma aniqlanmadi. Brauzer xotirasi (cookie/storage) yoqilganini tekshiring."
+    "device_unknown": "Qurilma aniqlanmadi. Brauzer xotirasi (cookie/storage) yoqilganini tekshiring.",
+    "profile_not_approved": "Bu lavozim uchun tasdiqlangan profil yo'q. Avval lavozim profilini tuzing va tasdiqlating.",
+    "profile_incomplete": "Profil to'liq to'ldirilmagan: barcha qadamlarni to'ldiring.",
+    "not_editable": "Bu holatda tahrirlab bo'lmaydi.",
+    "unknown_competency": "Kompetensiya topilmadi.",
+    "duplicate": "Bunday nom allaqachon bor"
   },
   "auth": {
     "heroTitle": "Kadrlar va filiallar — bitta tizimda",
@@ -6752,6 +6758,162 @@
       "accepted": "Tayyorlanmoqda",
       "done": "Yetkazildi",
       "cancelled": "Bekor qilindi"
+    }
+  },
+  "comp": {
+    "cat": {
+      "hard": "Hard Skills",
+      "soft": "Soft Skills",
+      "management": "Boshqaruv",
+      "knowledge": "Bilim",
+      "experience": "Tajriba"
+    },
+    "st": {
+      "none": "Profil yo'q",
+      "draft": "Qoralama",
+      "pending": "Jarayonda",
+      "approved": "Tasdiqlangan",
+      "returned": "To'ldirilmagan",
+      "archived": "Arxiv"
+    },
+    "method": {
+      "practical": "Amaliy topshiriq",
+      "test": "Test",
+      "portfolio": "Portfolio",
+      "interview": "Suhbat"
+    },
+    "base": {
+      "title": "Kompetensiyalar bazasi",
+      "subtitle": "Kompaniyadagi barcha lavozimlar uchun kompetensiyalar yagona bazasi",
+      "add": "Kompetensiya qo'shish",
+      "name": "Kompetensiya nomi",
+      "category": "Kategoriya",
+      "description": "Tavsif",
+      "levels": "Daraja",
+      "linked": "Bog'langan lavozimlar",
+      "status": "Holat",
+      "active": "Faol",
+      "on": "Faol",
+      "off": "Nofaol",
+      "search": "Kompetensiya nomi bo'yicha qidirish",
+      "nPositions": "{{n}} ta",
+      "total": "Jami: {{n}} ta",
+      "deleteQ": "\"{{name}}\" o'chirilsinmi? Profillarda ishlatilgan bo'lsa nofaol qilinadi."
+    },
+    "dash": {
+      "positions": "Jami lavozimlar",
+      "competencies": "Kompetensiyalar",
+      "approved": "Tasdiqlangan profil",
+      "returned": "To'ldirilmagan",
+      "openVacancies": "Faol vakansiyalar",
+      "pendingRequests": "Tasdiqlashda",
+      "statusTitle": "Lavozim profillari holati",
+      "coverage": "Bo'limlar kesimida kompetensiya qamrovi"
+    },
+    "prof": {
+      "title": "Lavozim profillari",
+      "subtitle": "Rekruting zayavkasi faqat tasdiqlangan lavozim profili asosida yaratiladi",
+      "all": "Hammasi",
+      "search": "Lavozim nomi",
+      "position": "Lavozim",
+      "department": "Bo'lim",
+      "version": "Versiya",
+      "filled": "To'ldirilganlik",
+      "open": "Ochish",
+      "create": "Profil yaratish"
+    },
+    "wiz": {
+      "title": "Lavozim profili: {{name}}",
+      "filled": "To'ldirilganlik: {{n}}%",
+      "stepWord": "qadam",
+      "saveDraft": "Qoralama saqlash",
+      "saved": "Saqlandi",
+      "back": "Orqaga",
+      "next": "Keyingi",
+      "submit": "Tasdiqlashga yuborish",
+      "approve": "Tasdiqlash",
+      "return": "Qayta ishlashga qaytarish",
+      "newVersion": "Yangi versiya",
+      "addRow": "Qator qo'shish",
+      "addComp": "Kompetensiya qo'shish",
+      "toBase": "Bazada yo'qmi? Kompetensiyalar bazasiga o'tish",
+      "required": "Talab darajasi",
+      "ideal": "Ideal daraja",
+      "mandatory": "Majburiyligi",
+      "must": "Majburiy",
+      "extra": "Qo'shimcha",
+      "method": "Baholash usuli",
+      "noComps": "Hali kompetensiya tanlanmagan",
+      "done": "To'ldirilgan",
+      "empty": "Bo'sh",
+      "returnNote": "Qaytarish sababi",
+      "decisionNote": "Izoh (qaytarishda majburiy)",
+      "step": {
+        "general": "Umumiy ma'lumotlar",
+        "goal": "Lavozim maqsadi",
+        "functions": "Funksional vazifalar",
+        "education": "Ta'lim va tajriba",
+        "hard": "Hard Skills",
+        "soft": "Soft Skills",
+        "management": "Boshqaruv ko'nikmalari",
+        "kpi": "KPI ko'rsatkichlari",
+        "portrait": "Nomzod portreti",
+        "review": "Ko'rib chiqish va yuborish"
+      },
+      "hint": {
+        "general": "Lavozim nomi, darajasi, kimga bo'ysunishi va ish rejimi.",
+        "goal": "Lavozim nima uchun mavjud, qanday natija beradi.",
+        "functions": "Asosiy vazifalarni qatorma-qator yozing.",
+        "education": "Talab qilinadigan ta'lim, yo'nalish, tajriba va tillar.",
+        "hard": "Lavozim uchun zarur bo'lgan kasbiy ko'nikmalarni tanlang va talab darajasini belgilang.",
+        "soft": "Shaxsiy va muloqot ko'nikmalari.",
+        "management": "Boshqaruv va yetakchilik ko'nikmalari.",
+        "kpi": "Natijani o'lchaydigan ko'rsatkichlar va maqsadli qiymatlar.",
+        "portrait": "Ideal nomzod qanday bo'lishi kerak.",
+        "review": "Hamma qadamlar to'ldirilgach profilni tasdiqlashga yuboring."
+      },
+      "f": {
+        "title": "Lavozim nomi",
+        "grade": "Daraja (grade)",
+        "reportsTo": "Kimga bo'ysunadi",
+        "workMode": "Ish rejimi",
+        "eduLevel": "Ta'lim darajasi",
+        "eduField": "Yo'nalish",
+        "experience": "Tajriba",
+        "languages": "Tillar",
+        "kpiName": "Ko'rsatkich",
+        "kpiTarget": "Maqsad"
+      }
+    },
+    "appr": {
+      "title": "Tasdiqlash markazi",
+      "subtitle": "Lavozim profillari va rekruting zayavkalari bo'yicha qarorlar",
+      "all": "Barcha",
+      "profiles": "Lavozim profillari",
+      "requests": "Rekruting zayavkalari",
+      "search": "Hujjat nomi yoki ID bo'yicha qidirish",
+      "anyStatus": "Barcha holat",
+      "doc": "Hujjat nomi",
+      "type": "Tur",
+      "requester": "So'rovchi",
+      "sent": "Yuborilgan sana",
+      "approver": "Joriy tasdiqlovchi",
+      "profile": "Lavozim profili",
+      "request": "Rekruting zayavkasi",
+      "st": {
+        "pending": "Tasdiqlashda",
+        "returned": "Qayta ishlash",
+        "approved": "Tasdiqlangan"
+      }
+    },
+    "req": {
+      "noProfile": "Bu lavozim uchun tasdiqlangan profil yo'q",
+      "noProfileHint": "Zayavka faqat tasdiqlangan lavozim profili asosida yaratiladi. Avval kompetensiyalar bazasida profil tuzing va tasdiqlating.",
+      "toProfiles": "Lavozim profillariga o'tish",
+      "approved": "Lavozim profili (tasdiqlangan)",
+      "version": "Versiya: v{{v}}.0",
+      "nComps": "{{n}} ta kompetensiya",
+      "view": "Profilni ko'rish"
     }
   }
 }

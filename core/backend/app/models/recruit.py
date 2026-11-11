@@ -361,3 +361,4 @@ class HireRequest(Base):
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     decision_note: Mapped[str | None] = mapped_column(Text)
     vacancy_id: Mapped[int | None] = mapped_column(ForeignKey("vacancies.id", ondelete="SET NULL"))
+    profile_id: Mapped[int | None] = mapped_column(ForeignKey("position_profiles.id", ondelete="SET NULL"))

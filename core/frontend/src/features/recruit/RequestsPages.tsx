@@ -16,6 +16,7 @@ import { api, send } from '../../lib/api'
 import { useCan } from '../auth/useAuth'
 import { formatDate, formatDateTime } from '../../lib/format'
 import { errorText } from '../auth/errorText'
+import { ApprovedProfileCard } from './CompetencyPages'
 
 type RStatus = 'pending' | 'approved' | 'rejected' | 'cancelled'
 export interface HireRequest {
@@ -162,6 +163,7 @@ export function RequestFormPage() {
   const [reqs, setReqs] = useState('')
   const [sFrom, setSFrom] = useState('')
   const [sTo, setSTo] = useState('')
+  const [noProfile, setNoProfile] = useState(false)
   const loadCard = async (positionId: string) => {
     setPos(positionId)
     if (!positionId) return
@@ -233,6 +235,9 @@ export function RequestFormPage() {
               </Select>
             )}
           </Field>
+          <div className="sm:col-span-2">
+            <ApprovedProfileCard positionId={pos} onState={setNoProfile} />
+          </div>
           <Field label={t('rreq.count')}>{(id) => <Input id={id} type="number" min={1} max={100} value={count} onChange={(e) => setCount(Number(e.target.value))} />}</Field>
           <Field label={t('rreq.urgency')}>
             {(id) => (
@@ -262,7 +267,7 @@ export function RequestFormPage() {
         <Link to="/recruit/requests">
           <Button variant="outline">{t('common.cancel')}</Button>
         </Link>
-        <Button type="submit" disabled={save.isPending || !m.can_request || !unit || !pos}>
+        <Button type="submit" disabled={save.isPending || !m.can_request || !unit || !pos || noProfile}>
           {t('rreq.submit')}
         </Button>
       </FormFooter>
