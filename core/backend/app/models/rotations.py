@@ -20,6 +20,9 @@ class Rotation(Base, TimestampMixin):
     start_date: Mapped[date] = mapped_column(Date)
     end_date: Mapped[date] = mapped_column(Date)
     reason: Mapped[str] = mapped_column(String(300))
+    kind: Mapped[str] = mapped_column(String(10), default="temporary", server_default="temporary")  # permanent | temporary | weekly | daily
+    weekdays: Mapped[str | None] = mapped_column(String(20))  # haftalik: "1,3,5" (ISO, Du=1)
+    shift_id: Mapped[int | None] = mapped_column(ForeignKey("shift_templates.id", ondelete="SET NULL"))
     status: Mapped[str] = mapped_column(String(10), default="pending")  # pending | approved | active | completed | rejected | cancelled
     requested_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     decided_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))

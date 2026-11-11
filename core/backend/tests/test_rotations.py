@@ -160,3 +160,38 @@ async def test_branch_options_for_lead(new_client):
     assert r.status_code == 200
     assert {b["name"] for b in r.json()} >= {"F71", "F72"}
     assert (await ctx["far"].get(f"{RT}/branches")).status_code == 403
+
+
+async def test_kinds_permanent_weekly_daily(new_client):
+    ctx = await setup(new_client)
+    today = date.today()
+    # haftalik: faqat bugungi kun tanlangan -> bugun boshqa filialda
+    w = await ctx["hr"].post(RT, json=body(ctx, kind="weekly", weekdays=[today.isoweekday()]))
+    assert w.status_code == 201, w.text
+    assert w.json()["kind"] == "weekly" and w.json()["weekdays"] == [today.isoweekday()]
+    assert await branch_of(ctx["emp"]) == ctx["b"]
+    async with SessionLocal() as s:
+        rot = await s.get(Rotation, w.json()["id"])
+        rot.weekdays = str(today.isoweekday() % 7 + 1)  # boshqa kun
+        await s.commit()
+    async with SessionLocal() as s:
+        await svc.run_due(s, now())
+        await s.commit()
+    assert await branch_of(ctx["emp"]) == ctx["a"]
+    assert (await ctx["hr"].post(f"{RT}/{w.json()['id']}/cancel")).status_code == 200
+    # haftalik kunlarsiz -> 400
+    assert (await ctx["hr"].post(RT, json=body(ctx, kind="weekly"))).status_code == 400
+    # kunlik: end_date start ga tenglanadi
+    d = (await ctx["hr"].post(RT, json={**body(ctx, kind="daily"), "end_date": None})).json()
+    assert d["end_date"] == str(today) and d["status"] == "active"
+    assert (await ctx["hr"].post(f"{RT}/{d['id']}/cancel")).status_code == 200
+    # doimiy: darhol o'tadi va qaytmaydi
+    p = (await ctx["hr"].post(RT, json={**body(ctx, kind="permanent"), "end_date": None})).json()
+    assert p["status"] == "completed" and p["kind"] == "permanent"
+    async with SessionLocal() as s:
+        await svc.run_due(s, now())
+        await s.commit()
+    assert await branch_of(ctx["emp"]) == ctx["b"]
+    hist = (await ctx["hr"].get(RT, params={"status": "history"})).json()
+    assert {r["kind"] for r in hist} == {"weekly", "daily", "permanent"}
+    assert (await ctx["hr"].get(f"{RT}/shifts")).status_code == 200

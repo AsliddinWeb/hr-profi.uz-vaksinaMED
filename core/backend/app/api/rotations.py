@@ -14,6 +14,7 @@ from app.models.auth import User
 from app.models.employees import Employee
 from app.models.org import Branch
 from app.models.rotations import Rotation
+from app.models.schedule import ShiftTemplate
 from app.services import rotations as svc
 from app.services.answers import users_with_permission
 from app.services.audit import audit
@@ -27,8 +28,11 @@ class RotationIn(BaseModel):
     employee_id: int
     to_branch_id: int
     start_date: date
-    end_date: date
+    end_date: date | None = None
     reason: str = Field(min_length=3, max_length=300)
+    kind: str = Field(default="temporary", pattern="^(permanent|temporary|weekly|daily)$")
+    weekdays: list[int] = Field(default_factory=list, max_length=7)
+    shift_id: int | None = None
 
 
 class DecisionIn(BaseModel):
@@ -40,14 +44,19 @@ async def _branches(db: AsyncSession) -> dict[int, Branch]:
     return {b.id: b for b in (await db.scalars(select(Branch))).all()}
 
 
-def _out(r: Rotation, emp: Employee | None, branches: dict[int, Branch], names: dict[int, str]) -> dict[str, Any]:
+def _out(r: Rotation, emp: Employee | None, branches: dict[int, Branch], names: dict[int, str], shifts: dict[int, dict] | None = None) -> dict[str, Any]:
     fb, tb = branches.get(r.from_branch_id), branches.get(r.to_branch_id)
     return {
         "id": r.id, "status": r.status, "employee": {"id": emp.id, "name": emp.full_name} if emp else None,
         "from_branch": {"id": r.from_branch_id, "name": fb.name if fb else None}, "to_branch": {"id": r.to_branch_id, "name": tb.name if tb else None},
+        "kind": r.kind, "weekdays": sorted(svc.days(r)), "shift": shifts.get(r.shift_id or 0) if shifts else None,
         "start_date": r.start_date, "end_date": r.end_date, "reason": r.reason, "requested_by": names.get(r.requested_by or 0), "decided_by": names.get(r.decided_by or 0),
         "decided_at": r.decided_at, "decision_note": r.decision_note, "started_at": r.started_at, "finished_at": r.finished_at, "created_at": r.created_at,
     }  # fmt: skip
+
+
+async def _shifts(db: AsyncSession) -> dict[int, dict]:
+    return {s.id: {"id": s.id, "name": s.name, "start_time": s.start_time.strftime("%H:%M"), "end_time": s.end_time.strftime("%H:%M")} for s in (await db.scalars(select(ShiftTemplate).order_by(ShiftTemplate.start_time, ShiftTemplate.name))).all()}
 
 
 async def _names(db: AsyncSession, rows: list[Rotation]) -> dict[int, str]:
@@ -74,9 +83,17 @@ async def branch_options(db: AsyncSession = Depends(get_session), auth: AuthCont
     return [{"id": b.id, "number": b.number, "name": b.name} for b in rows]
 
 
+@router.get("/shifts")
+async def shift_options(db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
+    """Rotatsiyada tanlanadigan smenalar (grafik shablonlari)."""
+    if not (svc.has(auth, "rotations.manage") or svc.has(auth, "rotations.request")):
+        raise error(403, "forbidden")
+    return list((await _shifts(db)).values())
+
+
 @router.get("")
 async def list_rotations(
-    status: str | None = Query(default=None, pattern="^(open|pending|approved|active|completed|rejected|cancelled)$"),
+    status: str | None = Query(default=None, pattern="^(open|history|pending|approved|active|completed|rejected|cancelled)$"),
     employee_id: int | None = None,
     branch_id: int | None = None,
     db: AsyncSession = Depends(get_session),
@@ -87,6 +104,8 @@ async def list_rotations(
     stmt = select(Rotation).order_by(Rotation.id.desc()).limit(500)
     if status == "open":
         stmt = stmt.where(Rotation.status.in_(svc.OPEN))
+    elif status == "history":
+        stmt = stmt.where(Rotation.status.in_(("completed", "rejected", "cancelled")))
     elif status:
         stmt = stmt.where(Rotation.status == status)
     if employee_id:
@@ -96,8 +115,8 @@ async def list_rotations(
     rows = list((await db.scalars(stmt)).all())
     branches = await _branches(db)
     emps = {e.id: e for e in (await db.scalars(select(Employee).where(Employee.id.in_({r.employee_id for r in rows})))).all()} if rows else {}
-    names = await _names(db, rows)
-    return [_out(r, emps.get(r.employee_id), branches, names) for r in rows if svc.touches(auth, r, branches, emps.get(r.employee_id))]
+    names, shifts = await _names(db, rows), await _shifts(db)
+    return [_out(r, emps.get(r.employee_id), branches, names, shifts) for r in rows if svc.touches(auth, r, branches, emps.get(r.employee_id))]
 
 
 @router.post("", status_code=201)
@@ -114,8 +133,16 @@ async def create_rotation(body: RotationIn, request: Request, db: AsyncSession =
     home = branches.get(emp.branch_id or 0)
     if not manage and not (home and auth.user.id in (home.manager_user_id, home.coordinator_user_id)):
         raise error(403, "not_your_branch")
-    await svc.validate_new(db, emp, body.to_branch_id, body.start_date, body.end_date, local_date(moment))
-    rot = Rotation(employee_id=emp.id, from_branch_id=emp.branch_id, to_branch_id=body.to_branch_id, start_date=body.start_date, end_date=body.end_date, reason=body.reason.strip(), status="pending", requested_by=auth.user.id)  # type: ignore[arg-type]
+    end = body.start_date if body.kind in ("permanent", "daily") else body.end_date
+    if end is None:
+        raise error(400, "end_date_required")
+    weekdays = sorted({d for d in body.weekdays if 1 <= d <= 7})
+    if body.kind == "weekly" and not weekdays:
+        raise error(400, "weekdays_required")
+    if body.shift_id and not await db.get(ShiftTemplate, body.shift_id):
+        raise error(400, "unknown_shift")
+    await svc.validate_new(db, emp, body.to_branch_id, body.start_date, end, local_date(moment))
+    rot = Rotation(employee_id=emp.id, from_branch_id=emp.branch_id, to_branch_id=body.to_branch_id, start_date=body.start_date, end_date=end, reason=body.reason.strip(), status="pending", requested_by=auth.user.id, kind=body.kind, weekdays=",".join(map(str, weekdays)) if body.kind == "weekly" else None, shift_id=body.shift_id)  # type: ignore[arg-type]
     db.add(rot)
     await db.flush()
     notes: list = []
@@ -128,13 +155,13 @@ async def create_rotation(body: RotationIn, request: Request, db: AsyncSession =
     await audit(db, request, "rotation.create", actor=auth.user, entity="rotation", entity_id=rot.id, data={"employee_id": emp.id, "to": rot.to_branch_id, "status": rot.status})
     await db.commit()
     await deliver(request.app, notes)
-    return _out(rot, emp, branches, await _names(db, [rot]))
+    return _out(rot, emp, branches, await _names(db, [rot]), await _shifts(db))
 
 
 @router.get("/{rid}")
 async def get_rotation(rid: int, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
     rot, emp, branches = await _load(db, rid, auth)
-    return _out(rot, emp, branches, await _names(db, [rot]))
+    return _out(rot, emp, branches, await _names(db, [rot]), await _shifts(db))
 
 
 @router.post("/{rid}/decide")
@@ -146,7 +173,7 @@ async def decide(rid: int, body: DecisionIn, request: Request, db: AsyncSession 
         raise error(409, "already_decided")
     moment = now()
     if body.action == "approve":
-        if rot.end_date < local_date(moment):
+        if rot.kind != "permanent" and rot.end_date < local_date(moment):
             raise error(400, "date_in_past")
         if emp.status != "active":
             raise error(409, "employee_dismissed")

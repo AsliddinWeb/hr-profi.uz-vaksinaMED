@@ -1,4 +1,8 @@
-"""Rotatsiya: filialdan filialga vaqtincha o'tkazish (tasdiq, avtomatik boshlash va qaytarish)."""
+"""Rotatsiya: filialdan filialga o'tkazish (tasdiq, avtomatik boshlash va qaytarish).
+
+Turlar: permanent — butunlay o'tadi (qaytmaydi); temporary — muddat oxirida qaytadi;
+weekly — muddat ichida faqat tanlangan hafta kunlari boshqa filialda; daily — bir kunlik.
+"""
 
 from datetime import date, datetime
 
@@ -38,7 +42,20 @@ def touches(auth: AuthContext, rot: Rotation, branches: dict[int, Branch], emp: 
     return any(b and auth.user.id in (b.manager_user_id, b.coordinator_user_id) for b in (branches.get(rot.from_branch_id), branches.get(rot.to_branch_id)))
 
 
+def days(rot: Rotation) -> set[int]:
+    return {int(x) for x in (rot.weekdays or '').split(',') if x}
+
+
+def _place(rot: Rotation, emp: Employee, today: date) -> None:
+    """Haftalik rotatsiyada bugungi kunga qarab filialni almashtiradi (HR boshqa joyga o'tkazgan bo'lsa tegmaydi)."""
+    if emp.branch_id not in (rot.from_branch_id, rot.to_branch_id):
+        return
+    emp.branch_id = rot.to_branch_id if today.isoweekday() in days(rot) else rot.from_branch_id
+
+
 def period(rot: Rotation) -> str:
+    if rot.kind == "permanent":
+        return f"{rot.start_date:%d.%m.%Y} dan"
     return f"{rot.start_date:%d.%m.%Y} – {rot.end_date:%d.%m.%Y}"
 
 
@@ -66,15 +83,20 @@ async def validate_new(db: AsyncSession, emp: Employee, to_branch_id: int, start
 
 
 async def _start(db: AsyncSession, rot: Rotation, emp: Employee, moment: datetime) -> list:
-    emp.branch_id = rot.to_branch_id
+    if rot.kind == "weekly":
+        _place(rot, emp, local_date(moment))
+    else:
+        emp.branch_id = rot.to_branch_id
     rot.status, rot.started_at = "active", moment
+    if rot.kind == "permanent":
+        rot.status, rot.finished_at = "completed", moment  # doimiy: qaytish yo'q
     emp_svc.add_event(db, emp.id, "rotation_start", rot.start_date, data={"from": rot.from_branch_id, "to": rot.to_branch_id, "end": str(rot.end_date)}, note=rot.reason, actor_id=rot.decided_by)
     return await _notify_both(db, rot, emp, "rotation.started", {"end": f"{rot.end_date:%d.%m.%Y}"})
 
 
 async def _finish(db: AsyncSession, rot: Rotation, emp: Employee, moment: datetime, status: str = "completed") -> list:
     """Xodim hali rotatsiya filialida bo'lsa uy filialiga qaytaradi (HR bu orada boshqa filialga o'tkazgan bo'lsa tegmaydi)."""
-    if rot.status == "active" and emp.branch_id == rot.to_branch_id:
+    if rot.status == "active" and emp.branch_id in (rot.to_branch_id, rot.from_branch_id):
         emp.branch_id = rot.from_branch_id
     was_active = rot.status == "active"
     rot.status, rot.finished_at = status, moment
@@ -93,7 +115,7 @@ async def _notify_both(db: AsyncSession, rot: Rotation, emp: Employee, kind: str
 
 async def approve(db: AsyncSession, rot: Rotation, emp: Employee, auth: AuthContext, note: str | None, moment: datetime) -> list:
     rot.status, rot.decided_by, rot.decided_at, rot.decision_note = "approved", auth.user.id, moment, note
-    if rot.start_date <= local_date(moment) <= rot.end_date:
+    if rot.start_date <= local_date(moment) <= rot.end_date or (rot.kind == "permanent" and rot.start_date <= local_date(moment)):
         return await _start(db, rot, emp, moment)
     return await _notify_both(db, rot, emp, "rotation.decided", {"result": "tasdiqlandi"})
 
@@ -121,8 +143,14 @@ async def run_due(db: AsyncSession, moment: datetime) -> list:
         emp = await db.get(Employee, rot.employee_id)
         if not emp or emp.status != "active":
             rot.status, rot.finished_at = "cancelled", moment
+        elif rot.kind == "permanent":
+            notes += await _start(db, rot, emp, moment)
         elif rot.end_date < today:
             rot.status, rot.finished_at = "completed", moment  # boshlanmasdan muddati o'tib ketgan
         else:
             notes += await _start(db, rot, emp, moment)
+    for rot in (await db.scalars(select(Rotation).where(Rotation.status == "active", Rotation.kind == "weekly"))).all():
+        emp = await db.get(Employee, rot.employee_id)
+        if emp:
+            _place(rot, emp, today)
     return notes

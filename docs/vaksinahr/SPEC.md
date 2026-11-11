@@ -19,7 +19,7 @@ hr-profi menyusi shu guruhlar va shu tartibga keltiriladi.
 | DAVOMAT | Davomat (/davomat-face) | /attendance | 🟡 |
 | DAVOMAT | Davomat hisobot | /attendance/daily | ✅ |
 | DAVOMAT | Davomat QR | /attendance/qr | ✅ |
-| DAVOMAT | Smena va filial | /org/rotations | 🟡 |
+| DAVOMAT | Smena va filial | /org/rotations | ✅ |
 | DAVOMAT | Cheklist holati | /checklists/status | ✅ |
 | DAVOMAT | Tushuntirish xatlari | /letters | ✅ |
 | DAVOMAT | Ma'lumotnoma | /hr/references | ✅ |

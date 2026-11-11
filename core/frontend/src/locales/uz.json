@@ -4900,7 +4900,8 @@
       "open": "Faol va kutilayotgan",
       "pending": "Tasdiq kutmoqda",
       "active": "Faol",
-      "completed": "Tugagan"
+      "completed": "Tugagan",
+      "history": "Tarix"
     },
     "status": {
       "pending": "Tasdiq kutmoqda",
@@ -4909,6 +4910,34 @@
       "completed": "Tugagan",
       "rejected": "Rad etilgan",
       "cancelled": "Bekor qilingan"
+    },
+    "fromDate": "dan boshlab",
+    "search": "Xodim yoki filial",
+    "kindLabel": "Rotatsiya turi",
+    "shift": "Smena",
+    "shiftKeep": "Smena o'zgarmaydi",
+    "summary": "Yangi rotatsiya xulosasi",
+    "days": "Kunlar",
+    "kind": {
+      "permanent": "Doimiy",
+      "temporary": "Muddatli",
+      "weekly": "Haftalik",
+      "daily": "Kunlik"
+    },
+    "kindHint": {
+      "permanent": "Xodim butunlay yangi filialga o'tadi, qaytmaydi.",
+      "temporary": "Muddat oxirida xodim o'z filialiga avtomatik qaytadi.",
+      "weekly": "Muddat ichida faqat tanlangan kunlarda boshqa filialda ishlaydi.",
+      "daily": "Faqat bir kunga boshqa filialga chiqadi."
+    },
+    "wd": {
+      "1": "Du",
+      "2": "Se",
+      "3": "Ch",
+      "4": "Pa",
+      "5": "Ju",
+      "6": "Sh",
+      "7": "Ya"
     }
   },
   "answersReport": {

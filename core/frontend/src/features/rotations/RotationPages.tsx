@@ -24,6 +24,9 @@ export interface Rotation {
   id: number
   status: 'pending' | 'approved' | 'active' | 'completed' | 'rejected' | 'cancelled'
   employee: { id: number; name: string } | null
+  kind: Kind
+  weekdays: number[]
+  shift: Shift | null
   from_branch: { id: number; name: string | null }
   to_branch: { id: number; name: string | null }
   start_date: string
@@ -38,15 +41,28 @@ export interface Rotation {
   created_at: string
 }
 
+type Kind = 'permanent' | 'temporary' | 'weekly' | 'daily'
+type Shift = { id: number; name: string; start_time: string; end_time: string }
+const KINDS: Kind[] = ['permanent', 'temporary', 'weekly', 'daily']
+const WEEK = [1, 2, 3, 4, 5, 6, 7]
+
+/** Davr matni: doimiyda faqat boshlanish, kunlikda bitta sana. */
+function periodText(r: Pick<Rotation, 'kind' | 'start_date' | 'end_date'>, lang: string, t: (k: string) => string) {
+  if (r.kind === 'permanent') return `${formatDate(r.start_date, lang)} ${t('rotation.fromDate')}`
+  if (r.kind === 'daily') return formatDate(r.start_date, lang)
+  return `${formatDate(r.start_date, lang)} – ${formatDate(r.end_date, lang)}`
+}
+
 const TONE = { pending: 'warning', approved: 'info', active: 'success', completed: 'neutral', rejected: 'danger', cancelled: 'neutral' } as const
 const area = 'w-full rounded-control border border-border bg-surface px-3 py-2 text-sm'
-const FILTERS = ['open', 'pending', 'active', 'completed'] as const
+const FILTERS = ['open', 'pending', 'active', 'history'] as const
 
 /** /org/rotations: filialdan filialga vaqtincha o'tkazishlar. */
 export function RotationsPage() {
   const { t, i18n } = useTranslation()
   const can = useCan()
   const [status, setStatus] = useState<string>('open')
+  const [q, setQ] = useState('')
   const list = useQuery({ queryKey: ['rotations', status], queryFn: () => api<Rotation[]>(`/api/v1/rotations?status=${status}`), refetchInterval: 60_000 })
   const pill = (on: boolean) => 'rounded-full border px-3 py-1.5 text-xs font-medium ' + (on ? 'border-primary bg-primary text-primary-fg' : 'border-border bg-surface text-muted hover:text-text')
   return (
@@ -71,21 +87,26 @@ export function RotationsPage() {
             {t(`rotation.filter.${s}`)}
           </button>
         ))}
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('rotation.search')} className="ml-auto w-full sm:w-64" aria-label={t('rotation.search')} />
       </div>
       {!list.data ? (
         <Skeleton className="h-40" />
       ) : (
         <div className="flex flex-col gap-3">
-          {list.data.map((r) => (
+          {list.data.filter((r) => !q || `${r.employee?.name} ${r.from_branch.name} ${r.to_branch.name}`.toLowerCase().includes(q.toLowerCase())).map((r) => (
             <Link key={r.id} to={`/org/rotations/${r.id}`}>
               <Card className="flex flex-wrap items-center justify-between gap-3 p-4 hover:bg-surface-2">
                 <div>
                   <div className="font-medium">{r.employee?.name}</div>
                   <div className="text-sm text-muted">
-                    {r.from_branch.name} → {r.to_branch.name} · {formatDate(r.start_date, i18n.language)} – {formatDate(r.end_date, i18n.language)}
+                    {r.from_branch.name} → {r.to_branch.name} · {periodText(r, i18n.language, t)}
+                    {r.shift && ` · ${r.shift.name} ${r.shift.start_time}–${r.shift.end_time}`}
                   </div>
                 </div>
-                <Badge tone={TONE[r.status]}>{t(`rotation.status.${r.status}`)}</Badge>
+                <div className="flex gap-1.5">
+                  <Badge>{t(`rotation.kind.${r.kind}`)}</Badge>
+                  <Badge tone={TONE[r.status]}>{t(`rotation.status.${r.status}`)}</Badge>
+                </div>
               </Card>
             </Link>
           ))}
@@ -98,7 +119,7 @@ export function RotationsPage() {
 
 /** /org/rotations/new: yangi rotatsiya (`?employee=ID` xodim kartochkasidan keladi). */
 export function RotationFormPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const qc = useQueryClient()
   const toast = useToast()
@@ -109,26 +130,54 @@ export function RotationFormPage() {
   const [picked, setPicked] = useState<Picked | null>(null)
   const emp: Picked | null = picked ?? (presetEmp.data ? { id: presetEmp.data.id, name: presetEmp.data.full_name } : null)
   const branches = useQuery({ queryKey: ['branches', 'all'], queryFn: () => api<{ id: number; number: number | null; name: string }[]>('/api/v1/rotations/branches') })
+  const shifts = useQuery({ queryKey: ['rotations', 'shifts'], queryFn: () => api<Shift[]>('/api/v1/rotations/shifts') })
+  const [kind, setKind] = useState<Kind>('temporary')
+  const [weekdays, setWeekdays] = useState<number[]>([])
+  const [shift, setShift] = useState('')
   const [to, setTo] = useState('')
   const [start, setStart] = useState(todayLocal())
   const [end, setEnd] = useState('')
   const [reason, setReason] = useState('')
   const save = useMutation({
-    mutationFn: () => send<Rotation>('POST', '/api/v1/rotations', { employee_id: emp?.id, to_branch_id: Number(to), start_date: start, end_date: end, reason }),
+    mutationFn: () => send<Rotation>('POST', '/api/v1/rotations', { employee_id: emp?.id, to_branch_id: Number(to), start_date: start, end_date: oneDay ? null : end, reason, kind, weekdays, shift_id: shift ? Number(shift) : null }),
     onSuccess: (r) => {
       void qc.invalidateQueries({ queryKey: ['rotations'] })
       toast.push({ title: t(r.status === 'pending' ? 'rotation.requested' : 'rotation.created'), tone: 'success' })
       navigate(`/org/rotations/${r.id}`, { replace: true })
     },
   })
+  const oneDay = kind === 'permanent' || kind === 'daily'
+  const toName = branches.data?.find((b) => String(b.id) === to)?.name
+  const shiftObj = shifts.data?.find((s) => String(s.id) === shift)
+  const pill = (on: boolean) => 'rounded-full border px-3 py-1.5 text-xs font-medium ' + (on ? 'border-primary bg-primary text-primary-fg' : 'border-border bg-surface text-muted hover:text-text')
   const submit = (e: FormEvent) => {
     e.preventDefault()
     save.mutate()
   }
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <div className="mx-auto flex max-w-5xl flex-col gap-6">
       <PageHeader title={t('rotation.add')} subtitle={t(can('rotations.manage') ? 'rotation.hintHr' : 'rotation.hintLead')} backTo="/org/rotations" backLabel={t('rotation.title')} />
+      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
       <form onSubmit={submit} className="flex flex-col gap-6">
+        <FormSection title={t('rotation.kindLabel')}>
+          <div className="flex flex-wrap gap-2">
+            {KINDS.map((k) => (
+              <button key={k} type="button" aria-pressed={kind === k} onClick={() => setKind(k)} className={pill(kind === k)}>
+                {t(`rotation.kind.${k}`)}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted">{t(`rotation.kindHint.${kind}`)}</p>
+          {kind === 'weekly' && (
+            <div className="flex flex-wrap gap-1.5">
+              {WEEK.map((d) => (
+                <button key={d} type="button" aria-pressed={weekdays.includes(d)} onClick={() => setWeekdays((w) => (w.includes(d) ? w.filter((x) => x !== d) : [...w, d]))} className={pill(weekdays.includes(d))}>
+                  {t(`rotation.wd.${d}`)}
+                </button>
+              ))}
+            </div>
+          )}
+        </FormSection>
         <FormSection title={t('rotation.who')}>
           <EmployeePicker value={emp} onChange={setPicked} />
         </FormSection>
@@ -148,19 +197,48 @@ export function RotationFormPage() {
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t('rotation.start')}>{(id) => <Input id={id} type="date" value={start} min={todayLocal()} onChange={(e) => setStart(e.target.value)} />}</Field>
-            <Field label={t('rotation.end')}>{(id) => <Input id={id} type="date" value={end} min={start} onChange={(e) => setEnd(e.target.value)} />}</Field>
+            {!oneDay && <Field label={t('rotation.end')}>{(id) => <Input id={id} type="date" value={end} min={start} onChange={(e) => setEnd(e.target.value)} />}</Field>}
           </div>
+          <Field label={t('rotation.shift')}>
+            {(id) => (
+              <Select id={id} value={shift} onChange={(e) => setShift(e.target.value)}>
+                <option value="">{t('rotation.shiftKeep')}</option>
+                {shifts.data?.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} · {s.start_time}–{s.end_time}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
           <Field label={t('rotation.reason')}>{(id) => <textarea id={id} value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={300} className={area} />}</Field>
         </FormSection>
         <FormFooter error={save.isError ? errorText(t, save.error) : null}>
           <Button variant="outline" onClick={() => navigate('/org/rotations')}>
             {t('common.cancel')}
           </Button>
-          <Button type="submit" disabled={save.isPending || !emp || !to || !end || reason.trim().length < 3}>
+          <Button type="submit" disabled={save.isPending || !emp || !to || (!oneDay && !end) || (kind === 'weekly' && !weekdays.length) || reason.trim().length < 3}>
             {t('common.save')}
           </Button>
         </FormFooter>
       </form>
+      <Card className="flex h-fit flex-col gap-2 p-5 text-sm lg:sticky lg:top-4">
+        <div className="font-medium">{t('rotation.summary')}</div>
+        {[
+          [t('rotation.who'), emp?.name],
+          [t('rotation.kindLabel'), t(`rotation.kind.${kind}`)],
+          [t('rotation.toBranch'), toName],
+          [t('rotation.period'), start && (oneDay || end) ? periodText({ kind, start_date: start, end_date: end || start }, i18n.language, t) : null],
+          [t('rotation.days'), kind === 'weekly' && weekdays.length ? [...weekdays].sort().map((d) => t(`rotation.wd.${d}`)).join(', ') : null],
+          [t('rotation.shift'), shiftObj ? `${shiftObj.name} ${shiftObj.start_time}–${shiftObj.end_time}` : t('rotation.shiftKeep')],
+        ].map(([k, v]) => (
+          <div key={k} className="flex justify-between gap-3">
+            <span className="text-muted">{k}</span>
+            <span className="text-right font-medium">{v || '—'}</span>
+          </div>
+        ))}
+      </Card>
+      </div>
     </div>
   )
 }
@@ -194,7 +272,10 @@ export function RotationDetailPage() {
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
       <PageHeader title={r.employee?.name ?? ''} subtitle={`${r.from_branch.name} → ${r.to_branch.name}`} backTo="/org/rotations" backLabel={t('rotation.title')} actions={<Badge tone={TONE[r.status]}>{t(`rotation.status.${r.status}`)}</Badge>} />
       <Card className="flex flex-col gap-2 p-5">
-        {row(t('rotation.period'), `${formatDate(r.start_date, i18n.language)} – ${formatDate(r.end_date, i18n.language)}`)}
+        {row(t('rotation.kindLabel'), t(`rotation.kind.${r.kind}`))}
+        {row(t('rotation.period'), periodText(r, i18n.language, t))}
+        {row(t('rotation.days'), r.weekdays.length ? r.weekdays.map((d) => t(`rotation.wd.${d}`)).join(', ') : null)}
+        {row(t('rotation.shift'), r.shift && `${r.shift.name} ${r.shift.start_time}–${r.shift.end_time}`)}
         {row(t('rotation.reason'), r.reason)}
         {row(t('rotation.requestedBy'), r.requested_by)}
         {row(t('rotation.decidedBy'), r.decided_by && `${r.decided_by}${r.decided_at ? ' · ' + formatDateTime(r.decided_at, i18n.language) : ''}`)}
