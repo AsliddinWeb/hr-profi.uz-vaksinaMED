@@ -45,6 +45,7 @@ from app.models.org import (
 from app.models.payroll import PayItem, PayrollLine, PayrollRun, PayScheme
 from app.models.penalties import Penalty, PenaltyRuleVersion
 from app.models.pharmacy import StaffNeed
+from app.models.position_docs import DocumentSignature, PositionDocLink, PositionRequiredDoc
 from app.models.reception import Visit
 from app.models.recruit import (
     Application,
@@ -196,6 +197,9 @@ __all__ = [
     "SchedulePattern",
     "ShiftTemplate",
     "StaffNeed",
+    "DocumentSignature",
+    "PositionDocLink",
+    "PositionRequiredDoc",
     "Task",
     "Ticket",
     "TicketCategory",

@@ -16,6 +16,7 @@ import { useCan } from '../auth/useAuth'
 import { BranchesPage } from '../branches/BranchesPage'
 import { DepartmentsPage } from './DepartmentsPage'
 import { OrgStructuresPage } from './OrgStructuresPage'
+import { PositionDocsSection } from './PositionDocs'
 import { PositionDutiesPage } from './PositionDutiesPage'
 import { PositionsPage } from './PositionsPages'
 import type { SchemeDept, SchemePos } from './SchemeView'
@@ -190,6 +191,7 @@ function NodePanel({ selected, onDone }: { selected: Selected; onDone: () => voi
             </div>
             <div className="text-xs text-muted">{t('org.panel.addHint')}</div>
           </Card>
+          {!isDept && <PositionDocsSection positionId={id} />}
           <Card className="flex items-center justify-between gap-3 p-5">
             <div className="text-sm text-muted">{t(isDept ? 'org.panel.deleteDeptHint' : 'org.panel.deletePosHint')}</div>
             <Button variant="outline" className="text-danger" disabled={busy} onClick={() => void remove()}>

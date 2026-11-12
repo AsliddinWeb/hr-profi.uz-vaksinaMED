@@ -15,6 +15,7 @@ const baseNav: NavItem[] = [
   { id: 'ratings', group: 'pharmacy', label: { uz: 'Mijozlar baholashi', ru: 'Оценки клиентов' }, to: '/ratings', icon: MessageSquareQuote, anyPermission: ['ratings.own', 'ratings.read', 'ratings.manage'], module: 'pharmacy' },
   { id: 'home', group: 'main', label: { uz: 'Bosh sahifa', ru: 'Главная' }, to: '/', icon: LayoutDashboard },
   { id: 'help', group: 'main', label: { uz: 'Jarayonlar qo\'llanmasi', ru: 'Справочник процессов' }, to: '/help', icon: BookOpen },
+  { id: 'my-documents', group: 'people', label: { uz: 'Mening hujjatlarim', ru: 'Мои документы' }, to: '/my-documents', icon: FileSignature },
   { id: 'employees', group: 'people', label: { uz: 'Xodimlar', ru: 'Сотрудники' }, to: '/employees', icon: Contact, permission: 'employees.read', module: 'employees' },
   { id: 'org', group: 'hr', sub: 'structure', label: { uz: 'Tashkiliy tuzilma', ru: 'Оргструктура' }, to: '/org', icon: Network, permission: 'org.read', module: 'org' },
   { id: 'departments', group: 'hr', sub: 'structure', label: { uz: "Bo'limlar va lavozimlar", ru: 'Отделы и должности' }, to: '/org/departments', icon: Building2, permission: 'org.read', module: 'org' },

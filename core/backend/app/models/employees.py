@@ -102,4 +102,6 @@ class EmployeeDocument(Base, TimestampMixin):
     expires_at: Mapped[date | None] = mapped_column(Date)
     note: Mapped[str | None] = mapped_column(Text)
     uploaded_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    status: Mapped[str] = mapped_column(String(10), default="approved", server_default="approved")  # approved | pending (xodim yukladi) | returned
+    review_note: Mapped[str | None] = mapped_column(Text)
 

@@ -1,3 +1,4 @@
+import { MyDocumentsPage } from "./features/org/PositionDocs";
 import { ApprovalsPage as RecruitApprovalsPage, CompetenciesPage, PositionCompetenciesPage, FunnelReportPage, RecruitDashboardPage, ProfilesPage as PositionProfilesPage, ProfileWizardPage } from "./features/recruit/CompetencyPages";
 import { createBrowserRouter } from "react-router-dom";
 
@@ -2569,6 +2570,7 @@ export function createRouter() {
                   ),
                 },
                 { path: "reception/panel", element: <ReceptionPanelPage /> },
+                { path: "my-documents", element: <MyDocumentsPage /> },
                 { path: "reception/coffee", element: <CoffeePage /> },
                 {
                   path: "reception",

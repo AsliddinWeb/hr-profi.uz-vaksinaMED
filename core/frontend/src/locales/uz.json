@@ -483,7 +483,9 @@
     "not_editable": "Bu holatda tahrirlab bo'lmaydi.",
     "unknown_competency": "Kompetensiya topilmadi.",
     "duplicate": "Bunday nom allaqachon bor",
-    "unsupported_file": "Bu fayl turi qo'llab-quvvatlanmaydi (PDF, Word .docx, Excel .xlsx, TXT)"
+    "unsupported_file": "Bu fayl turi qo'llab-quvvatlanmaydi (PDF, Word .docx, Excel .xlsx, TXT)",
+    "already_signed": "Bu hujjat allaqachon imzolangan",
+    "bad_signature": "Imzo noto'g'ri"
   },
   "auth": {
     "heroTitle": "Kadrlar va filiallar — bitta tizimda",
@@ -7095,5 +7097,60 @@
       "reject": "Rad etish",
       "reason": "Rad etish sababi"
     }
+  },
+  "pdocs": {
+    "signDocs": "Imzolanadigan hujjatlar",
+    "makeInstr": "Lavozim yo'riqnomasini tuzish",
+    "signHint": "Bu lavozimdagi har bir xodim shu hujjatlarni o'qib, onlayn imzolaydi. Yo'riqnoma lavozim profili va vazifalaridan avtomatik tuziladi; o'zgarsa yangi versiya bo'lib, imzo qayta so'raladi.",
+    "noDocs": "Hali hujjat yo'q",
+    "signedN": "{{n}}/{{total}} imzoladi",
+    "fromLibrary": "HR hujjatlar kutubxonasidan tanlang",
+    "attach": "Biriktirish",
+    "instrDone": "Yo'riqnoma tuzildi (v{{v}}) va xodimlarga imzoga yuborildi",
+    "requiredTitle": "Xodimdan so'raladigan hujjatlar",
+    "requiredHint": "Xodim o'z panelida shu hujjatlarni yuklaydi yoki telefonda rasmga oladi; HR tekshirib tasdiqlaydi.",
+    "kind": "Turi",
+    "docTitle": "Nomi",
+    "addRequired": "Hujjat qo'shish",
+    "standardSet": "Standart to'plam (rasm, pasport, diplom, tibbiy)",
+    "statusTitle": "Xodimlar bo'yicha holat",
+    "noEmployees": "Bu lavozimda hozircha xodim yo'q",
+    "employee": "Xodim",
+    "signed": "Imzolagan",
+    "noAccount": "Tizimga kirish hisobi yo'q",
+    "return": "Qaytarish",
+    "kinds": {
+      "photo": "Rasm (3x4)",
+      "passport": "Pasport",
+      "diploma": "Diplom",
+      "medical": "Tibbiy daftarcha",
+      "certificate": "Sertifikat",
+      "contract": "Mehnat shartnomasi",
+      "other": "Boshqa"
+    },
+    "ust": {
+      "pending": "Tekshirilmoqda",
+      "approved": "Tasdiqlandi",
+      "returned": "Qaytarildi"
+    },
+    "myTitle": "Mening hujjatlarim",
+    "mySubtitle": "Lavozim: {{position}} — hujjatlarni o'qib imzolang va kerakli hujjatlarni yuklang",
+    "mySubtitleNone": "Lavozim hujjatlari va shaxsiy hujjatlar",
+    "noPosition": "Sizga hali lavozim biriktirilmagan",
+    "todo": "Sizdan {{n}} ta hujjat kutilmoqda: imzolang yoki yuklang",
+    "toSign": "Imzolash kerak",
+    "toUpload": "Topshirish kerak",
+    "uploadHint": "Telefonda «Rasmga olish» kamerani ochadi. PDF yoki rasm faylini ham yuklash mumkin.",
+    "noRequired": "Siz uchun so'ralgan hujjat yo'q",
+    "signedAt": "Imzolangan: {{at}}",
+    "needSign": "Imzo kutilmoqda",
+    "read": "O'qish",
+    "hide": "Yopish",
+    "signNow": "Imzolash",
+    "signedOk": "Hujjat imzolandi",
+    "uploadedOk": "Hujjat yuklandi, HR tekshiradi",
+    "notUploaded": "Yuklanmagan",
+    "camera": "Rasmga olish",
+    "file": "Fayl"
   }
 }

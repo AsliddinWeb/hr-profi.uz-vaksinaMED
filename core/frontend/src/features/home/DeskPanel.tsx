@@ -17,6 +17,7 @@ export function DeskPanel() {
   const { t } = useTranslation()
   const q = useQuery({ queryKey: ['home', 'desk'], queryFn: () => api<Desk>('/api/v1/home/desk'), refetchInterval: 60_000 })
   const rmeta = useQuery({ queryKey: ['recruit', 'requests', 'meta'], queryFn: () => api<{ can_request: boolean }>('/api/v1/recruit/requests/meta'), retry: false, staleTime: 300_000 })
+  const mydocs = useQuery({ queryKey: ['position-docs', 'my'], queryFn: () => api<{ todo: number }>('/api/v1/position-docs/my'), retry: false, staleTime: 120_000 })
   if (q.isLoading) return <Skeleton className="h-28" />
   if (!q.data || (!q.data.mine.length && !q.data.all.length)) return null
   const block = (title: string, cards: DeskCard[]) =>
@@ -37,6 +38,11 @@ export function DeskPanel() {
     )
   return (
     <div className="flex flex-col gap-5">
+      {(mydocs.data?.todo ?? 0) > 0 && (
+        <Link to="/my-documents" className="w-fit">
+          <Card className="flex items-center gap-3 border-warning/50 bg-warning/5 px-4 py-3 text-sm font-medium transition-all hover:-translate-y-px hover:shadow-pop">{t('pdocs.todo', { n: mydocs.data?.todo })}</Card>
+        </Link>
+      )}
       {rmeta.data?.can_request && (
         <Link to="/recruit/requests/new" className="w-fit">
           <Card className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-primary transition-all hover:-translate-y-px hover:shadow-pop">{t('desk.hire')}</Card>
