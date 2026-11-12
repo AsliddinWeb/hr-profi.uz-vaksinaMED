@@ -8,11 +8,10 @@ import { PageHeader } from '../../components/layout/PageHeader'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
-import { FormFooter, FormSection } from '../../components/ui/Form'
+import { FormSection } from '../../components/ui/Form'
 import { Field, Input, Select } from '../../components/ui/Input'
 import { MoneyInput } from '../../components/ui/MoneyInput'
 import { Skeleton } from '../../components/ui/Skeleton'
-import { Stepper } from '../../components/ui/Stepper'
 import { useToast } from '../../components/ui/toastContext'
 import { api, send } from '../../lib/api'
 import { fmtMoney } from '../../lib/money'
@@ -159,15 +158,27 @@ export function RequestFormPage() {
   const toast = useToast()
   const qc = useQueryClient()
   const meta = useQuery({ queryKey: ['recruit', 'requests', 'meta'], queryFn: () => api<Meta>('/api/v1/recruit/requests/meta') })
-  const [unit, setUnit] = useState('')
-  const [pos, setPos] = useState('')
-  const [count, setCount] = useState(1)
-  const [urgency, setUrgency] = useState('normal')
-  const [from, setFrom] = useState('')
-  const [reason, setReason] = useState('')
-  const [reqs, setReqs] = useState('')
-  const [sFrom, setSFrom] = useState('')
-  const [sTo, setSTo] = useState('')
+  const draft = loadDraft()
+  const [unit, setUnit] = useState(draft.unit ?? '')
+  const [pos, setPos] = useState(draft.pos ?? '')
+  const [count, setCount] = useState(draft.count ?? 1)
+  const [urgency, setUrgency] = useState(draft.urgency ?? 'normal')
+  const [from, setFrom] = useState(draft.from ?? '')
+  const [reason, setReason] = useState(draft.reason ?? '')
+  const [reqs, setReqs] = useState(draft.reqs ?? '')
+  const [sFrom, setSFrom] = useState(draft.sFrom ?? '')
+  const [sTo, setSTo] = useState(draft.sTo ?? '')
+  const [goal, setGoal] = useState(draft.goal ?? '')
+  const [reportsTo, setReportsTo] = useState(draft.reportsTo ?? '')
+  const [extra, setExtra] = useState<'goal' | 'reports' | null>(draft.goal ? 'goal' : draft.reportsTo ? 'reports' : null)
+  const saveDraft = () => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ unit, pos, count, urgency, from, reason, reqs, sFrom, sTo, goal, reportsTo }))
+      toast.push({ title: t('rreq.d.draftSaved'), tone: 'success' })
+    } catch {
+      toast.push({ title: t('rreq.d.draftFailed'), tone: 'warning' })
+    }
+  }
   const [noProfile, setNoProfile] = useState(false)
   const [step, setStep] = useState(0)
   const [filledFrom, setFilledFrom] = useState<number | null>(null)
@@ -178,15 +189,21 @@ export function RequestFormPage() {
     const r = await api<{ requirements: string | null; card: boolean }>(`/api/v1/recruit/requests/requirements/${positionId}`).catch(() => null)
     if (r?.requirements && !reqs.trim()) setReqs(r.requirements)
   }
+  const fullReqs = [goal.trim() && `${t('rreq.d.goal')}: ${goal.trim()}`, reportsTo.trim() && `${t('rreq.d.reportsTo')}: ${reportsTo.trim()}`, reqs.trim()].filter(Boolean).join('\n\n')
   const save = useMutation({
     mutationFn: () => {
       const [kind, id] = unit.split(':')
       return send<HireRequest>('POST', '/api/v1/recruit/requests', {
         department_id: kind === 'd' ? Number(id) : null, branch_id: kind === 'b' ? Number(id) : null, position_id: Number(pos), count, urgency,
-        needed_from: from || null, reason: reason || null, requirements: reqs || null, salary_from: sFrom ? Number(sFrom) : null, salary_to: sTo ? Number(sTo) : null,
+        needed_from: from || null, reason: reason || null, requirements: fullReqs || null, salary_from: sFrom ? Number(sFrom) : null, salary_to: sTo ? Number(sTo) : null,
       }) // prettier-ignore
     },
     onSuccess: (r) => {
+      try {
+        localStorage.removeItem(DRAFT_KEY)
+      } catch {
+        /* saqlash imkoni bo'lmasa — e'tiborsiz */
+      }
       void qc.invalidateQueries({ queryKey: ['recruit', 'requests'] })
       toast.push({ title: t('rreq.created2', { n: r.number }), tone: 'success' })
       navigate(`/recruit/requests/${r.id}`, { replace: true })
@@ -207,126 +224,175 @@ export function RequestFormPage() {
     setFilledFrom(approved.id)
     if (!reqs.trim()) setReqs(profileText(approved, t))
   }
-  const checklist: [string, boolean][] = [
-    ['unit', !!unit],
-    ['position', !!pos],
-    ['profile', !!approved],
-    ['details', count > 0 && !!reason.trim()],
+  const stepIdx = !unit ? 0 : !pos ? 1 : step === 0 ? 1 : step === 1 ? 2 : 3
+  const URG: { k: string; cls: string }[] = [
+    { k: 'urgent', cls: 'border-danger/60 bg-danger/10 text-danger' },
+    { k: 'normal', cls: 'border-warning/60 bg-warning/10 text-warning' },
+    { k: 'low', cls: 'border-success/60 bg-success/10 text-success' },
   ]
+  const label = (text: string, req?: boolean) => (req ? `${text} *` : text)
   return (
     <form
-      className="mx-auto flex max-w-5xl flex-col gap-5"
+      className="mx-auto flex max-w-6xl flex-col gap-5"
       onSubmit={(e: FormEvent) => {
         e.preventDefault()
         if (step === 2) save.mutate()
       }}
     >
-      <PageHeader title={t('rreq.new')} backTo="/recruit/requests" backLabel={t('rreq.title')} />
+      <PageHeader title={t('rreq.d.title')} subtitle={t('rreq.d.subtitle')} backTo="/recruit/requests" backLabel={t('rreq.title')} />
       {!m.can_request && <Card className="p-5 text-sm text-warning">{t('rreq.noRights')}</Card>}
-      <Card className="p-5">
-        <Stepper steps={['info', 'reqs', 'confirm'].map((k) => ({ key: k, label: t(`rreq.step.${k}`) }))} current={step} label={t('rreq.new')} />
+      <Card className="grid gap-2 p-2 sm:grid-cols-3">
+        {(['info', 'reqs', 'confirm'] as const).map((k, i) => {
+          const on = step === i
+          const done = step > i
+          return (
+            <button
+              key={k}
+              type="button"
+              disabled={i > step}
+              onClick={() => setStep(i)}
+              className={`flex items-center gap-3 rounded-xl px-4 py-3 text-left transition ${on ? 'bg-primary text-primary-fg shadow-card' : 'hover:bg-surface-2 disabled:hover:bg-transparent'}`}
+            >
+              <span className={`grid size-9 shrink-0 place-items-center rounded-full text-sm font-semibold ${on ? 'bg-white text-primary' : done ? 'bg-success text-white' : 'bg-primary/10 text-primary'}`}>{done ? <Check className="size-4" /> : i + 1}</span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold">{t(`rreq.step.${k}`)}</span>
+                <span className={`block truncate text-xs ${on ? 'opacity-85' : 'text-muted'}`}>{t(`rreq.d.stepSub.${k}`)}</span>
+              </span>
+            </button>
+          )
+        })}
       </Card>
-      <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
-        <div className="flex flex-col gap-5">
+      <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
+        <Card className="flex flex-col gap-5 p-6">
           {step === 0 && (
-            <FormSection title={t('rreq.step.info')}>
-              <div className="grid gap-3 sm:grid-cols-2">
-          <Field label={t('rreq.unit')}>
-            {(id) =>
-              onlyUnit ? (
-                <div id={id} className="flex h-9 items-center gap-2 rounded-control border border-border bg-surface-2 px-3 text-sm">
-                  {onlyUnit.name}
-                  <Badge tone="info">{t('rreq.auto')}</Badge>
+            <>
+              <div className="text-lg font-semibold">{t('rreq.step.info')}</div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label={label(t('rreq.unit'), true)}>
+                  {(id) =>
+                    onlyUnit ? (
+                      <div id={id} className="flex h-10 items-center gap-2 rounded-control border border-border bg-surface-2 px-3 text-sm">
+                        {onlyUnit.name}
+                        <Badge tone="info">{t('rreq.auto')}</Badge>
+                      </div>
+                    ) : (
+                      <Select id={id} value={unit} onChange={(e) => (setUnit(e.target.value), setPos(''))} required>
+                        <option value="">{t('rreq.pickUnit')}</option>
+                        {m.departments.length > 0 && (
+                          <optgroup label={t('rreq.departments')}>
+                            {m.departments.map((d) => (
+                              <option key={`d${d.id}`} value={`d:${d.id}`}>
+                                {d.name}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                        {m.branches.length > 0 && (
+                          <optgroup label={t('rreq.branches')}>
+                            {m.branches.map((b) => (
+                              <option key={`b${b.id}`} value={`b:${b.id}`}>
+                                {b.name}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                      </Select>
+                    )
+                  }
+                </Field>
+                <Field label={label(t('rreq.position'), true)}>
+                  {(id) => (
+                    <Select id={id} value={pos} disabled={!unit} onChange={(e) => void loadCard(e.target.value)} required>
+                      <option value="">{unit ? '—' : t('rreq.pickUnitFirst')}</option>
+                      {unitPositions.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} — {t(`rreq.pst.${p.profile?.status ?? 'none'}`)}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
+                </Field>
+                {unit && (
+                  <div className="rounded-control border border-dashed border-border px-3 py-2 text-xs text-muted sm:col-span-2">
+                    {t('rreq.noPositionHint')}{' '}
+                    {m.can_create_position && (
+                      <Link to="/org/positions" className="text-primary hover:underline">
+                        {t('rreq.createPosition')}
+                      </Link>
+                    )}
+                    {m.can_create_position && ' · '}
+                    <Link to="/recruit/profiles" className="text-primary hover:underline">
+                      {t('rreq.fillProfile')}
+                    </Link>
+                  </div>
+                )}
+                <Field label={label(t('rreq.count'), true)}>
+                  {(id) => (
+                    <div className="flex w-fit items-center overflow-hidden rounded-control border border-border">
+                      <button type="button" aria-label="-" className="h-10 w-12 text-lg hover:bg-surface-2" onClick={() => setCount(Math.max(1, count - 1))}>
+                        −
+                      </button>
+                      <input id={id} type="number" min={1} max={100} value={count} onChange={(e) => setCount(Math.max(1, Math.min(100, Number(e.target.value) || 1)))} className="h-10 w-16 border-x border-border bg-surface text-center text-sm outline-none" />
+                      <button type="button" aria-label="+" className="h-10 w-12 text-lg hover:bg-surface-2" onClick={() => setCount(Math.min(100, count + 1))}>
+                        +
+                      </button>
+                    </div>
+                  )}
+                </Field>
+                <Field label={label(t('rreq.d.urgency'), true)}>
+                  {() => (
+                    <div className="grid grid-cols-3 gap-2" role="radiogroup">
+                      {URG.map((u) => (
+                        <button key={u.k} type="button" role="radio" aria-checked={urgency === u.k} onClick={() => setUrgency(u.k)} className={`h-10 rounded-control border text-sm font-medium transition ${urgency === u.k ? u.cls : 'border-border text-muted hover:bg-surface-2'}`}>
+                          {t(`rreq.d.urg.${u.k}`)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </Field>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Field label={t('rreq.neededFrom')}>{(id) => <Input id={id} type="date" value={from} onChange={(e) => setFrom(e.target.value)} />}</Field>
+                <Field label={t('rreq.salaryFrom')}>{(id) => <MoneyInput id={id} value={sFrom} onChange={setSFrom} />}</Field>
+                <Field label={t('rreq.salaryTo')}>{(id) => <MoneyInput id={id} value={sTo} onChange={setSTo} />}</Field>
+              </div>
+              <Field label={label(t('rreq.d.reason'), true)}>
+                {(id) => (
+                  <div className="relative">
+                    <textarea id={id} rows={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t('rreq.d.reasonPh')} className={`${area} pb-6`} />
+                    <span className="pointer-events-none absolute bottom-2 right-3 text-[11px] text-muted">{reason.length} / 500</span>
+                  </div>
+                )}
+              </Field>
+              <div className="flex flex-col gap-2">
+                <div className="text-sm font-medium">
+                  {t('rreq.d.extra')} <span className="font-normal text-muted">({t('rreq.d.optional')})</span>
                 </div>
-              ) : (
-                <Select id={id} value={unit} onChange={(e) => (setUnit(e.target.value), setPos(''))} required>
-                  <option value="">{t('rreq.pickUnit')}</option>
-                  {m.departments.length > 0 && (
-                    <optgroup label={t('rreq.departments')}>
-                      {m.departments.map((d) => (
-                        <option key={`d${d.id}`} value={`d:${d.id}`}>
-                          {d.name}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                  {m.branches.length > 0 && (
-                    <optgroup label={t('rreq.branches')}>
-                      {m.branches.map((b) => (
-                        <option key={`b${b.id}`} value={`b:${b.id}`}>
-                          {b.name}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                </Select>
-              )
-            }
-          </Field>
-          <Field label={t('rreq.position')}>
-            {(id) => (
-              <Select id={id} value={pos} disabled={!unit} onChange={(e) => void loadCard(e.target.value)} required>
-                <option value="">{unit ? '—' : t('rreq.pickUnitFirst')}</option>
-                {unitPositions.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} — {t(`rreq.pst.${p.profile?.status ?? 'none'}`)}
-                  </option>
-                ))}
-              </Select>
-            )}
-          </Field>
-          {unit && (
-            <div className="rounded-control border border-dashed border-border px-3 py-2 text-xs text-muted sm:col-span-2">
-              {t('rreq.noPositionHint')}{' '}
-              {m.can_create_position && (
-                <Link to="/org/positions" className="text-primary hover:underline">
-                  {t('rreq.createPosition')}
-                </Link>
-              )}
-              {m.can_create_position && ' · '}
-              <Link to="/recruit/profiles" className="text-primary hover:underline">
-                {t('rreq.fillProfile')}
-              </Link>
-            </div>
-          )}
-          <Field label={t('rreq.count')}>
-            {(id) => (
-              <div className="flex items-center gap-1">
-                <Button type="button" variant="outline" className="size-9 px-0" aria-label="-" onClick={() => setCount(Math.max(1, count - 1))}>−</Button>
-                <Input id={id} type="number" min={1} max={100} value={count} onChange={(e) => setCount(Number(e.target.value))} className="w-20 text-center" />
-                <Button type="button" variant="outline" className="size-9 px-0" aria-label="+" onClick={() => setCount(Math.min(100, count + 1))}>+</Button>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {(['goal', 'reports'] as const).map((k) => (
+                    <button key={k} type="button" onClick={() => setExtra(extra === k ? null : k)} className={`h-10 rounded-control border px-3 text-left text-sm transition ${extra === k || (k === 'goal' ? goal : reportsTo) ? 'border-primary/50 bg-primary/5 text-primary' : 'border-border hover:bg-surface-2'}`}>
+                      {t(`rreq.d.extraBtn.${k}`)}
+                    </button>
+                  ))}
+                </div>
+                {extra === 'goal' && <textarea rows={2} maxLength={1000} value={goal} onChange={(e) => setGoal(e.target.value)} placeholder={t('rreq.d.goalPh')} className={area} aria-label={t('rreq.d.goal')} />}
+                {extra === 'reports' && <Input value={reportsTo} onChange={(e) => setReportsTo(e.target.value)} placeholder={t('rreq.d.reportsPh')} aria-label={t('rreq.d.reportsTo')} maxLength={200} />}
               </div>
-            )}
-          </Field>
-          <Field label={t('rreq.urgency')}>
-            {(id) => (
-              <Select id={id} value={urgency} onChange={(e) => setUrgency(e.target.value)}>
-                {['low', 'normal', 'urgent'].map((u) => (
-                  <option key={u} value={u}>
-                    {t(`rreq.urg.${u}`)}
-                  </option>
-                ))}
-              </Select>
-            )}
-          </Field>
-          <Field label={t('rreq.neededFrom')}>{(id) => <Input id={id} type="date" value={from} onChange={(e) => setFrom(e.target.value)} />}</Field>
-          <div className="grid grid-cols-2 gap-2">
-            <Field label={t('rreq.salaryFrom')}>{(id) => <MoneyInput id={id} value={sFrom} onChange={setSFrom} />}</Field>
-            <Field label={t('rreq.salaryTo')}>{(id) => <MoneyInput id={id} value={sTo} onChange={setSTo} />}</Field>
-          </div>
-              </div>
-              <Field label={t('rreq.reason')}>{(id) => <textarea id={id} rows={2} maxLength={2000} value={reason} onChange={(e) => setReason(e.target.value)} className={area} />}</Field>
-            </FormSection>
+            </>
           )}
           {step === 1 && (
-            <FormSection title={t('rreq.step.reqs')} description={t('rreq.detailsHint')}>
+            <>
+              <div>
+                <div className="text-lg font-semibold">{t('rreq.step.reqs')}</div>
+                <div className="text-sm text-muted">{t('rreq.detailsHint')}</div>
+              </div>
               {approved && <div className="rounded-lg bg-success/10 px-3 py-2 text-sm text-success">{t('rreq.fromProfile', { v: approved.version })}</div>}
               {prof.data?.profile && prof.data.profile.competencies.length > 0 && (
                 <div className="flex flex-col gap-1.5">
                   <div className="text-sm font-medium">{t('rreq.profileComps')}</div>
                   <div className="flex flex-wrap gap-1.5">
                     {prof.data.profile.competencies.map((c) => (
-                      <Badge key={c.competency_id} tone={c.mandatory ? 'danger' : 'warning'}>
+                      <Badge key={`${c.category}${c.competency_id}`} tone={c.mandatory ? 'danger' : 'warning'}>
                         {c.name} · L{c.required_level}
                       </Badge>
                     ))}
@@ -334,21 +400,23 @@ export function RequestFormPage() {
                 </div>
               )}
               <Field label={t('rreq.requirements')} hint={t('rreq.requirementsHint')}>
-          {(id) => <textarea id={id} rows={8} maxLength={10000} value={reqs} onChange={(e) => setReqs(e.target.value)} className={area} />}
-        </Field>
-            </FormSection>
+                {(id) => <textarea id={id} rows={10} maxLength={10000} value={reqs} onChange={(e) => setReqs(e.target.value)} className={area} />}
+              </Field>
+            </>
           )}
           {step === 2 && (
-            <FormSection title={t('rreq.step.confirm')}>
+            <>
+              <div className="text-lg font-semibold">{t('rreq.step.confirm')}</div>
               <dl className="grid gap-2 text-sm sm:grid-cols-2">
                 {[
                   [t('rreq.position'), m.positions.find((x) => String(x.id) === pos)?.name],
-                  [t('rreq.unit'), [...m.departments.map((d) => [`d:${d.id}`, d.name]), ...m.branches.map((b) => [`b:${b.id}`, b.name])].find(([k]) => k === unit)?.[1]],
+                  [t('rreq.unit'), units.find((u) => u.key === unit)?.name],
                   [t('rreq.count'), String(count)],
-                  [t('rreq.urgency'), t(`rreq.urg.${urgency}`)],
+                  [t('rreq.d.urgency'), t(`rreq.d.urg.${urgency}`)],
                   [t('rreq.neededFrom'), from ? formatDate(from, i18n.language) : null],
                   [t('rreq.salary'), sFrom || sTo ? `${sFrom ? fmtMoney(Number(sFrom)) : '…'} – ${sTo ? fmtMoney(Number(sTo)) : '…'} ${t('money.currency')}` : null],
-                  [t('rreq.reason'), reason || null],
+                  [t('rreq.d.reason'), reason || null],
+                  [t('rreq.d.reportsTo'), reportsTo || null],
                 ].map(([k, v]) => (
                   <div key={k} className="flex justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2">
                     <dt className="text-muted">{k}</dt>
@@ -356,10 +424,15 @@ export function RequestFormPage() {
                   </div>
                 ))}
               </dl>
-              {reqs && <p className="whitespace-pre-wrap text-sm text-muted">{reqs}</p>}
-            </FormSection>
+              {fullReqs && <p className="max-h-80 overflow-auto whitespace-pre-wrap rounded-lg border border-border p-3 text-sm text-muted">{fullReqs}</p>}
+            </>
           )}
-          <FormFooter error={save.isError ? errorText(t, save.error) : null}>
+          {save.isError && <p role="alert" className="text-sm text-danger">{errorText(t, save.error)}</p>}
+          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
+            <Button type="button" variant="outline" onClick={saveDraft}>
+              {t('rreq.d.saveDraft')}
+            </Button>
+            <span className="flex-1" />
             {step === 0 ? (
               <Link to="/recruit/requests">
                 <Button variant="outline">{t('common.cancel')}</Button>
@@ -370,35 +443,60 @@ export function RequestFormPage() {
               </Button>
             )}
             {step < 2 ? (
-              <Button type="button" disabled={!unit || !pos || noProfile} onClick={() => setStep(step + 1)}>
-                {t('rreq.next')}
+              <Button type="button" disabled={!unit || !pos || noProfile || (step === 0 && !reason.trim())} onClick={() => setStep(step + 1)}>
+                {t('rreq.d.nextStep')} →
               </Button>
             ) : (
               <Button type="submit" disabled={save.isPending || !m.can_request || !unit || !pos || noProfile}>
                 {t('rreq.submit')}
               </Button>
             )}
-          </FormFooter>
-        </div>
-        <div className="flex h-fit flex-col gap-3 lg:sticky lg:top-4">
-          <Card className="flex flex-col gap-2 p-4 text-sm">
-            <div className="font-medium">{t('rreq.check.title')}</div>
-            {checklist.map(([k, ok], i) => (
-              <div key={k} className="flex items-start gap-2">
-                <span className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[11px] ${ok ? 'bg-success text-white' : 'bg-surface-2 text-muted'}`}>{ok ? <Check className="size-3" /> : i + 1}</span>
-                <span className={ok ? '' : 'text-muted'}>{t(`rreq.check.${k}`)}</span>
+          </div>
+        </Card>
+        <div className="flex h-fit flex-col gap-4 lg:sticky lg:top-4">
+          <Card className="flex flex-col gap-2 p-5">
+            <div className="mb-1 font-semibold">{t('rreq.d.stepsTitle')}</div>
+            {(['s1', 's2', 's3', 's4'] as const).map((k, i) => (
+              <div key={k} className={`flex items-center gap-3 rounded-lg px-2 py-2 text-sm ${stepIdx === i ? 'bg-primary/10 font-medium text-primary' : i < stepIdx ? '' : 'text-muted'}`}>
+                <span className={`grid size-6 shrink-0 place-items-center rounded-full text-xs ${i < stepIdx ? 'bg-success text-white' : stepIdx === i ? 'bg-primary text-white' : 'bg-surface-2'}`}>{i < stepIdx ? <Check className="size-3.5" /> : i + 1}</span>
+                {t(`rreq.d.steps.${k}`)}
               </div>
             ))}
-            {selPos && selPos.profile?.status !== 'approved' && (
-              <div className="mt-1 rounded-lg bg-warning/10 p-2 text-xs text-warning">{t(`rreq.check.todo_${selPos.profile?.status === 'pending' ? 'pending' : 'fill'}`)}</div>
-            )}
+            {selPos && selPos.profile?.status !== 'approved' && <div className="mt-1 rounded-lg bg-warning/10 p-2 text-xs text-warning">{t(`rreq.check.todo_${selPos.profile?.status === 'pending' ? 'pending' : 'fill'}`)}</div>}
           </Card>
-          {pos ? <ApprovedProfileCard positionId={pos} onState={setNoProfile} /> : <Card className="p-4 text-sm text-muted">{t('rreq.pickPosition')}</Card>}
-          {!noProfile && <Card className="p-4 text-xs text-muted">{t('comp.req.noProfileHint')}</Card>}
+          {pos && <ApprovedProfileCard positionId={pos} onState={setNoProfile} />}
+          <Card className="flex flex-col gap-1 border-primary/20 bg-primary/5 p-5">
+            <div className="font-semibold">{t('rreq.d.noteTitle')}</div>
+            <div className="text-sm text-muted">{t('rreq.d.note')}</div>
+          </Card>
+          <Card className="flex flex-col gap-3 p-5">
+            <div className="font-semibold">{t('rreq.d.flowTitle')}</div>
+            <div className="flex items-start justify-between gap-1 text-center text-xs">
+              {(['f1', 'f2', 'f3', 'f4'] as const).map((k, i) => (
+                <div key={k} className="flex flex-1 items-start gap-1">
+                  <div className="flex flex-1 flex-col items-center gap-1">
+                    <span className="grid size-8 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{i + 1}</span>
+                    <span className="leading-tight">{t(`rreq.d.flow.${k}`)}</span>
+                  </div>
+                  {i < 3 && <span className="mt-2 text-muted">→</span>}
+                </div>
+              ))}
+            </div>
+          </Card>
         </div>
       </div>
     </form>
   )
+}
+
+const DRAFT_KEY = 'hrprofi:request-draft'
+type Draft = Partial<{ unit: string; pos: string; count: number; urgency: string; from: string; reason: string; reqs: string; sFrom: string; sTo: string; goal: string; reportsTo: string }>
+function loadDraft(): Draft {
+  try {
+    return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') as Draft
+  } catch {
+    return {}
+  }
 }
 
 /** /recruit/requests/:id: zayafka tafsiloti; HR tasdiqlaydi (vakansiya ochiladi) yoki sabab bilan rad etadi. */

@@ -5908,6 +5908,53 @@
       "details": "Soni va sababi yozilgan",
       "todo_fill": "Bu lavozimning profili hali tasdiqlanmagan: «Lavozim profillari» bo'limida to'ldirib, tasdiqlashga yuboring.",
       "todo_pending": "Bu lavozim profili tasdiqlashda: tasdiqlangach zayavka ochish mumkin bo'ladi."
+    },
+    "d": {
+      "title": "Yangi zayavka yaratish",
+      "subtitle": "Kompaniyada yangi xodim (lavozim) ochish bo'yicha zayavka",
+      "stepSub": {
+        "info": "Asosiy ma'lumotlarni kiriting",
+        "reqs": "Kompetensiya va talablar",
+        "confirm": "Yakuniy ko'rib chiqish va yuborish"
+      },
+      "urgency": "Muhimlik darajasi",
+      "urg": {
+        "urgent": "Yuqori",
+        "normal": "O'rta",
+        "low": "Past"
+      },
+      "reason": "Sabab (nima uchun kerak?)",
+      "reasonPh": "Masalan: jamoani kengaytirish, filiallar bo'yicha jarayonlarni qo'llab-quvvatlash",
+      "extra": "Qo'shimcha ma'lumotlar",
+      "optional": "ixtiyoriy",
+      "extraBtn": {
+        "goal": "Maqsad va kutilayotgan natija",
+        "reports": "Hisobot berish (kimga?)"
+      },
+      "goal": "Maqsad va kutilayotgan natija",
+      "goalPh": "Bu xodimdan qanday natija kutiladi",
+      "reportsTo": "Hisobot beradi",
+      "reportsPh": "Masalan: HR direktoriga",
+      "saveDraft": "Qoralama saqlash",
+      "draftSaved": "Qoralama saqlandi",
+      "draftFailed": "Qoralamani saqlab bo'lmadi",
+      "nextStep": "Keyingi bosqich",
+      "stepsTitle": "Zayavka ochish bosqichlari",
+      "steps": {
+        "s1": "Bo'lim tanlanadi",
+        "s2": "Lavozim va soni belgilanadi",
+        "s3": "Lavozim talablari kiritiladi",
+        "s4": "Tasdiqlash va yuboriladi"
+      },
+      "noteTitle": "Eslatma",
+      "note": "Zayavka faqat asoslangan ehtiyoj bo'yicha ochiladi. Iltimos, lavozim ochish sababini aniq va qisqa yozing.",
+      "flowTitle": "Zayavka jarayoni",
+      "flow": {
+        "f1": "Zayavka",
+        "f2": "Ko'rib chiqish (rahbar)",
+        "f3": "Tasdiqlash (HR)",
+        "f4": "Vakansiya ochiladi"
+      }
     }
   },
   "rdash": {
