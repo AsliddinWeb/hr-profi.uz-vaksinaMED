@@ -11,12 +11,13 @@ import { Card } from '../../components/ui/Card'
 import { FormFooter, FormSection } from '../../components/ui/Form'
 import { Field, Input, Select } from '../../components/ui/Input'
 import { Skeleton } from '../../components/ui/Skeleton'
+import { Stepper } from '../../components/ui/Stepper'
 import { useToast } from '../../components/ui/toastContext'
 import { api, send } from '../../lib/api'
 import { useCan } from '../auth/useAuth'
 import { formatDate, formatDateTime } from '../../lib/format'
 import { errorText } from '../auth/errorText'
-import { ApprovedProfileCard } from './CompetencyPages'
+import { ApprovedProfileCard, type Profile } from './CompetencyPages'
 
 type RStatus = 'pending' | 'approved' | 'rejected' | 'cancelled'
 export interface HireRequest {
@@ -149,7 +150,7 @@ export function RequestsPage() {
 
 /** /recruit/requests/new: yangi zayafka (alohida sahifa). Talablar lavozim kompetensiya kartochkasidan avto-to'ldiriladi. */
 export function RequestFormPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const toast = useToast()
   const qc = useQueryClient()
@@ -164,6 +165,8 @@ export function RequestFormPage() {
   const [sFrom, setSFrom] = useState('')
   const [sTo, setSTo] = useState('')
   const [noProfile, setNoProfile] = useState(false)
+  const [step, setStep] = useState(0)
+  const prof = useQuery({ queryKey: ['profiles', 'approved', pos], queryFn: () => api<{ profile: Profile | null; required: boolean }>(`/api/v1/recruit/profiles/approved/${pos}`), enabled: !!pos })
   const loadCard = async (positionId: string) => {
     setPos(positionId)
     if (!positionId) return
@@ -188,16 +191,34 @@ export function RequestFormPage() {
   if (!m) return <Skeleton className="mx-auto h-96 max-w-3xl" />
   return (
     <form
-      className="mx-auto flex max-w-3xl flex-col gap-5"
+      className="mx-auto flex max-w-5xl flex-col gap-5"
       onSubmit={(e: FormEvent) => {
         e.preventDefault()
-        save.mutate()
+        if (step === 2) save.mutate()
       }}
     >
       <PageHeader title={t('rreq.new')} backTo="/recruit/requests" backLabel={t('rreq.title')} />
       {!m.can_request && <Card className="p-5 text-sm text-warning">{t('rreq.noRights')}</Card>}
-      <FormSection title={t('rreq.whoWhat')}>
-        <div className="grid gap-3 sm:grid-cols-2">
+      <Card className="p-5">
+        <Stepper steps={['info', 'reqs', 'confirm'].map((k) => ({ key: k, label: t(`rreq.step.${k}`) }))} current={step} label={t('rreq.new')} />
+      </Card>
+      <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
+        <div className="flex flex-col gap-5">
+          {step === 0 && (
+            <FormSection title={t('rreq.step.info')}>
+              <div className="grid gap-3 sm:grid-cols-2">
+          <Field label={t('rreq.position')}>
+            {(id) => (
+              <Select id={id} value={pos} onChange={(e) => void loadCard(e.target.value)} required>
+                <option value="">—</option>
+                {m.positions.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
           <Field label={t('rreq.unit')}>
             {(id) => (
               <Select id={id} value={unit} onChange={(e) => setUnit(e.target.value)} required>
@@ -223,22 +244,15 @@ export function RequestFormPage() {
               </Select>
             )}
           </Field>
-          <Field label={t('rreq.position')}>
+          <Field label={t('rreq.count')}>
             {(id) => (
-              <Select id={id} value={pos} onChange={(e) => void loadCard(e.target.value)} required>
-                <option value="">—</option>
-                {m.positions.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </Select>
+              <div className="flex items-center gap-1">
+                <Button type="button" variant="outline" className="size-9 px-0" aria-label="-" onClick={() => setCount(Math.max(1, count - 1))}>−</Button>
+                <Input id={id} type="number" min={1} max={100} value={count} onChange={(e) => setCount(Number(e.target.value))} className="w-20 text-center" />
+                <Button type="button" variant="outline" className="size-9 px-0" aria-label="+" onClick={() => setCount(Math.min(100, count + 1))}>+</Button>
+              </div>
             )}
           </Field>
-          <div className="sm:col-span-2">
-            <ApprovedProfileCard positionId={pos} onState={setNoProfile} />
-          </div>
-          <Field label={t('rreq.count')}>{(id) => <Input id={id} type="number" min={1} max={100} value={count} onChange={(e) => setCount(Number(e.target.value))} />}</Field>
           <Field label={t('rreq.urgency')}>
             {(id) => (
               <Select id={id} value={urgency} onChange={(e) => setUrgency(e.target.value)}>
@@ -255,22 +269,76 @@ export function RequestFormPage() {
             <Field label={t('rreq.salaryFrom')}>{(id) => <Input id={id} type="number" min={0} value={sFrom} onChange={(e) => setSFrom(e.target.value)} />}</Field>
             <Field label={t('rreq.salaryTo')}>{(id) => <Input id={id} type="number" min={0} value={sTo} onChange={(e) => setSTo(e.target.value)} />}</Field>
           </div>
-        </div>
-      </FormSection>
-      <FormSection title={t('rreq.details')} description={t('rreq.detailsHint')}>
-        <Field label={t('rreq.reason')}>{(id) => <textarea id={id} rows={2} maxLength={2000} value={reason} onChange={(e) => setReason(e.target.value)} className={area} />}</Field>
-        <Field label={t('rreq.requirements')} hint={t('rreq.requirementsHint')}>
+              </div>
+              <Field label={t('rreq.reason')}>{(id) => <textarea id={id} rows={2} maxLength={2000} value={reason} onChange={(e) => setReason(e.target.value)} className={area} />}</Field>
+            </FormSection>
+          )}
+          {step === 1 && (
+            <FormSection title={t('rreq.step.reqs')} description={t('rreq.detailsHint')}>
+              {prof.data?.profile && prof.data.profile.competencies.length > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  <div className="text-sm font-medium">{t('rreq.profileComps')}</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {prof.data.profile.competencies.map((c) => (
+                      <Badge key={c.competency_id} tone={c.mandatory ? 'danger' : 'warning'}>
+                        {c.name} · L{c.required_level}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <Field label={t('rreq.requirements')} hint={t('rreq.requirementsHint')}>
           {(id) => <textarea id={id} rows={8} maxLength={10000} value={reqs} onChange={(e) => setReqs(e.target.value)} className={area} />}
         </Field>
-      </FormSection>
-      <FormFooter error={save.isError ? errorText(t, save.error) : null}>
-        <Link to="/recruit/requests">
-          <Button variant="outline">{t('common.cancel')}</Button>
-        </Link>
-        <Button type="submit" disabled={save.isPending || !m.can_request || !unit || !pos || noProfile}>
-          {t('rreq.submit')}
-        </Button>
-      </FormFooter>
+            </FormSection>
+          )}
+          {step === 2 && (
+            <FormSection title={t('rreq.step.confirm')}>
+              <dl className="grid gap-2 text-sm sm:grid-cols-2">
+                {[
+                  [t('rreq.position'), m.positions.find((x) => String(x.id) === pos)?.name],
+                  [t('rreq.unit'), [...m.departments.map((d) => [`d:${d.id}`, d.name]), ...m.branches.map((b) => [`b:${b.id}`, b.name])].find(([k]) => k === unit)?.[1]],
+                  [t('rreq.count'), String(count)],
+                  [t('rreq.urgency'), t(`rreq.urg.${urgency}`)],
+                  [t('rreq.neededFrom'), from ? formatDate(from, i18n.language) : null],
+                  [t('rreq.salary'), sFrom || sTo ? `${sFrom || '…'} – ${sTo || '…'}` : null],
+                  [t('rreq.reason'), reason || null],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2">
+                    <dt className="text-muted">{k}</dt>
+                    <dd className="text-right font-medium">{v || '—'}</dd>
+                  </div>
+                ))}
+              </dl>
+              {reqs && <p className="whitespace-pre-wrap text-sm text-muted">{reqs}</p>}
+            </FormSection>
+          )}
+          <FormFooter error={save.isError ? errorText(t, save.error) : null}>
+            {step === 0 ? (
+              <Link to="/recruit/requests">
+                <Button variant="outline">{t('common.cancel')}</Button>
+              </Link>
+            ) : (
+              <Button type="button" variant="outline" onClick={() => setStep(step - 1)}>
+                {t('rreq.back')}
+              </Button>
+            )}
+            {step < 2 ? (
+              <Button type="button" disabled={!unit || !pos || noProfile} onClick={() => setStep(step + 1)}>
+                {t('rreq.next')}
+              </Button>
+            ) : (
+              <Button type="submit" disabled={save.isPending || !m.can_request || !unit || !pos || noProfile}>
+                {t('rreq.submit')}
+              </Button>
+            )}
+          </FormFooter>
+        </div>
+        <div className="flex h-fit flex-col gap-3 lg:sticky lg:top-4">
+          {pos ? <ApprovedProfileCard positionId={pos} onState={setNoProfile} /> : <Card className="p-4 text-sm text-muted">{t('rreq.pickPosition')}</Card>}
+          {!noProfile && <Card className="p-4 text-xs text-muted">{t('comp.req.noProfileHint')}</Card>}
+        </div>
+      </div>
     </form>
   )
 }

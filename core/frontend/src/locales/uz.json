@@ -5845,7 +5845,16 @@
     "reject": "Rad etish",
     "cancel": "Zayafkani bekor qilish",
     "needsHint": "Filiallar xodimni \"Xodim kerak\" orqali so'raydi. Ular ham HR tasdig'idan keyin shu yerdagi kabi vakansiyaga aylanadi, havolalar va e'lon avtomatik chiqadi.",
-    "needsLink": "Filial so'rovlari (Xodim kerak) →"
+    "needsLink": "Filial so'rovlari (Xodim kerak) →",
+    "step": {
+      "info": "Zayavka ma'lumotlari",
+      "reqs": "Lavozim talablari",
+      "confirm": "Tasdiqlash"
+    },
+    "back": "Orqaga",
+    "next": "Keyingi",
+    "profileComps": "Tasdiqlangan profildagi kompetensiyalar",
+    "pickPosition": "Lavozimni tanlang: uning tasdiqlangan profili shu yerda ko'rinadi."
   },
   "rdash": {
     "applicants": "Nomzodlar",
