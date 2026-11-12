@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 
+import { MoneyInput } from '../../components/ui/MoneyInput'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { FormFooter, FormSection } from '../../components/ui/Form'
@@ -90,8 +91,8 @@ function VacancyForm({ v }: { v: Vacancy | null }) {
           <AssignmentFields value={assign} onChange={setAssign} />
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label={t('recruit.vacancy.openings')}>{(id) => <Input id={id} type="number" min={1} max={500} value={openings} onChange={(e) => setOpenings(e.target.value)} />}</Field>
-            <Field label={t('recruit.vacancy.salaryFrom')}>{(id) => <Input id={id} type="number" min={0} value={from} onChange={(e) => setFrom(e.target.value)} />}</Field>
-            <Field label={t('recruit.vacancy.salaryTo')} error={fe.salary_to}>{(id) => <Input id={id} type="number" min={0} value={to} onChange={(e) => setTo(e.target.value)} />}</Field>
+            <Field label={t('recruit.vacancy.salaryFrom')}>{(id) => <MoneyInput id={id} value={from} onChange={setFrom} />}</Field>
+            <Field label={t('recruit.vacancy.salaryTo')} error={fe.salary_to}>{(id) => <MoneyInput id={id} value={to} onChange={setTo} />}</Field>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t('recruit.vacancy.recruiter')}>

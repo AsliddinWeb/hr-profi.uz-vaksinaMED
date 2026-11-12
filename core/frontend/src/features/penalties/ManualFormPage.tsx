@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
+import { MoneyInput } from '../../components/ui/MoneyInput'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { FormFooter, FormSection } from '../../components/ui/Form'
@@ -88,7 +89,7 @@ export function ManualFormPage() {
           </Field>
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label={t('penalties.amount')} hint={t('penalties.form.overrideHint')}>
-              {(id) => <Input id={id} type="number" min={0} step="1000" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={step ? String(steps[Number(step) - 1]?.amount ?? 0) : '0'} />}
+              {(id) => <MoneyInput id={id} value={amount} onChange={setAmount} placeholder={step ? String(steps[Number(step) - 1]?.amount ?? 0) : '0'} />}
             </Field>
             <Field label={t('penalties.block')}>{(id) => <Input id={id} type="number" min={0} max={90} value={block} onChange={(e) => setBlock(e.target.value)} placeholder={step ? String(steps[Number(step) - 1]?.block_days ?? 0) : '0'} />}</Field>
             <Field label={t('penalties.form.label')}>{(id) => <Input id={id} value={label} onChange={(e) => setLabel(e.target.value)} maxLength={120} placeholder={t('penalties.form.labelPlaceholder')} />}</Field>

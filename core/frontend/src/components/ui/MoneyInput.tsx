@@ -9,6 +9,11 @@ export function MoneyInput({ id, value, onChange, placeholder }: { id?: string; 
   const { t } = useTranslation()
   const [text, setText] = useState(value ? fmtMoney(Number(value)) : '')
   const [focus, setFocus] = useState(false)
+  const [seen, setSeen] = useState(value)
+  if (value !== seen) {
+    setSeen(value)
+    if (!focus && String(calcMoney(text) ?? '') !== value) setText(value ? fmtMoney(Number(value)) : '')
+  }
   const result = calcMoney(text)
   const isFormula = /[+\-*/()a-zа-я]/i.test(text.replace(/^-/, ''))
   const commit = () => {

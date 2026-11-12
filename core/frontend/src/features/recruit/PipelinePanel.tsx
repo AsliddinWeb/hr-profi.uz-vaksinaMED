@@ -4,6 +4,7 @@ import { Send, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { MoneyInput } from '../../components/ui/MoneyInput'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
@@ -173,7 +174,7 @@ export function PipelinePanel({ a }: { a: ApplicationDetail }) {
                 </option>
               ))}
             </Select>
-            <Input type="number" min={0} value={salary} onChange={(e) => setSalary(e.target.value)} placeholder={t('pipeline.salary')} aria-label={t('pipeline.salary')} />
+            <MoneyInput value={salary} onChange={setSalary} placeholder={t('pipeline.salary')} />
             <Input type="date" value={start} onChange={(e) => setStart(e.target.value)} aria-label={t('pipeline.startDate')} />
             <Input value={schedule} onChange={(e) => setSchedule(e.target.value)} placeholder={t('recruitEval.offer.schedule')} aria-label={t('recruitEval.offer.schedule')} maxLength={200} className="sm:col-span-2" />
             <Input type="number" min={0} max={180} value={probation} onChange={(e) => setProbation(e.target.value)} placeholder={t('recruitEval.offer.probationLabel')} aria-label={t('recruitEval.offer.probationLabel')} />

@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
+import { MoneyInput } from '../../components/ui/MoneyInput'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { FormFooter, FormSection } from '../../components/ui/Form'
@@ -86,7 +87,7 @@ function ItemForm({ it }: { it: Item | null }) {
                 </Select>
               )}
             </Field>
-            <Field label={kind === 'kpi' ? t('payroll.item.kpiScore') : t('payroll.item.amount')} hint={t(`payroll.kindHint.${kind}`)}>{(id) => <Input id={id} type="number" min={0} max={kind === 'kpi' ? 100 : undefined} step="any" value={amount} onChange={(e) => setAmount(e.target.value)} required />}</Field>
+            <Field label={kind === 'kpi' ? t('payroll.item.kpiScore') : t('payroll.item.amount')} hint={t(`payroll.kindHint.${kind}`)}>{(id) => (kind === 'kpi' ? <Input id={id} type="number" min={0} max={100} step="any" value={amount} onChange={(e) => setAmount(e.target.value)} required /> : <MoneyInput id={id} value={amount} onChange={setAmount} />)}</Field>
           </div>
           <Field label={t('recruit.candidate.note')}>{(id) => <Input id={id} value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} />}</Field>
         </FormSection>

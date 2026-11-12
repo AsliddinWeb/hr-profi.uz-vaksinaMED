@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 
+import { MoneyInput } from '../../components/ui/MoneyInput'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { FormFooter, FormSection } from '../../components/ui/Form'
@@ -102,7 +103,7 @@ function RulesForm({ base }: { base: RuleVersion }) {
               <li key={s.step} className="grid gap-3 rounded-control border border-border p-3 sm:grid-cols-[2rem_1fr_9rem_7rem]">
                 <span className="self-center text-lg font-semibold tabular-nums">{s.step}</span>
                 <Input value={s.label} onChange={(e) => setStep(i, { label: e.target.value })} maxLength={120} required aria-label={t('penalties.form.label')} placeholder={t('penalties.form.label')} />
-                <Input type="number" min={0} step="1000" value={s.amount} onChange={(e) => setStep(i, { amount: Number(e.target.value) || 0 })} aria-label={t('penalties.amount')} placeholder={t('penalties.amount')} />
+                <MoneyInput value={s.amount ? String(s.amount) : ''} onChange={(v) => setStep(i, { amount: Number(v) || 0 })} placeholder={t('penalties.amount')} />
                 <Input type="number" min={0} max={90} value={s.block_days} onChange={(e) => setStep(i, { block_days: Number(e.target.value) || 0 })} aria-label={t('penalties.block')} placeholder={t('penalties.block')} />
               </li>
             ))}

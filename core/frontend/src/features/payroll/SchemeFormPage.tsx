@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
+import { MoneyInput } from '../../components/ui/MoneyInput'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { FormFooter, FormSection } from '../../components/ui/Form'
@@ -71,6 +72,7 @@ function SchemeForm({ s }: { s: Scheme | null }) {
     e.preventDefault()
     save.mutate()
   }
+  const money = (v: string, set: (s: string) => void, lbl: string, hint?: string) => <Field label={lbl} hint={hint}>{(id) => <MoneyInput id={id} value={v} onChange={set} />}</Field>
   const num = (v: string, set: (s: string) => void, lbl: string, hint?: string, step?: string) => (
     <Field label={lbl} hint={hint}>{(id) => <Input id={id} type="number" min={0} step={step} value={v} onChange={(e) => set(e.target.value)} />}</Field>
   )
@@ -83,10 +85,10 @@ function SchemeForm({ s }: { s: Scheme | null }) {
           <Field label={t('payroll.scheme.from')} hint={t('payroll.scheme.fromHint')}>{(id) => <Input id={id} type="date" value={from} onChange={(e) => setFrom(e.target.value)} required />}</Field>
         </FormSection>
         <FormSection title={t('payroll.scheme.amounts')}>
-          {num(fixed, setFixed, t('payroll.scheme.fixed'), t('payroll.scheme.fixedHint'))}
+          {money(fixed, setFixed, t('payroll.scheme.fixed'), t('payroll.scheme.fixedHint'))}
           <div className="grid gap-4 sm:grid-cols-3">
             {num(pct, setPct, t('payroll.scheme.commission'), t('payroll.scheme.commissionHint'), '0.001')}
-            {num(planBonus, setPlanBonus, t('payroll.scheme.planBonus'), t('payroll.scheme.planBonusHint'))}
+            {money(planBonus, setPlanBonus, t('payroll.scheme.planBonus'), t('payroll.scheme.planBonusHint'))}
             {num(kpi, setKpi, t('payroll.scheme.kpi'), t('payroll.scheme.kpiHint'))}
           </div>
           <Field label={t('recruit.candidate.note')}>{(id) => <Input id={id} value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} />}</Field>

@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
+import { MoneyInput } from '../../components/ui/MoneyInput'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { FormFooter, FormSection } from '../../components/ui/Form'
@@ -95,7 +96,7 @@ function FuelForm({ f }: { f: Fuel | null }) {
           )}
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label={t('logistics.fuel.liters')}>{(id) => <Input id={id} type="number" min={0.01} max={2000} step="0.01" value={liters} onChange={(e) => setLiters(e.target.value)} required autoFocus />}</Field>
-            <Field label={t('logistics.fuel.price')}>{(id) => <Input id={id} type="number" min={0} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} />}</Field>
+            <Field label={t('logistics.fuel.price')}>{(id) => <MoneyInput id={id} value={price} onChange={setPrice} />}</Field>
             <Field label={t('logistics.fuel.total')}>{(id) => <Input id={id} readOnly value={total === null ? '' : num(total)} />}</Field>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">

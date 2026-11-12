@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 
+import { MoneyInput } from '../../components/ui/MoneyInput'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
@@ -232,8 +233,8 @@ export function LevelsFormPage() {
                 </Select>
               )}
             </Field>
-            <Field label={t('growth.career.salaryMin')}>{(id) => <Input id={id} type="number" min={0} value={l.salary_min ?? ''} onChange={(e) => set(i, { salary_min: e.target.value ? Number(e.target.value) : null })} />}</Field>
-            <Field label={t('growth.career.salaryMax')}>{(id) => <Input id={id} type="number" min={0} value={l.salary_max ?? ''} onChange={(e) => set(i, { salary_max: e.target.value ? Number(e.target.value) : null })} />}</Field>
+            <Field label={t('growth.career.salaryMin')}>{(id) => <MoneyInput id={id} value={l.salary_min != null ? String(l.salary_min) : ''} onChange={(v) => set(i, { salary_min: v ? Number(v) : null })} />}</Field>
+            <Field label={t('growth.career.salaryMax')}>{(id) => <MoneyInput id={id} value={l.salary_max != null ? String(l.salary_max) : ''} onChange={(v) => set(i, { salary_max: v ? Number(v) : null })} />}</Field>
             <Button variant="outline" className="text-danger" onClick={() => setRows(cur.filter((_, j) => j !== i))} aria-label={t('common.delete')}>
               <Trash2 className="size-4" />
             </Button>
