@@ -517,6 +517,7 @@ export function ProfilesPage() {
                   {r.profile && <span className="ml-2 hidden text-xs text-muted lg:inline">{formatDate(r.profile.updated_at, i18n.language)}</span>}
                 </td>
                 <td className="whitespace-nowrap px-4 py-2.5 text-right">
+                  {can('recruit.approve') && r.profile?.status === 'pending' && <DecisionButtons kind="profile" id={r.profile.id} />}
                   {r.profile ? (
                     <Link to={`/recruit/profiles/${r.profile.id}`}>
                       <Button variant="ghost" className="h-8 px-2">
@@ -1064,16 +1065,8 @@ export function ApprovalsPage() {
   const [type, setType] = useState<'all' | 'profile' | 'request'>('all')
   const [q, setQ] = useState('')
   const [st, setSt] = useState('')
-  const qc = useQueryClient()
   const list = useQuery({ queryKey: ['approvals', type], queryFn: () => api<{ counts: Record<string, number>; items: Approval[]; can_decide: boolean }>(`/api/v1/recruit/approvals?type=${type}`), refetchInterval: 60_000 })
-  const approve = useMutation({
-    mutationFn: (pid: number) => send('POST', `/api/v1/recruit/profiles/${pid}/action`, { action: 'approve' }),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['approvals'] })
-      void qc.invalidateQueries({ queryKey: ['profiles'] })
-      void qc.invalidateQueries({ queryKey: ['comp'] })
-    },
-  })
+
   const items = list.data?.items.filter((i) => (!st || i.status === st) && (!q || `${i.code} ${i.title} ${i.requester}`.toLowerCase().includes(q.toLowerCase())))
   const c = list.data?.counts
   return (
@@ -1138,11 +1131,7 @@ export function ApprovalsPage() {
                     <Badge tone={ATONE[i.status]}>{t(`comp.appr.st.${i.status}`)}</Badge>
                   </td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-right">
-                    {list.data?.can_decide && i.type === 'profile' && i.status === 'pending' && (
-                      <Button className="mr-1 h-8" disabled={approve.isPending} onClick={() => approve.mutate(i.id)}>
-                        {t('comp.wiz.approve')}
-                      </Button>
-                    )}
+                    {list.data?.can_decide && i.status === 'pending' && <DecisionButtons kind={i.type} id={i.id} />}
                     <Link to={i.link}>
                       <Button variant="ghost" className="h-8 px-2" aria-label={t('comp.prof.open')}>
                         <Eye className="size-4" />
@@ -1516,5 +1505,49 @@ export function FunnelReportPage() {
         </div>
       )}
     </div>
+  )
+}
+
+/** Qatordagi qaror tugmalari: profil (approve/return) yoki zayavka (approve/reject). Rad etishda sabab majburiy. */
+export function DecisionButtons({ kind, id }: { kind: 'profile' | 'request'; id: number }) {
+  const { t } = useTranslation()
+  const qc = useQueryClient()
+  const [rejecting, setRejecting] = useState(false)
+  const [note, setNote] = useState('')
+  const act = useMutation({
+    mutationFn: (approve: boolean) =>
+      kind === 'profile'
+        ? send('POST', `/api/v1/recruit/profiles/${id}/action`, { action: approve ? 'approve' : 'return', note: note || null })
+        : send('POST', `/api/v1/recruit/requests/${id}/decide`, { action: approve ? 'approve' : 'reject', note: note || null }),
+    onSuccess: () => {
+      setRejecting(false)
+      setNote('')
+      for (const k of ['approvals', 'profiles', 'comp', 'recruit', 'competencies']) void qc.invalidateQueries({ queryKey: [k] })
+    },
+  })
+  if (rejecting)
+    return (
+      <span className="inline-flex flex-wrap items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+        <Input autoFocus className="h-8 w-48" value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('comp.dec.reason')} aria-label={t('comp.dec.reason')} />
+        <Button className="h-8 bg-danger" disabled={act.isPending || note.trim().length < 2} onClick={() => act.mutate(false)}>
+          {t('comp.dec.reject')}
+        </Button>
+        <Button variant="ghost" className="h-8 px-2" aria-label={t('common.cancel')} onClick={() => setRejecting(false)}>
+          <X className="size-4" />
+        </Button>
+        {act.isError && <span className="w-full text-right text-xs text-danger">{errorText(t, act.error)}</span>}
+      </span>
+    )
+  return (
+    <span className="inline-flex flex-wrap items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+      <Button className="h-8" disabled={act.isPending} onClick={() => act.mutate(true)}>
+        <Check className="size-4" />
+        {t('comp.wiz.approve')}
+      </Button>
+      <Button variant="outline" className="h-8 text-danger" disabled={act.isPending} onClick={() => setRejecting(true)}>
+        {t('comp.dec.reject')}
+      </Button>
+      {act.isError && <span className="w-full text-right text-xs text-danger">{errorText(t, act.error)}</span>}
+    </span>
   )
 }
