@@ -14,6 +14,7 @@ import { useCan } from '../auth/useAuth'
 import { type DepartmentNode, type OrgTree } from './api'
 import { InsightCharts, InsightKpis, InsightTabs, InsightsLoading } from './OrgInsights'
 import { useInsights } from './orgInsightsApi'
+import { OrgSidePanel, type PanelKey, type Selected } from './OrgSidePanel'
 import { SchemeView } from './SchemeView'
 
 const AUTO_EXPAND_DEPTH = 2
@@ -22,6 +23,8 @@ export function OrgChartPage() {
   const { t, i18n } = useTranslation()
   const can = useCan()
   const [view, setView] = useState<'scheme' | 'tree' | 'list'>('scheme')
+  const [panel, setPanel] = useState<PanelKey | null>(null)
+  const [picked, setPicked] = useState<Selected>(null)
   const [selected, setSelected] = useState<DepartmentNode | null>(null)
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set())
 
@@ -64,14 +67,12 @@ export function OrgChartPage() {
               </button>
             ))}
           </div>
-          {can('org.manage') && (
-            <Link to="/org/departments">
-              <Button variant="outline">
-                <Pencil className="size-4" />
-                {t('org.manage')}
-              </Button>
-            </Link>
-          )}
+          {(['departments', 'positions', 'duties', 'structures', 'branches'] as const).map((k) => (
+            <Button key={k} variant={panel === k ? 'primary' : 'outline'} onClick={() => setPanel(k)}>
+              {k === 'departments' && <Pencil className="size-4" />}
+              {t(`org.panel.${k}`)}
+            </Button>
+          ))}
         </div>
       </div>
 
@@ -90,7 +91,15 @@ export function OrgChartPage() {
         </Card>
       )}
 
-      {data && data.roots.length > 0 && view === 'scheme' && <SchemeView />}
+      {data && data.roots.length > 0 && view === 'scheme' && (
+        <SchemeView
+          onSelect={(n) => {
+            setPicked(n.kind === 'dept' ? { kind: 'dept', d: n.d } : { kind: 'pos', p: n.p })
+            setPanel('node')
+          }}
+        />
+      )}
+      <OrgSidePanel open={panel} onClose={() => setPanel(null)} selected={picked} onSelect={setPanel} />
 
       {data && data.roots.length > 0 && view !== 'scheme' && (
         <div className="flex flex-col gap-5">

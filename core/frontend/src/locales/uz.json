@@ -787,6 +787,24 @@
       "positions": "{{n}} ta lavozim",
       "employees": "{{n}} ta xodim",
       "requests": "{{n}} ta zayavka"
+    },
+    "panel": {
+      "departments": "Bo'limlar",
+      "positions": "Lavozimlar",
+      "structures": "Shajara turlari",
+      "branches": "Filiallar",
+      "dept": "Bo'lim",
+      "pos": "Lavozim",
+      "fullEdit": "To'liq tahrirlash",
+      "profile": "Lavozim profili",
+      "name": "Nomi",
+      "slots": "Shtat birligi",
+      "addUnder": "Ostiga qo'shish",
+      "newName": "Yangi nom",
+      "addHint": "Yangi bo'lim boshliq lavozimlari bilan avtomatik yaratiladi; sxema, ro'yxatlar va filiallar darhol yangilanadi.",
+      "deleteDeptHint": "Bo'lim o'chadi; filial, lavozim va xodimlar saqlanib, bo'limdan uziladi.",
+      "deletePosHint": "Lavozimda xodim bo'lsa o'chirib bo'lmaydi — avval xodimni boshqa lavozimga o'tkazing.",
+      "duties": "Lavozim vazifalari"
     }
   },
   "branches": {
@@ -6218,7 +6236,24 @@
     "isHead": "Bo'lim boshlig'i lavozimi",
     "reportsTo": "Shajarada qaysi lavozim ostida",
     "reportsToHint": "Masalan Moliya — Ta'sischi ostida, boshqa bo'limlar — Direktor ostida",
-    "reportsToNone": "— Ota bo'lim ostida —"
+    "reportsToNone": "— Ota bo'lim ostida —",
+    "fit": "Ekranga moslash",
+    "fullscreen": "To'liq ekran",
+    "edit": "Tahrirlash",
+    "editDone": "Tayyor",
+    "add": "Qo'shish",
+    "editHint": "Har bir bo'lim yoki lavozim ostidagi + bilan qo'shing, × bilan o'chiring. Yangi bo'lim boshliq lavozimlari bilan avtomatik yaratiladi.",
+    "addPos": "Lavozim qo'shish",
+    "addSubPos": "Bo'ysunuvchi lavozim",
+    "addSubDept": "Ichki bo'lim",
+    "addDeptUnderPos": "Unga bo'ysunuvchi bo'lim",
+    "addTopDept": "Bo'lim qo'shish",
+    "newDeptName": "Yangi bo'lim nomi:",
+    "newPosName": "Yangi lavozim nomi:",
+    "deptAdded": "«{{name}}» bo'limi yaratildi",
+    "posAdded": "«{{name}}» lavozimi yaratildi",
+    "removeDeptQ": "«{{name}}» bo'limi o'chirilsinmi? Unga bog'langan filial, lavozim va xodimlar o'chmaydi — bo'limdan uziladi.",
+    "removePosQ": "«{{name}}» lavozimi o'chirilsinmi?"
   },
   "aiiv": {
     "title": "AI suhbat (hard / soft skill)",

@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
-import { Minus, Plus, RotateCcw } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Maximize2, Minimize2, Minus, Pencil, Plus, RotateCcw, ScanSearch, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -7,7 +7,10 @@ import { Link } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { Select } from '../../components/ui/Input'
 import { Skeleton } from '../../components/ui/Skeleton'
-import { api } from '../../lib/api'
+import { useConfirm } from '../../components/ui/confirmContext'
+import { useToast } from '../../components/ui/toastContext'
+import { api, send } from '../../lib/api'
+import { errorText } from '../auth/errorText'
 import { useCan } from '../auth/useAuth'
 import { Avatar } from '../employees/Avatar'
 import type { OrgStructureRow } from './api'
@@ -18,6 +21,9 @@ interface P {
   photo: boolean
   branches: number
 }
+export type SchemePos = Pos
+export type SchemeDept = Dept
+
 interface Pos {
   id: number
   name: string
@@ -46,6 +52,39 @@ interface Scheme {
 
 const MAX_SHOWN = 4
 
+type Pick = ((n: { kind: 'dept'; d: Dept } | { kind: 'pos'; p: Pos }) => void) | undefined
+// tugunni bosish: tugma yoki havola bosilmagan bo'lsa tanlaydi
+const clickable = (fn: () => void) => (e: { target: EventTarget }) => !(e.target as HTMLElement).closest('a,button') && fn()
+
+type Edit = { onAdd: (kind: 'dept' | 'pos', target: { dept?: Dept; pos?: Pos }) => void; onRemove: (kind: 'dept' | 'pos', id: number, name: string) => void } | null
+
+/** Tahrirlash rejimida kartochka ostidagi kichik tugmalar: qo'shish va o'chirish. */
+function EditBar({ edit, kind, dept, pos, name, id }: { edit: Edit; kind: 'dept' | 'pos'; dept?: Dept; pos?: Pos; name: string; id: number }) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  if (!edit) return null
+  return (
+    <div className="relative mt-1 flex justify-center gap-1">
+      <button type="button" title={t('scheme.add')} aria-label={t('scheme.add')} onClick={() => setOpen((v) => !v)} className="grid size-6 place-items-center rounded-full bg-primary text-white shadow-card hover:brightness-110">
+        <Plus className="size-3.5" />
+      </button>
+      <button type="button" title={t('common.delete')} aria-label={t('common.delete')} onClick={() => edit.onRemove(kind, id, name)} className="grid size-6 place-items-center rounded-full bg-danger text-white shadow-card hover:brightness-110">
+        <X className="size-3.5" />
+      </button>
+      {open && (
+        <div className="absolute top-7 z-20 flex w-48 flex-col rounded-lg border border-border bg-surface p-1 text-left text-xs text-text shadow-pop">
+          <button type="button" className="rounded px-2 py-1.5 hover:bg-surface-2" onClick={() => (setOpen(false), edit.onAdd('pos', { dept, pos }))}>
+            + {t(kind === 'pos' ? 'scheme.addSubPos' : 'scheme.addPos')}
+          </button>
+          <button type="button" className="rounded px-2 py-1.5 hover:bg-surface-2" onClick={() => (setOpen(false), edit.onAdd('dept', { dept, pos }))}>
+            + {t(kind === 'pos' ? 'scheme.addDeptUnderPos' : 'scheme.addSubDept')}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function Person({ p }: { p: P }) {
   const { t } = useTranslation()
   const body = (
@@ -61,14 +100,14 @@ function Person({ p }: { p: P }) {
 }
 
 /** Lavozim kartochkasi: nomi, egalari (rasm bilan), bo'sh o'rinlar — VAKANSIYA. */
-function PositionCard({ p, color }: { p: Pos; color: string | null }) {
+function PositionCard({ p, color, edit, pick }: { p: Pos; color: string | null; edit: Edit; pick: Pick }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const occ = p.occupants
   const vacant = p.slots > 0 ? Math.max(0, p.slots - occ.length) : 0
   const shown = open ? occ : occ.slice(0, MAX_SHOWN)
   return (
-    <div className="flex w-48 flex-col gap-1.5 rounded-xl border border-border bg-surface p-2 text-center shadow-card" style={color ? { borderTop: `3px solid ${color}` } : undefined}>
+    <div onClick={pick && clickable(() => pick({ kind: 'pos', p }))} className={`flex w-48 flex-col gap-1.5 rounded-xl border border-border bg-surface p-2 text-center shadow-card ${pick ? 'cursor-pointer hover:ring-2 hover:ring-primary/40' : ''}`} style={color ? { borderTop: `3px solid ${color}` } : undefined}>
       <div className={`text-[12px] font-semibold leading-snug ${p.is_head ? 'text-primary' : ''}`}>{p.name}</div>
       {p.slots > 1 && <div className="text-[10px] text-muted">{t('scheme.slots', { busy: occ.length, total: p.slots })}</div>}
       {p.slots === 0 && occ.length > 0 && <div className="text-[10px] text-muted">{t('scheme.peopleN', { n: occ.length })}</div>}
@@ -89,14 +128,15 @@ function PositionCard({ p, color }: { p: Pos; color: string | null }) {
           <b className="text-text">{t('scheme.yqm')}:</b> {p.yqm}
         </p>
       )}
+      <EditBar edit={edit} kind="pos" pos={p} name={p.name} id={p.id} />
     </div>
   )
 }
 
-function DeptCard({ d }: { d: Dept }) {
+function DeptCard({ d, edit, pick }: { d: Dept; edit: Edit; pick: Pick }) {
   const { t } = useTranslation()
   return (
-    <div className="w-52 rounded-xl px-3 py-2 text-center text-white shadow-card" style={{ background: d.color ?? 'var(--color-primary, #1f3a68)' }}>
+    <div onClick={pick && clickable(() => pick({ kind: 'dept', d }))} className={`w-52 rounded-xl px-3 py-2 text-center text-white shadow-card ${pick ? 'cursor-pointer hover:ring-2 hover:ring-white/70' : ''}`} style={{ background: d.color ?? 'var(--color-primary, #1f3a68)' }}>
       <div className="text-[12px] font-bold uppercase tracking-wide">{d.name}</div>
       <div className="text-[10px] opacity-85">{t('scheme.peopleN', { n: d.headcount })}</div>
       {d.yqm && (
@@ -104,12 +144,13 @@ function DeptCard({ d }: { d: Dept }) {
           <b>{t('scheme.yqm')}:</b> {d.yqm}
         </p>
       )}
+      <EditBar edit={edit} kind="dept" dept={d} name={d.name} id={d.id} />
     </div>
   )
 }
 
 /** Tashkiliy tuzilma shajarasi (org.xlsx kabi). Bo'lim, lavozim yoki xodim qo'shilganda avtomatik yangilanadi. */
-export function SchemeView() {
+export function SchemeView({ onSelect }: { onSelect?: (n: { kind: 'dept'; d: Dept } | { kind: 'pos'; p: Pos }) => void } = {}) {
   const { t } = useTranslation()
   const canManage = useCan()('org.manage')
   const structures = useQuery({ queryKey: ['org', 'structures'], queryFn: () => api<{ items: OrgStructureRow[] }>('/api/v1/org/structures') })
@@ -119,7 +160,76 @@ export function SchemeView() {
   const q = useQuery({ queryKey: ['org', 'scheme', structureId], queryFn: () => api<Scheme>(`/api/v1/org/scheme${structureId ? `?structure_id=${structureId}` : ''}`), enabled: !!structures.data })
   const [zoom, setZoom] = useState(0.85)
   const box = useRef<HTMLDivElement>(null)
+  const inner = useRef<HTMLDivElement>(null)
+  const wrap = useRef<HTMLDivElement>(null)
+  const [full, setFull] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const qc = useQueryClient()
+  const confirm = useConfirm()
+  const toast = useToast()
   const d = q.data
+
+  /** Butun sxemani ko'rinadigan maydonga sig'diradi. */
+  const fit = () => {
+    const el = box.current
+    const tree = inner.current
+    if (!el || !tree) return
+    const r = tree.getBoundingClientRect()
+    const cur = Number(tree.style.zoom || 1) || 1
+    const w = r.width / cur
+    const h = r.height / cur
+    if (!w || !h) return
+    const z = Math.min(1, (el.clientWidth - 32) / w, (el.clientHeight - 32) / h)
+    setZoom(Math.max(0.15, +z.toFixed(2)))
+    el.scrollLeft = 0
+    el.scrollTop = 0
+  }
+  useEffect(() => {
+    const id = requestAnimationFrame(() => fit())
+    return () => cancelAnimationFrame(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [d, full])
+  useEffect(() => {
+    const on = () => setFull(document.fullscreenElement === wrap.current)
+    document.addEventListener('fullscreenchange', on)
+    return () => document.removeEventListener('fullscreenchange', on)
+  }, [])
+  const toggleFull = () => (document.fullscreenElement ? void document.exitFullscreen() : void wrap.current?.requestFullscreen())
+
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: ['org'] })
+    void qc.invalidateQueries({ queryKey: ['recruit'] })
+  }
+  const fail = (e: unknown) => toast.push({ title: errorText(t, e), tone: 'danger' })
+  const edit: Edit = editing
+    ? {
+        onAdd: async (kind, { dept, pos }) => {
+          const name = window.prompt(t(kind === 'dept' ? 'scheme.newDeptName' : 'scheme.newPosName'))?.trim()
+          if (!name) return
+          try {
+            if (kind === 'dept') {
+              await send('POST', '/api/v1/org/departments', { name, parent_id: dept?.id ?? pos?.department_id ?? null, reports_to_position_id: pos?.id ?? null, create_default_positions: true })
+            } else {
+              await send('POST', '/api/v1/org/positions', { name, department_id: dept?.id ?? pos?.department_id ?? null, parent_id: pos?.id ?? null, slots: 1 })
+            }
+            toast.push({ title: t(kind === 'dept' ? 'scheme.deptAdded' : 'scheme.posAdded', { name }), tone: 'success' })
+            refresh()
+          } catch (e) {
+            fail(e)
+          }
+        },
+        onRemove: async (kind, id, name) => {
+          if (!(await confirm({ title: t('common.delete'), body: t(kind === 'dept' ? 'scheme.removeDeptQ' : 'scheme.removePosQ', { name }), danger: true, confirmLabel: t('common.delete') }))) return
+          try {
+            await send('DELETE', kind === 'dept' ? `/api/v1/org/departments/${id}?detach=true` : `/api/v1/org/positions/${id}`)
+            toast.push({ title: t('org.deleted'), tone: 'success' })
+            refresh()
+          } catch (e) {
+            fail(e)
+          }
+        },
+      }
+    : null
 
   const idx = useMemo(() => {
     if (!d) return null
@@ -143,11 +253,6 @@ export function SchemeView() {
     return { deptById, childPos, rootPosOfDept, deptsUnderPos, deptsUnderDept, rootDepts, general }
   }, [d])
 
-  // Keng shajarani boshida markazga keltiramiz
-  useEffect(() => {
-    const el = box.current
-    if (el) el.scrollLeft = Math.max(0, (el.scrollWidth - el.clientWidth) / 2)
-  }, [d])
 
   if (!d || !idx) return <Skeleton className="h-96" />
 
@@ -190,7 +295,7 @@ export function SchemeView() {
     const kids = [...(idx.childPos.get(p.id) ?? []).map((c) => ({ k: `p${c.id}`, n: renderPos(c, next), leaf: isLeafPos(c) })), ...(idx.deptsUnderPos.get(p.id) ?? []).map((x) => ({ k: `d${x.id}`, n: renderDept(x, next), leaf: false }))]
     return (
       <>
-        <PositionCard p={p} color={color} />
+        <PositionCard p={p} color={color} edit={edit} pick={onSelect} />
         {renderKids(kids)}
       </>
     )
@@ -200,7 +305,7 @@ export function SchemeView() {
     const kids = [...(idx.rootPosOfDept.get(x.id) ?? []).map((p) => ({ k: `p${p.id}`, n: renderPos(p, seen), leaf: isLeafPos(p) })), ...(idx.deptsUnderDept.get(x.id) ?? []).map((c) => ({ k: `d${c.id}`, n: renderDept(c, seen), leaf: false }))]
     return (
       <>
-        <DeptCard d={x} />
+        <DeptCard d={x} edit={edit} pick={onSelect} />
         {renderKids(kids)}
       </>
     )
@@ -209,7 +314,7 @@ export function SchemeView() {
   const tops = [...idx.rootDepts.map((x) => ({ k: `d${x.id}`, n: renderDept(x, new Set()) })), ...idx.general.map((p) => ({ k: `p${p.id}`, n: renderPos(p, new Set()) }))]
 
   return (
-    <div className="relative rounded-card border border-border bg-gradient-to-b from-sky-50/60 to-transparent dark:from-sky-950/20">
+    <div ref={wrap} className={`relative rounded-card border border-border bg-gradient-to-b from-sky-50/60 to-transparent dark:from-sky-950/20 ${full ? 'flex flex-col bg-bg' : ''}`}>
       <div className="flex flex-wrap items-center gap-3 border-b border-border p-3 pr-28">
         <label htmlFor="org-structure" className="text-sm font-medium">{t('org.structureSelect')}</label>
         <Select id="org-structure" className="w-auto min-w-56" value={structureId ? String(structureId) : ''} onChange={(e) => setSelected(e.target.value)}>
@@ -218,27 +323,45 @@ export function SchemeView() {
         {canManage && <Link to="/org/structures"><Button variant="outline" className="h-9">{t('org.manageStructures')}</Button></Link>}
         {d.structure?.description && <span className="text-xs text-muted">{d.structure.description}</span>}
       </div>
-      <div className="flex justify-end border-b border-border px-3 py-2">
+      <div className="flex flex-wrap items-center justify-end gap-2 border-b border-border px-3 py-2">
+      {canManage && (
+        <Button variant={editing ? 'primary' : 'outline'} className="h-8" onClick={() => setEditing((v) => !v)}>
+          <Pencil className="size-4" />
+          {t(editing ? 'scheme.editDone' : 'scheme.edit')}
+        </Button>
+      )}
+      {editing && <span className="text-xs text-muted">{t('scheme.editHint')}</span>}
       <div className="flex items-center gap-1 rounded-control border border-border bg-surface p-1 shadow-card">
-        <button type="button" aria-label={t('scheme.zoomOut')} onClick={() => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)))} className="rounded p-1 hover:bg-surface-2">
+        <button type="button" title={t('scheme.fit')} aria-label={t('scheme.fit')} onClick={fit} className="rounded p-1 hover:bg-surface-2">
+          <ScanSearch className="size-4" />
+        </button>
+        <button type="button" aria-label={t('scheme.zoomOut')} onClick={() => setZoom((z) => Math.max(0.15, +(z - 0.1).toFixed(2)))} className="rounded p-1 hover:bg-surface-2">
           <Minus className="size-4" />
         </button>
         <span className="w-10 text-center text-xs tabular-nums">{Math.round(zoom * 100)}%</span>
         <button type="button" aria-label={t('scheme.zoomIn')} onClick={() => setZoom((z) => Math.min(1.4, +(z + 0.1).toFixed(2)))} className="rounded p-1 hover:bg-surface-2">
           <Plus className="size-4" />
         </button>
-        <button type="button" aria-label={t('scheme.zoomReset')} onClick={() => setZoom(0.85)} className="rounded p-1 hover:bg-surface-2">
+        <button type="button" aria-label={t('scheme.zoomReset')} onClick={() => setZoom(1)} className="rounded p-1 hover:bg-surface-2">
           <RotateCcw className="size-4" />
+        </button>
+        <button type="button" title={t('scheme.fullscreen')} aria-label={t('scheme.fullscreen')} onClick={toggleFull} className="rounded p-1 hover:bg-surface-2">
+          {full ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
         </button>
       </div>
       </div>
-      <div ref={box} className="overflow-auto p-6" style={{ maxHeight: '80vh' }}>
-        <div className="org-tree scheme min-w-max origin-top-left" style={{ zoom }}>
+      <div ref={box} className={`overflow-auto p-4 ${full ? 'flex-1' : ''}`} style={full ? undefined : { height: 'calc(100vh - 230px)', minHeight: 420 }}>
+        <div ref={inner} className="org-tree scheme mx-auto w-max origin-top-left" style={{ zoom }}>
           <ul>
             <li>
               <div className="rounded-2xl border border-sky-200 bg-white px-8 py-3 text-center shadow-card dark:border-sky-900 dark:bg-[#141b2b]">
                 <div className="text-xl font-extrabold tracking-wide text-[#1f3a68] dark:text-sky-200">{d.company}</div>
                 <div className="text-xs text-muted">{t('scheme.company')}</div>
+                {edit && (
+                  <button type="button" onClick={() => edit.onAdd('dept', {})} className="mt-1 rounded-full bg-primary px-2 py-0.5 text-[11px] text-white">
+                    + {t('scheme.addTopDept')}
+                  </button>
+                )}
               </div>
               {tops.length > 0 && (
                 <ul>

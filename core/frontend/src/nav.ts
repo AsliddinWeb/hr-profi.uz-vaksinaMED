@@ -134,6 +134,8 @@ const baseNav: NavItem[] = [
  * qolganlari sahifa tepasida tab bo'lib chiqadi (ClusterTabs). tabs: false — sahifaning o'z tablari bor.
  */
 export const NAV_CLUSTERS: { ids: string[]; tabs?: false }[] = [
+  // Tuzilma: yon menyuda faqat Tashkiliy tuzilma, qolganlari uning o'ng panelida (ruxsati bo'lmasa — birinchi ruxsatli band ko'rinadi)
+  { ids: ['org', 'departments', 'positions', 'position-duties', 'org-structures', 'branches'], tabs: false },
   { ids: ['reception-panel', 'reception', 'reception-new', 'reception-report', 'coffee', 'my-answers', 'answers-inbox'] },
 ]
 export const clusterOf = new Map(NAV_CLUSTERS.flatMap((c) => c.ids.map((id) => [id, c] as const)))
