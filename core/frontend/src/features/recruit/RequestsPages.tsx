@@ -10,10 +10,12 @@ import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { FormFooter, FormSection } from '../../components/ui/Form'
 import { Field, Input, Select } from '../../components/ui/Input'
+import { MoneyInput } from '../../components/ui/MoneyInput'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { Stepper } from '../../components/ui/Stepper'
 import { useToast } from '../../components/ui/toastContext'
 import { api, send } from '../../lib/api'
+import { fmtMoney } from '../../lib/money'
 import { useCan } from '../auth/useAuth'
 import { formatDate, formatDateTime } from '../../lib/format'
 import { errorText } from '../auth/errorText'
@@ -309,8 +311,8 @@ export function RequestFormPage() {
           </Field>
           <Field label={t('rreq.neededFrom')}>{(id) => <Input id={id} type="date" value={from} onChange={(e) => setFrom(e.target.value)} />}</Field>
           <div className="grid grid-cols-2 gap-2">
-            <Field label={t('rreq.salaryFrom')}>{(id) => <Input id={id} type="number" min={0} value={sFrom} onChange={(e) => setSFrom(e.target.value)} />}</Field>
-            <Field label={t('rreq.salaryTo')}>{(id) => <Input id={id} type="number" min={0} value={sTo} onChange={(e) => setSTo(e.target.value)} />}</Field>
+            <Field label={t('rreq.salaryFrom')}>{(id) => <MoneyInput id={id} value={sFrom} onChange={setSFrom} />}</Field>
+            <Field label={t('rreq.salaryTo')}>{(id) => <MoneyInput id={id} value={sTo} onChange={setSTo} />}</Field>
           </div>
               </div>
               <Field label={t('rreq.reason')}>{(id) => <textarea id={id} rows={2} maxLength={2000} value={reason} onChange={(e) => setReason(e.target.value)} className={area} />}</Field>
@@ -345,7 +347,7 @@ export function RequestFormPage() {
                   [t('rreq.count'), String(count)],
                   [t('rreq.urgency'), t(`rreq.urg.${urgency}`)],
                   [t('rreq.neededFrom'), from ? formatDate(from, i18n.language) : null],
-                  [t('rreq.salary'), sFrom || sTo ? `${sFrom || '…'} – ${sTo || '…'}` : null],
+                  [t('rreq.salary'), sFrom || sTo ? `${sFrom ? fmtMoney(Number(sFrom)) : '…'} – ${sTo ? fmtMoney(Number(sTo)) : '…'} ${t('money.currency')}` : null],
                   [t('rreq.reason'), reason || null],
                 ].map(([k, v]) => (
                   <div key={k} className="flex justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2">
@@ -430,7 +432,7 @@ export function RequestDetailPage() {
         <dl className="grid gap-2 text-sm sm:grid-cols-2">
           <Item k={t('rreq.created')} v={`${formatDateTime(r.created_at, i18n.language)} · ${r.created_by ?? '—'}`} />
           <Item k={t('rreq.neededFrom')} v={r.needed_from ? formatDate(r.needed_from, i18n.language) : '—'} />
-          <Item k={t('rreq.salary')} v={r.salary_from || r.salary_to ? `${r.salary_from ?? '…'} – ${r.salary_to ?? '…'}` : '—'} />
+          <Item k={t('rreq.salary')} v={r.salary_from || r.salary_to ? `${r.salary_from != null ? fmtMoney(r.salary_from) : '…'} – ${r.salary_to != null ? fmtMoney(r.salary_to) : '…'} ${t('money.currency')}` : '—'} />
           {r.decided_at && <Item k={t('rreq.decided')} v={`${formatDateTime(r.decided_at, i18n.language)} · ${r.decided_by ?? '—'}`} />}
         </dl>
         {r.reason && <p className="whitespace-pre-wrap text-sm">{r.reason}</p>}

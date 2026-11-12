@@ -7179,5 +7179,10 @@
       "uploads_pending": "Tekshirilmagan xodim hujjatlari",
       "rotations_pending": "Kutilayotgan rotatsiyalar"
     }
+  },
+  "money": {
+    "placeholder": "Masalan: 8 000 000 yoki 8 mln + 500 ming",
+    "invalid": "Formula noto'g'ri",
+    "currency": "so'm"
   }
 }
