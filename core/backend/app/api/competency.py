@@ -6,7 +6,7 @@ Rekruting zayafkasi faqat tasdiqlangan lavozim profili asosida yaratiladi (compa
 from datetime import timedelta
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, Request, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -662,8 +662,33 @@ async def ai_fill(pid: int, body: AiIn, db: AsyncSession = Depends(get_session),
         f"Lavozim: {pos.name if pos else '—'}\nBo'lim: {dept.name if dept else '—'}\nBazadagi kompetensiyalar: {await _base_names(db)}\n"
         f"<data>\n{(body.text or '').strip()[:6000]}\n</data>"
     )
-    raw, _ = await ai.run(db, auth, "profile", system, user, max_tokens=3500, entity="position_profile", entity_id=p.id)
-    return _clean_profile(ai.extract_json(raw), await _base_map(db))
+    try:
+        raw, _ = await ai.run(db, auth, "profile", system, user, max_tokens=3500, entity="position_profile", entity_id=p.id)
+    except HTTPException as e:
+        if e.status_code != 503:
+            raise
+        return {**_heuristic_fill(body.text or "", pos.name if pos else ""), "fallback": True}  # AI ulanmagan: matndan oddiy ajratish
+    return {**_clean_profile(ai.extract_json(raw), await _base_map(db)), "fallback": False}
+
+
+TOOLS = ("Excel", "Word", "PowerPoint", "Outlook", "1C", "Telegram", "Google Sheets", "Google Docs", "Bitrix24", "AmoCRM", "CRM", "SAP", "Didox", "Soliq.uz", "my.gov.uz", "Zoom", "AutoCAD", "Photoshop", "HR-Profi")
+
+
+def _heuristic_fill(text: str, position: str) -> dict[str, Any]:
+    """AI yo'q paytda: ro'yxat qatorlari -> funksional vazifalar, tanish dastur nomlari -> kundalik dasturlar."""
+    import re as _re
+
+    functions: list[str] = []
+    for line in text.splitlines():
+        s = _re.sub(r"^\s*(?:[-•*–—]|\d+[.)])\s*", "", line).strip()
+        if len(s) >= 8 and not s.startswith("---"):
+            functions.append(s[:400])
+    low = text.lower()
+    tools = [x for x in TOOLS if x.lower() in low]
+    return {
+        "data": {"general": {"title": position}, "functions": list(dict.fromkeys(functions))[:20], "daily": {"tools": tools, "routine": []}},
+        "competencies": [],
+    }
 
 
 @router.post("/profiles/{pid}/ai-review")

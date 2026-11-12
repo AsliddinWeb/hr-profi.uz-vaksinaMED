@@ -398,7 +398,7 @@ export function ProfileWizardPage() {
     },
   })
   const fill = useMutation({
-    mutationFn: () => send<{ data: Data; competencies: ProfileComp[] }>('POST', `/api/v1/recruit/profiles/${id}/ai-fill`, { text: aiText, lang }),
+    mutationFn: () => send<{ data: Data; competencies: ProfileComp[]; fallback?: boolean }>('POST', `/api/v1/recruit/profiles/${id}/ai-fill`, { text: aiText, lang }),
     onSuccess: (f) => applyFill(f),
   })
   const reviewMut = useMutation({
@@ -728,7 +728,7 @@ export function ProfileWizardPage() {
             </Button>
           </div>
           {(fill.isError || reviewMut.isError || extract.isError) && <p role="alert" className="text-sm text-danger">{errorText(t, fill.error ?? reviewMut.error ?? extract.error)}</p>}
-          {fill.isSuccess && !fill.isPending && <p className="text-sm text-success">{t('comp.ai.filled')}</p>}
+          {fill.isSuccess && !fill.isPending && <p className={fill.data?.fallback ? 'text-sm text-warning' : 'text-sm text-success'}>{t(fill.data?.fallback ? 'comp.ai.fallback' : 'comp.ai.filled')}</p>}
           {review.data && (
             <div className="flex flex-col gap-2 border-t border-border pt-3">
               <div className="flex items-center gap-2 text-sm">

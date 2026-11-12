@@ -7009,7 +7009,8 @@
       "tools": "Dasturlar (vergul bilan)",
       "time": "Vaqt",
       "task": "Ish",
-      "addRoutine": "Kun tartibiga qo'shish"
+      "addRoutine": "Kun tartibiga qo'shish",
+      "fallback": "AI hali ulanmagan, shuning uchun matndagi vazifalar va dasturlar oddiy usulda ajratildi (Funksional vazifalar qadamini ko'ring). To'liq to'ldirish uchun administrator AI kalitini ulashi kerak."
     }
   }
 }

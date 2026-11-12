@@ -170,3 +170,16 @@ async def test_profile_additions_land_in_base(new_client):
     data["daily"]["tools"] = ["Excel"]
     again = (await hr.put(f"{R}/profiles/{prof['id']}", json={"data": data, "competencies": saved["competencies"]})).json()
     assert ("knowledge", "1C") not in {(c["category"], c["name"]) for c in again["competencies"]}
+
+
+async def test_ai_fill_fallback_without_key(new_client):
+    hr, _ = await as_user(new_client, "hrfb", "hr_direktor")
+    async with SessionLocal() as s:
+        p = Position(name="AXO")
+        s.add(p)
+        await s.commit()
+        pid = p.id
+    prof = (await hr.post(f"{R}/profiles", json={"position_id": pid})).json()
+    text = "- Davlat idoralari bilan ishlash.\n- Kommunal xarajatlarni nazorat qilish, Excel va 1C da hisob.\nqisqa"
+    r = (await hr.post(f"{R}/profiles/{prof['id']}/ai-fill", json={"text": text})).json()
+    assert r["fallback"] is True and len(r["data"]["functions"]) == 2 and r["data"]["daily"]["tools"] == ["Excel", "1C"]
