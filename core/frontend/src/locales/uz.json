@@ -5855,7 +5855,31 @@
     "back": "Orqaga",
     "next": "Keyingi",
     "profileComps": "Tasdiqlangan profildagi kompetensiyalar",
-    "pickPosition": "Lavozimni tanlang: uning tasdiqlangan profili shu yerda ko'rinadi."
+    "pickPosition": "Lavozimni tanlang: uning tasdiqlangan profili shu yerda ko'rinadi.",
+    "auto": "avtomatik",
+    "pickUnit": "Bo'limni tanlang",
+    "pickUnitFirst": "Avval bo'limni tanlang",
+    "createPosition": "Lavozim yaratish",
+    "fillProfile": "Lavozim profilini to'ldirish",
+    "noPositionHint": "Kerakli lavozim ro'yxatda yo'qmi? Avval uni shu bo'limga yarating, keyin kompetensiyalar bazasida lavozim profilini to'ldirib tasdiqlating — shundan so'ng zayavka ochiladi.",
+    "fromProfile": "Talablar tasdiqlangan lavozim profili (v{{v}}.0) ma'lumotlaridan avtomatik to'ldirildi. Kerak bo'lsa o'zgartiring.",
+    "pst": {
+      "approved": "profil tasdiqlangan",
+      "pending": "profil tasdiqlashda",
+      "draft": "profil to'ldirilmoqda",
+      "returned": "profil qaytarilgan",
+      "none": "profil yo'q",
+      "archived": "profil yo'q"
+    },
+    "check": {
+      "title": "Zayavka ochish uchun",
+      "unit": "Bo'lim tanlangan",
+      "position": "Lavozim tanlangan",
+      "profile": "Lavozim profili tasdiqlangan",
+      "details": "Soni va sababi yozilgan",
+      "todo_fill": "Bu lavozimning profili hali tasdiqlanmagan: «Lavozim profillari» bo'limida to'ldirib, tasdiqlashga yuboring.",
+      "todo_pending": "Bu lavozim profili tasdiqlashda: tasdiqlangach zayavka ochish mumkin bo'ladi."
+    }
   },
   "rdash": {
     "applicants": "Nomzodlar",
@@ -6736,7 +6760,8 @@
       "request": "Yangi so'rov",
       "ticket": "AyTi ticket",
       "need": "Ehtiyoj so'rovi"
-    }
+    },
+    "hire": "+ Xodim so'rash (zayavka ochish)"
   },
   "coffee": {
     "title": "Kofe-ledi",

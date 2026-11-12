@@ -108,3 +108,28 @@ async def test_auto_links_jobs_anketa_daily_dossier(new_client, monkeypatch):
     assert dz["recruitment"]["vacancy"]["id"] == vid and dz["recruitment"]["link"]["channel"] == "site"
     assert dz["recruitment"]["request"]["number"] == r["number"] and dz["tenure"]["years"] >= 2
     assert dz["recruitment"]["anketa"]["specialty"] == "Farmatsiya"
+
+
+async def test_request_meta_scope_and_profile_status(new_client):
+    from app.models.competency import PositionProfile
+
+    hr, _ = await as_user(new_client, "hrm3", "hr_menejer")
+    head, head_id = await as_user(new_client, "bosh3", "farmasevt")
+    async with SessionLocal() as s:
+        d1 = Department(name="IT", head_user_id=head_id)
+        d2 = Department(name="Moliya2")
+        s.add_all([d1, d2])
+        await s.flush()
+        p1 = Position(name="Dasturchi3", department_id=d1.id)
+        p2 = Position(name="Hisobchi3", department_id=d2.id)
+        s.add_all([p1, p2])
+        await s.flush()
+        s.add(PositionProfile(position_id=p1.id, status="approved", data={}))
+        await s.commit()
+        d1id, p1id, p2id = d1.id, p1.id, p2.id
+    m_head = (await head.get(f"{R}/requests/meta")).json()
+    assert m_head["scope"] == "own" and [d["id"] for d in m_head["departments"]] == [d1id]
+    m_hr = (await hr.get(f"{R}/requests/meta")).json()
+    assert m_hr["scope"] == "all" and len(m_hr["departments"]) >= 2
+    pos = {p["id"]: p for p in m_hr["positions"]}
+    assert pos[p1id]["profile"]["status"] == "approved" and pos[p2id]["profile"]["status"] == "none" and pos[p1id]["department_id"] == d1id

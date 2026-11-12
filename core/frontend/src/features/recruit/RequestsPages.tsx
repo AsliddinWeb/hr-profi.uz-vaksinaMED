@@ -45,9 +45,11 @@ export interface HireRequest {
 interface Meta {
   departments: { id: number; name: string }[]
   branches: { id: number; name: string }[]
-  positions: { id: number; name: string; department_id: number | null }[]
+  positions: { id: number; name: string; department_id: number | null; profile?: { status: string; version: number | null; id: number | null } }[]
   can_request: boolean
   can_decide: boolean
+  scope?: 'all' | 'own'
+  can_create_position?: boolean
 }
 
 const TONE: Record<RStatus, 'warning' | 'success' | 'danger' | 'neutral'> = { pending: 'warning', approved: 'success', rejected: 'danger', cancelled: 'neutral' }
@@ -166,6 +168,7 @@ export function RequestFormPage() {
   const [sTo, setSTo] = useState('')
   const [noProfile, setNoProfile] = useState(false)
   const [step, setStep] = useState(0)
+  const [filledFrom, setFilledFrom] = useState<number | null>(null)
   const prof = useQuery({ queryKey: ['profiles', 'approved', pos], queryFn: () => api<{ profile: Profile | null; required: boolean }>(`/api/v1/recruit/profiles/approved/${pos}`), enabled: !!pos })
   const loadCard = async (positionId: string) => {
     setPos(positionId)
@@ -189,6 +192,25 @@ export function RequestFormPage() {
   })
   const m = meta.data
   if (!m) return <Skeleton className="mx-auto h-96 max-w-3xl" />
+  const units = [...m.departments.map((d) => ({ key: `d:${d.id}`, name: d.name })), ...m.branches.map((b) => ({ key: `b:${b.id}`, name: b.name }))]
+  // bo'lim boshlig'i (o'z doirasi, bitta bo'lim): bo'lim avtomatik
+  const onlyUnit = m.scope !== 'all' && units.length === 1 ? units[0] : null
+  if (onlyUnit && unit !== onlyUnit.key) setUnit(onlyUnit.key)
+  const [ukind, uid] = unit.split(':')
+  const unitPositions = !unit ? [] : ukind === 'd' ? m.positions.filter((x) => x.department_id === Number(uid) || x.department_id == null) : m.positions
+  const selPos = m.positions.find((x) => String(x.id) === pos)
+  const approved = prof.data?.profile
+  // tasdiqlangan profildan talablar matni (bir marta, talablar bo'sh bo'lsa)
+  if (approved && filledFrom !== approved.id) {
+    setFilledFrom(approved.id)
+    if (!reqs.trim()) setReqs(profileText(approved, t))
+  }
+  const checklist: [string, boolean][] = [
+    ['unit', !!unit],
+    ['position', !!pos],
+    ['profile', !!approved],
+    ['details', count > 0 && !!reason.trim()],
+  ]
   return (
     <form
       className="mx-auto flex max-w-5xl flex-col gap-5"
@@ -207,43 +229,64 @@ export function RequestFormPage() {
           {step === 0 && (
             <FormSection title={t('rreq.step.info')}>
               <div className="grid gap-3 sm:grid-cols-2">
+          <Field label={t('rreq.unit')}>
+            {(id) =>
+              onlyUnit ? (
+                <div id={id} className="flex h-9 items-center gap-2 rounded-control border border-border bg-surface-2 px-3 text-sm">
+                  {onlyUnit.name}
+                  <Badge tone="info">{t('rreq.auto')}</Badge>
+                </div>
+              ) : (
+                <Select id={id} value={unit} onChange={(e) => (setUnit(e.target.value), setPos(''))} required>
+                  <option value="">{t('rreq.pickUnit')}</option>
+                  {m.departments.length > 0 && (
+                    <optgroup label={t('rreq.departments')}>
+                      {m.departments.map((d) => (
+                        <option key={`d${d.id}`} value={`d:${d.id}`}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {m.branches.length > 0 && (
+                    <optgroup label={t('rreq.branches')}>
+                      {m.branches.map((b) => (
+                        <option key={`b${b.id}`} value={`b:${b.id}`}>
+                          {b.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                </Select>
+              )
+            }
+          </Field>
           <Field label={t('rreq.position')}>
             {(id) => (
-              <Select id={id} value={pos} onChange={(e) => void loadCard(e.target.value)} required>
-                <option value="">—</option>
-                {m.positions.map((p) => (
+              <Select id={id} value={pos} disabled={!unit} onChange={(e) => void loadCard(e.target.value)} required>
+                <option value="">{unit ? '—' : t('rreq.pickUnitFirst')}</option>
+                {unitPositions.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name}
+                    {p.name} — {t(`rreq.pst.${p.profile?.status ?? 'none'}`)}
                   </option>
                 ))}
               </Select>
             )}
           </Field>
-          <Field label={t('rreq.unit')}>
-            {(id) => (
-              <Select id={id} value={unit} onChange={(e) => setUnit(e.target.value)} required>
-                <option value="">—</option>
-                {m.departments.length > 0 && (
-                  <optgroup label={t('rreq.departments')}>
-                    {m.departments.map((d) => (
-                      <option key={`d${d.id}`} value={`d:${d.id}`}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-                {m.branches.length > 0 && (
-                  <optgroup label={t('rreq.branches')}>
-                    {m.branches.map((b) => (
-                      <option key={`b${b.id}`} value={`b:${b.id}`}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-              </Select>
-            )}
-          </Field>
+          {unit && (
+            <div className="rounded-control border border-dashed border-border px-3 py-2 text-xs text-muted sm:col-span-2">
+              {t('rreq.noPositionHint')}{' '}
+              {m.can_create_position && (
+                <Link to="/org/positions" className="text-primary hover:underline">
+                  {t('rreq.createPosition')}
+                </Link>
+              )}
+              {m.can_create_position && ' · '}
+              <Link to="/recruit/profiles" className="text-primary hover:underline">
+                {t('rreq.fillProfile')}
+              </Link>
+            </div>
+          )}
           <Field label={t('rreq.count')}>
             {(id) => (
               <div className="flex items-center gap-1">
@@ -275,6 +318,7 @@ export function RequestFormPage() {
           )}
           {step === 1 && (
             <FormSection title={t('rreq.step.reqs')} description={t('rreq.detailsHint')}>
+              {approved && <div className="rounded-lg bg-success/10 px-3 py-2 text-sm text-success">{t('rreq.fromProfile', { v: approved.version })}</div>}
               {prof.data?.profile && prof.data.profile.competencies.length > 0 && (
                 <div className="flex flex-col gap-1.5">
                   <div className="text-sm font-medium">{t('rreq.profileComps')}</div>
@@ -335,6 +379,18 @@ export function RequestFormPage() {
           </FormFooter>
         </div>
         <div className="flex h-fit flex-col gap-3 lg:sticky lg:top-4">
+          <Card className="flex flex-col gap-2 p-4 text-sm">
+            <div className="font-medium">{t('rreq.check.title')}</div>
+            {checklist.map(([k, ok], i) => (
+              <div key={k} className="flex items-start gap-2">
+                <span className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[11px] ${ok ? 'bg-success text-white' : 'bg-surface-2 text-muted'}`}>{ok ? <Check className="size-3" /> : i + 1}</span>
+                <span className={ok ? '' : 'text-muted'}>{t(`rreq.check.${k}`)}</span>
+              </div>
+            ))}
+            {selPos && selPos.profile?.status !== 'approved' && (
+              <div className="mt-1 rounded-lg bg-warning/10 p-2 text-xs text-warning">{t(`rreq.check.todo_${selPos.profile?.status === 'pending' ? 'pending' : 'fill'}`)}</div>
+            )}
+          </Card>
           {pos ? <ApprovedProfileCard positionId={pos} onState={setNoProfile} /> : <Card className="p-4 text-sm text-muted">{t('rreq.pickPosition')}</Card>}
           {!noProfile && <Card className="p-4 text-xs text-muted">{t('comp.req.noProfileHint')}</Card>}
         </div>
@@ -426,4 +482,19 @@ function Item({ k, v }: { k: string; v: string }) {
       <dd className="font-medium">{v}</dd>
     </div>
   )
+}
+
+/** Tasdiqlangan lavozim profilidan zayavka talablari matni. */
+function profileText(p: Profile, t: (k: string, o?: Record<string, unknown>) => string): string {
+  const d = p.data as { goal?: string; functions?: string[]; education?: Record<string, string>; kpi?: { name: string; target: string }[]; portrait?: string }
+  const lines: string[] = []
+  if (d.goal) lines.push(`${t('comp.wiz.step.goal')}: ${d.goal}`)
+  if (d.functions?.length) lines.push(`${t('comp.wiz.step.functions')}:`, ...d.functions.filter(Boolean).map((f) => `- ${f}`))
+  const edu = Object.values(d.education ?? {}).filter(Boolean)
+  if (edu.length) lines.push(`${t('comp.wiz.step.education')}: ${edu.join('; ')}`)
+  const comps = p.competencies.filter((c) => c.category !== 'knowledge' && c.category !== 'experience')
+  if (comps.length) lines.push(`${t('rreq.profileComps')}:`, ...comps.map((c) => `- ${c.name} (L${c.required_level}${c.mandatory ? '' : ', ' + t('comp.wiz.extra')})`))
+  if (d.kpi?.length) lines.push(`${t('comp.wiz.step.kpi')}:`, ...d.kpi.filter((k) => k.name).map((k) => `- ${k.name}${k.target ? ': ' + k.target : ''}`))
+  if (d.portrait) lines.push(`${t('comp.wiz.step.portrait')}: ${d.portrait}`)
+  return lines.join('\n')
 }

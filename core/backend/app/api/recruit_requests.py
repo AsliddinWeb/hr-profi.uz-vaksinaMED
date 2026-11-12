@@ -48,13 +48,18 @@ def can_manage(auth: AuthContext) -> bool:
     return has(auth, "recruit.manage")
 
 
+def sees_all_units(auth: AuthContext) -> bool:
+    """HR (HRD, HR menejer), rekruter, direktor va o'rinbosarlari: hamma bo'lim/filial uchun zayavka ocha oladi."""
+    return any(has(auth, x) for x in ("recruit.manage", "recruit.approve", "recruit.read", "org.manage"))
+
+
 def can_decide(auth: AuthContext) -> bool:
     return has(auth, "recruit.manage") or has(auth, "recruit.approve")
 
 
 async def _my_units(db: AsyncSession, auth: AuthContext) -> tuple[list[Department], list[Branch]]:
     """Zayafka bera oladigan bo'limlar (boshlig'i) va filiallar (mudiri/koordinatori). HR hammasiga."""
-    if can_manage(auth):
+    if sees_all_units(auth):
         return list((await db.scalars(select(Department).order_by(Department.name))).all()), list((await db.scalars(select(Branch).where(Branch.is_active.is_(True)).order_by(Branch.number, Branch.name))).all())
     uid = auth.user.id
     deps = list((await db.scalars(select(Department).where(Department.head_user_id == uid).order_by(Department.name))).all())
@@ -84,11 +89,21 @@ async def _out(db: AsyncSession, r: HireRequest, auth: AuthContext) -> dict[str,
 @router.get("/requests/meta")
 async def requests_meta(db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
     """Forma uchun: foydalanuvchi zayafka bera oladigan bo'lim/filiallar va lavozimlar."""
+    from app.models.competency import PositionProfile
+
     deps, brs = await _my_units(db, auth)
     positions = (await db.scalars(select(Position).where(Position.is_active.is_(True)).order_by(Position.name))).all()
+    # har lavozimning profil holati: tasdiqlangan versiya bo'lsa "approved", aks holda oxirgi versiya holati, umuman yo'q bo'lsa "none"
+    prof: dict[int, dict[str, Any]] = {}
+    for pr in (await db.scalars(select(PositionProfile).where(PositionProfile.status != "archived").order_by(PositionProfile.position_id, PositionProfile.version))).all():
+        cur = prof.get(pr.position_id)
+        if cur is None or cur["status"] != "approved" or pr.status == "approved":
+            prof[pr.position_id] = {"status": pr.status, "version": pr.version, "id": pr.id}
+    scope = "all" if sees_all_units(auth) else "own"
     return {
         "departments": [{"id": d.id, "name": d.name} for d in deps], "branches": [{"id": b.id, "name": b.name} for b in brs],
-        "positions": [{"id": p.id, "name": p.name, "department_id": p.department_id} for p in positions], "can_request": bool(deps or brs), "can_decide": can_decide(auth),
+        "positions": [{"id": p.id, "name": p.name, "department_id": p.department_id, "profile": prof.get(p.id) or {"status": "none", "version": None, "id": None}} for p in positions],
+        "can_request": bool(deps or brs), "can_decide": can_decide(auth), "scope": scope, "can_create_position": has(auth, "org.manage"),
     }  # fmt: skip
 
 
