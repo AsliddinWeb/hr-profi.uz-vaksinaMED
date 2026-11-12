@@ -629,9 +629,11 @@ def _clean_profile(d: dict[str, Any], base: dict[tuple[str, str], int]) -> dict[
     """AI javobini tekshiradi: faqat ma'lum maydonlar, to'g'ri turlar, chegaralangan uzunlik."""
     import re as _re
 
+    BAD_CHARS = r"[^\u0000-\u024F\u0400-\u04FF\u2010-\u2027\u02BB\u02BC]"
+
     def s(v: Any, n: int = 2000) -> str:
         # faqat lotin/kirill, raqam va tinish belgilari (model ba'zan begona yozuvdagi so'z qo'shib yuboradi)
-        return _re.sub(r"[^ -ɏЀ-ӿ‐-‧ʻʼ]", "", v).strip()[:n] if isinstance(v, str) else ""
+        return _re.sub(BAD_CHARS, "", v).strip()[:n] if isinstance(v, str) else ""
 
     def lst(v: Any, n: int = 30) -> list[str]:
         return [s(x, 400) for x in v if s(x, 400)][:n] if isinstance(v, list) else []
