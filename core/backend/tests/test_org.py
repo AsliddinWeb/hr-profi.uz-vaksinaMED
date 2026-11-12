@@ -185,3 +185,31 @@ async def test_client_can_override_default_positions(new_client, app):
     d = await dept(boss, "Savdo")
     names = [p["name"] for p in (await boss.get("/api/v1/org/positions", params={"department_id": d})).json()]
     assert names == ["Mudir", "Sotuvchi"]  # takror va bo'shlar tashlanadi
+
+
+async def test_delete_department_detach(new_client):
+    from app.db import SessionLocal
+    from app.models.org import Branch, Department, Position
+    from tests.conftest import login, make_user
+
+    await make_user("orgdel", "hr_direktor")
+    c = new_client()
+    assert (await login(c, "orgdel")).status_code == 200
+    async with SessionLocal() as s:
+        d = Department(name="O'chiriladigan")
+        s.add(d)
+        await s.flush()
+        ch = Department(name="Ichki", parent_id=d.id)
+        pos = Position(name="Lav", department_id=d.id)
+        br = Branch(number=991, name="F991", department_id=d.id)
+        s.add_all([ch, pos, br])
+        await s.commit()
+        did, chid, pid, bid = d.id, ch.id, pos.id, br.id
+    assert (await c.get(f"/api/v1/org/departments/{did}/impact")).json() == {"children": 1, "branches": 1, "positions": 1, "employees": 0, "requests": 0}
+    assert (await c.delete(f"/api/v1/org/departments/{did}")).status_code == 409
+    assert (await c.delete(f"/api/v1/org/departments/{did}", params={"detach": "true"})).status_code == 204
+    async with SessionLocal() as s:
+        assert await s.get(Department, did) is None
+        assert (await s.get(Department, chid)).parent_id is None
+        assert (await s.get(Position, pid)).department_id is None
+        assert (await s.get(Branch, bid)).department_id is None

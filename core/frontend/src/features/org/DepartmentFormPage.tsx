@@ -81,7 +81,7 @@ function DepartmentForm({ dept, all }: { dept: DepartmentRow | null; all: Depart
     },
   })
   const remove = useMutation({
-    mutationFn: () => send('DELETE', `/api/v1/org/departments/${dept?.id}`),
+    mutationFn: () => send('DELETE', `/api/v1/org/departments/${dept?.id}?detach=true`),
     onSuccess: async () => {
       await refresh()
       toast.push({ title: t('org.deleted'), tone: 'success' })
@@ -204,7 +204,10 @@ function DepartmentForm({ dept, all }: { dept: DepartmentRow | null; all: Depart
               className="text-danger"
               disabled={remove.isPending}
               onClick={async () => {
-                if (await confirm({ title: t('org.deleteDepartment'), body: t('org.deleteConfirm', { name: dept.name }), danger: true, confirmLabel: t('common.delete') })) {
+                const imp = await api<Record<string, number>>(`/api/v1/org/departments/${dept.id}/impact`).catch(() => null)
+                const linked = imp ? Object.entries(imp).filter(([, n]) => n > 0).map(([k, n]) => t(`org.impact.${k}`, { n })) : []
+                const body = linked.length ? `${t('org.deleteConfirm', { name: dept.name })}\n\n${t('org.impact.title')}\n${linked.map((x) => `• ${x}`).join('\n')}\n\n${t('org.impact.kept')}` : t('org.deleteConfirm', { name: dept.name })
+                if (await confirm({ title: t('org.deleteDepartment'), body, danger: true, confirmLabel: t('common.delete') })) {
                   setDeleteError(null)
                   remove.mutate()
                 }

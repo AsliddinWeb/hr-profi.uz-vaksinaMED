@@ -311,30 +311,62 @@ async def update_department(
     return {"id": dept.id}
 
 
+async def _dept_impact(db: AsyncSession, dept_id: int) -> dict[str, int]:
+    from app.models.recruit import HireRequest
+
+    async def n(stmt) -> int:
+        return await db.scalar(stmt) or 0
+
+    return {
+        "children": await n(select(func.count()).select_from(Department).where(Department.parent_id == dept_id)),
+        "branches": await n(select(func.count()).select_from(Branch).where(Branch.department_id == dept_id)),
+        "positions": await n(select(func.count()).select_from(Position).where(Position.department_id == dept_id)),
+        "employees": await n(select(func.count()).select_from(Employee).where(Employee.department_id == dept_id)),
+        "requests": await n(select(func.count()).select_from(HireRequest).where(HireRequest.department_id == dept_id)),
+    }
+
+
+@router.get("/departments/{dept_id}/impact")
+async def department_impact(dept_id: int, db: AsyncSession = Depends(get_session), _: AuthContext = Depends(require("org.manage"))):
+    """O'chirishdan oldin: bo'limga nimalar bog'langan (ular o'chirilmaydi, faqat bo'limdan uziladi)."""
+    await _department(db, dept_id)
+    return await _dept_impact(db, dept_id)
+
+
 @router.delete("/departments/{dept_id}", status_code=204)
 async def delete_department(
     dept_id: int,
     request: Request,
+    detach: bool = False,
     db: AsyncSession = Depends(get_session),
     auth: AuthContext = Depends(require("org.manage")),
 ):
+    """`detach=true`: ichki bo'limlar yuqori darajaga, filiallar/xodimlar/zayavkalar bo'limsiz, lavozimlar umumiy lavozimga o'tadi;
+    keyin faqat bo'limning o'zi o'chadi. Aks holda bog'langan narsa bo'lsa 409."""
+    from sqlalchemy import update
+
+    from app.models.recruit import HireRequest
+
     dept = await _department(db, dept_id)
-    if await db.scalar(select(func.count()).select_from(Department).where(Department.parent_id == dept_id)):
-        raise error(409, "has_children")
-    if await db.scalar(select(func.count()).select_from(Branch).where(Branch.department_id == dept_id)):
-        raise error(409, "has_branches")
-    if await db.scalar(select(func.count()).select_from(Employee).where(Employee.department_id == dept_id)):
-        raise error(409, "has_employees")
-    if await db.scalar(
-        select(func.count())
-        .select_from(Employee)
-        .join(Position, Position.id == Employee.position_id)
-        .where(Position.department_id == dept_id)
-    ):
-        raise error(409, "has_employees")
+    impact = await _dept_impact(db, dept_id)
+    if not detach:
+        if impact["children"]:
+            raise error(409, "has_children")
+        if impact["branches"]:
+            raise error(409, "has_branches")
+        if impact["employees"] or await db.scalar(
+            select(func.count()).select_from(Employee).join(Position, Position.id == Employee.position_id).where(Position.department_id == dept_id)
+        ):
+            raise error(409, "has_employees")
+    else:
+        await db.execute(update(Department).where(Department.parent_id == dept_id).values(parent_id=None))
+        await db.execute(update(Branch).where(Branch.department_id == dept_id).values(department_id=None))
+        await db.execute(update(Employee).where(Employee.department_id == dept_id).values(department_id=None))
+        await db.execute(update(Position).where(Position.department_id == dept_id).values(department_id=None))
+        await db.execute(update(HireRequest).where(HireRequest.department_id == dept_id).values(department_id=None))
     await audit(db, request, "org.department_delete", actor=auth.user, entity="department",
-                entity_id=dept.id, data={"name": dept.name})  # fmt: skip
-    await db.delete(dept)  # lavozimlar CASCADE bilan o'chadi
+                entity_id=dept.id, data={"name": dept.name, "detached": impact if detach else None})  # fmt: skip
+    await db.delete(dept)
     await db.commit()
 
 

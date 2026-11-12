@@ -725,7 +725,7 @@
     "positionsHint": "Bu bo'limdagi lavozimlar ro'yxati",
     "dangerZone": "Xavfli amallar",
     "deleteDepartment": "Bo'limni o'chirish",
-    "deleteHint": "Ichki bo'limi yoki filiali bor bo'limni o'chirib bo'lmaydi. Lavozimlari bilan birga o'chadi.",
+    "deleteHint": "Bo'lim o'chirilganda unga bog'langan filial, lavozim va xodimlar o'chmaydi — faqat bo'limdan uziladi.",
     "deleted": "Bo'lim o'chirildi",
     "inactive": "Faol emas",
     "addChild": "Ichki bo'lim qo'shish",
@@ -778,7 +778,16 @@
     "directReportsTo": "Bevosita bo'ysunadi",
     "topLevel": "Yuqori bo'g'in yo'q",
     "position": "Lavozim",
-    "noStructures": "Shajara yaratish yoki mavjudini tanlash kerak."
+    "noStructures": "Shajara yaratish yoki mavjudini tanlash kerak.",
+    "impact": {
+      "title": "Bo'limga bog'langan (o'chirilmaydi, faqat bo'limdan uziladi):",
+      "kept": "Ichki bo'limlar yuqori darajaga, lavozimlar umumiy lavozimlarga o'tadi; filiallar, xodimlar va zayavkalar bo'limsiz qoladi.",
+      "children": "{{n}} ta ichki bo'lim",
+      "branches": "{{n}} ta filial",
+      "positions": "{{n}} ta lavozim",
+      "employees": "{{n}} ta xodim",
+      "requests": "{{n}} ta zayavka"
+    }
   },
   "branches": {
     "title": "Filiallar",
