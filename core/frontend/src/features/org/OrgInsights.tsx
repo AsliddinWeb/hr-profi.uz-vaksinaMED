@@ -1,4 +1,4 @@
-import { Briefcase, Clock, TrendingDown, UserMinus, UserPlus, Users } from 'lucide-react'
+import { Store, Briefcase, Clock, TrendingDown, UserMinus, UserPlus, Users } from 'lucide-react'
 import { useState, type ComponentType } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -18,6 +18,7 @@ export function InsightKpis({ d }: { d: Insights }) {
   const items: [ComponentType<{ className?: string }>, string, string, string][] = [
     [Users, t('orgx.headcount'), String(d.headcount), 'text-primary'],
     [Briefcase, t('orgx.positions'), `${d.positions_total}`, 'text-violet-600'],
+    [Store, t('orgx.branches'), String(d.branches_total ?? 0), 'text-orange-600'],
     [UserPlus, t('orgx.hired12'), String(a.hired_12m), 'text-emerald-600'],
     [UserMinus, t('orgx.left12'), String(a.left_12m), 'text-rose-600'],
     [TrendingDown, t('orgx.turnover'), `${a.turnover_pct}%`, 'text-amber-600'],

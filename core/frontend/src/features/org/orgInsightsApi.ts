@@ -20,6 +20,7 @@ export interface Insights {
   scope: { department_id: number | null; name: string | null; departments: number }
   headcount: number
   positions_total: number
+  branches_total?: number
   vacant_positions: number
   positions: { id: number; name: string; department: string | null; general: boolean; count: number; employees: Person[] }[]
   no_position: Person[]

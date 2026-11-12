@@ -43,11 +43,21 @@ interface Dept {
   color: string | null
   headcount: number
 }
+interface Br {
+  id: number
+  number: number | null
+  name: string
+  department_id: number | null
+  manager: string | null
+  employees: (P & { position: string | null })[]
+}
+
 interface Scheme {
   company: string
   structure: OrgStructureRow | null
   departments: Dept[]
   positions: Pos[]
+  branches?: Br[]
 }
 
 const MAX_SHOWN = 4
@@ -129,6 +139,36 @@ function PositionCard({ p, color, edit, pick }: { p: Pos; color: string | null; 
         </p>
       )}
       <EditBar edit={edit} kind="pos" pos={p} name={p.name} id={p.id} />
+    </div>
+  )
+}
+
+/** Filial kartochkasi: raqami, nomi, mudiri va filialda ishlayotgan xodimlar. */
+function BranchCard({ b }: { b: Br }) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const shown = open ? b.employees : b.employees.slice(0, MAX_SHOWN)
+  return (
+    <div className="flex w-48 flex-col gap-1.5 rounded-xl border border-orange-300 bg-orange-50 p-2 text-center shadow-card dark:border-orange-900 dark:bg-orange-950/30">
+      <Link to={`/branches/${b.id}/edit`} className="text-[12px] font-semibold leading-snug text-orange-700 hover:underline dark:text-orange-300">
+        {b.number ? `${b.number} · ` : ''}
+        {b.name}
+      </Link>
+      {b.manager && <div className="text-[10px] text-muted">{t('scheme.manager')}: {b.manager}</div>}
+      <div className="text-[10px] text-muted">{t('scheme.peopleN', { n: b.employees.length })}</div>
+      <div className="flex flex-col gap-1">
+        {shown.map((x, i) => (
+          <div key={x.id ?? i} className="flex flex-col">
+            <Person p={x} />
+            {x.position && <span className="text-left text-[9px] text-muted">{x.position}</span>}
+          </div>
+        ))}
+        {b.employees.length > MAX_SHOWN && (
+          <button type="button" onClick={() => setOpen((v) => !v)} className="text-[10px] font-semibold text-primary hover:underline">
+            {open ? t('scheme.less') : t('scheme.more', { n: b.employees.length - MAX_SHOWN })}
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -302,7 +342,11 @@ export function SchemeView({ onSelect }: { onSelect?: (n: { kind: 'dept'; d: Dep
   }
 
   const renderDept = (x: Dept, seen: Set<number>): ReactNode => {
-    const kids = [...(idx.rootPosOfDept.get(x.id) ?? []).map((p) => ({ k: `p${p.id}`, n: renderPos(p, seen), leaf: isLeafPos(p) })), ...(idx.deptsUnderDept.get(x.id) ?? []).map((c) => ({ k: `d${c.id}`, n: renderDept(c, seen), leaf: false }))]
+    const kids = [
+      ...(idx.rootPosOfDept.get(x.id) ?? []).map((p) => ({ k: `p${p.id}`, n: renderPos(p, seen), leaf: isLeafPos(p) })),
+      ...(idx.deptsUnderDept.get(x.id) ?? []).map((c) => ({ k: `d${c.id}`, n: renderDept(c, seen), leaf: false })),
+      ...(d.branches ?? []).filter((b) => b.department_id === x.id).map((b) => ({ k: `b${b.id}`, n: <BranchCard b={b} />, leaf: true })),
+    ]
     return (
       <>
         <DeptCard d={x} edit={edit} pick={onSelect} />
@@ -311,7 +355,28 @@ export function SchemeView({ onSelect }: { onSelect?: (n: { kind: 'dept'; d: Dep
     )
   }
 
-  const tops = [...idx.rootDepts.map((x) => ({ k: `d${x.id}`, n: renderDept(x, new Set()) })), ...idx.general.map((p) => ({ k: `p${p.id}`, n: renderPos(p, new Set()) }))]
+  const deptIds = new Set(d.departments.map((x) => x.id))
+  const looseBranches = (d.branches ?? []).filter((b) => !b.department_id || !deptIds.has(b.department_id))
+  const tops = [
+    ...idx.rootDepts.map((x) => ({ k: `d${x.id}`, n: renderDept(x, new Set()) })),
+    ...idx.general.map((p) => ({ k: `p${p.id}`, n: renderPos(p, new Set()) })),
+    ...(looseBranches.length
+      ? [
+          {
+            k: 'branches',
+            n: (
+              <>
+                <div className="w-52 rounded-xl bg-orange-500 px-3 py-2 text-center text-white shadow-card">
+                  <div className="text-[12px] font-bold uppercase tracking-wide">{t('scheme.branchesNode')}</div>
+                  <div className="text-[10px] opacity-85">{t('scheme.branchesN', { n: looseBranches.length })}</div>
+                </div>
+                {renderKids(looseBranches.map((b) => ({ k: `b${b.id}`, n: <BranchCard b={b} />, leaf: true })))}
+              </>
+            ),
+          },
+        ]
+      : []),
+  ]
 
   return (
     <div ref={wrap} className={`relative rounded-card border border-border bg-gradient-to-b from-sky-50/60 to-transparent dark:from-sky-950/20 ${full ? 'flex flex-col bg-bg' : ''}`}>

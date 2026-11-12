@@ -1,6 +1,9 @@
+import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, ChevronRight } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+
+import { api } from '../../lib/api'
 import { Link, useParams } from 'react-router-dom'
 
 import { PageHeader } from '../../components/layout/PageHeader'
@@ -83,6 +86,7 @@ export function SubHubPage() {
   const lang = i18n.language === 'ru' ? 'ru' : 'uz'
   const sub = useParams().sub ?? ''
   const items = useVisibleNav().filter((i) => i.sub === sub)
+  if (sub === 'structure') return <StructureReport />
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-4">
       <PageHeader title={t(`nav.sub.${sub}`, { defaultValue: sub })} subtitle={t(`help.subHint.${sub}`, { defaultValue: '' }) || undefined} />
@@ -103,6 +107,54 @@ export function SubHubPage() {
         ))}
         {items.length === 0 && <Card className="p-8 text-center text-sm text-muted sm:col-span-2 lg:col-span-3">{t('help.noAccess')}</Card>}
       </div>
+    </div>
+  )
+}
+
+type RepItem = { key: string; value: number; total?: number; to: string }
+
+/** /hub/structure — Tuzilma bo'yicha bajarilgan va bajarilishi kerak bo'lgan ishlar hisoboti. */
+function StructureReport() {
+  const { t } = useTranslation()
+  const q = useQuery({ queryKey: ['org', 'structure-report'], queryFn: () => api<{ done: RepItem[]; todo: RepItem[] }>('/api/v1/org/structure-report'), refetchInterval: 60_000 })
+  const d = q.data
+  return (
+    <div className="mx-auto flex max-w-5xl flex-col gap-5">
+      <PageHeader title={t('nav.sub.structure')} subtitle={t('srep.subtitle')} />
+      {!d ? (
+        <Card className="p-8 text-center text-sm text-muted">{q.isError ? t('help.noAccess') : '…'}</Card>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="flex flex-col gap-2 p-5">
+            <div className="font-medium text-success">{t('srep.done')}</div>
+            {d.done.map((x) => {
+              const pct = x.total ? Math.round((x.value / x.total) * 100) : 0
+              return (
+                <Link key={x.key} to={x.to} className="flex flex-col gap-1 rounded-lg px-2 py-1.5 hover:bg-surface-2">
+                  <span className="flex justify-between text-sm">
+                    <span>{t(`srep.k.${x.key}`)}</span>
+                    <span className="tabular-nums text-muted">
+                      {x.value}/{x.total} · {pct}%
+                    </span>
+                  </span>
+                  <span className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+                    <span className="block h-full rounded-full bg-success" style={{ width: `${pct}%` }} />
+                  </span>
+                </Link>
+              )
+            })}
+          </Card>
+          <Card className="flex flex-col gap-1 p-5">
+            <div className="mb-1 font-medium text-warning">{t('srep.todo')}</div>
+            {d.todo.map((x) => (
+              <Link key={x.key} to={x.to} className="flex items-center justify-between gap-3 rounded-lg px-2 py-2 text-sm hover:bg-surface-2">
+                <span className={x.value ? '' : 'text-muted'}>{t(`srep.k.${x.key}`)}</span>
+                <span className={`min-w-8 rounded-md px-2 py-0.5 text-center font-mono tabular-nums ${x.value ? 'bg-warning/15 text-warning' : 'bg-success/10 text-success'}`}>{x.value || '✓'}</span>
+              </Link>
+            ))}
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

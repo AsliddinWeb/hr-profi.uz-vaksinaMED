@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
-import { ArrowLeft, ArrowRight, Check, Eye, Paperclip, Pencil, Plus, Search, Sparkles, Trash2, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Eye, FileCheck2 as FileCheckIcon, ListChecks as ListChecksIcon, Paperclip, Pencil, Plus, Search, ShieldCheck as ShieldCheckIcon, Sparkles, Trash2, X } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { PageHeader } from '../../components/layout/PageHeader'
+import { SidePanel } from '../../components/SidePanel'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
@@ -1206,7 +1207,19 @@ const FC = ['bg-primary', 'bg-primary/90', 'bg-[#0ea5e9]', 'bg-[#06b6d4]', 'bg-[
 /** /recruit/dashboard — rekruting dashboardi: ko'rsatkichlar, zayavkalar dinamikasi, profillar holati, qamrov, faoliyat, kutayotganlar, voronka. */
 export function RecruitDashboardPage() {
   const { t, i18n } = useTranslation()
+  const qc = useQueryClient()
   const [days, setDays] = useState(30)
+  const [panel, setPanelRaw] = useState<'competencies' | 'profiles' | 'approvals' | null>(null)
+  // panel ochilib-yopilganda dashboard ma'lumotlari ham yangilanadi (sinxron)
+  const setPanel = (k: typeof panel) => {
+    setPanelRaw(k)
+    for (const key of ['comp', 'recruit', 'approvals', 'profiles', 'competencies']) void qc.invalidateQueries({ queryKey: [key] })
+  }
+  const panelTabs = [
+    { key: 'competencies' as const, label: t('comp.base.title'), icon: ListChecksIcon, node: <CompetenciesPage /> },
+    { key: 'profiles' as const, label: t('comp.prof.title'), icon: FileCheckIcon, node: <ProfilesPage /> },
+    { key: 'approvals' as const, label: t('comp.appr.title'), icon: ShieldCheckIcon, node: <ApprovalsPage /> },
+  ]
   const dash = useQuery({ queryKey: ['comp', 'dash'], queryFn: () => api<Dash>('/api/v1/recruit/competency-dashboard') })
   const ov = useQuery({ queryKey: ['recruit', 'overview', days], queryFn: () => api<Overview>(`/api/v1/recruit/overview?days=${days}`) })
   const d = dash.data
@@ -1240,6 +1253,13 @@ export function RecruitDashboardPage() {
         title={t('comp.ov.title')}
         subtitle={t('comp.ov.subtitle')}
         actions={
+          <div className="flex flex-wrap items-center gap-2">
+          {panelTabs.map((x) => (
+            <Button key={x.key} variant={panel === x.key ? 'primary' : 'outline'} onClick={() => setPanel(x.key)}>
+              <x.icon className="size-4" />
+              {x.label}
+            </Button>
+          ))}
           <Select className="w-auto" value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label={t('comp.ov.period')}>
             {[30, 90, 180].map((n) => (
               <option key={n} value={n}>
@@ -1247,8 +1267,10 @@ export function RecruitDashboardPage() {
               </option>
             ))}
           </Select>
+          </div>
         }
       />
+      <SidePanel open={panel} tabs={panelTabs} onSelect={setPanel} onClose={() => setPanel(null)} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {cards.map(([k, v, dl]) => (
           <Card key={k} className="p-4">

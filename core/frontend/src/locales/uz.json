@@ -6208,7 +6208,8 @@
     "noLeft": "Ishdan ketganlar yo'q",
     "byBranch": "Filiallar bo'yicha",
     "allCompany": "Butun kompaniya",
-    "peopleShort": "{{n}} xodim"
+    "peopleShort": "{{n}} xodim",
+    "branches": "Filiallar"
   },
   "scheme": {
     "vacancy": "Vakansiya",
@@ -6255,7 +6256,10 @@
     "deptAdded": "«{{name}}» bo'limi yaratildi",
     "posAdded": "«{{name}}» lavozimi yaratildi",
     "removeDeptQ": "«{{name}}» bo'limi o'chirilsinmi? Unga bog'langan filial, lavozim va xodimlar o'chmaydi — bo'limdan uziladi.",
-    "removePosQ": "«{{name}}» lavozimi o'chirilsinmi?"
+    "removePosQ": "«{{name}}» lavozimi o'chirilsinmi?",
+    "manager": "Mudir",
+    "branchesNode": "Filiallar",
+    "branchesN": "{{n}} ta filial"
   },
   "aiiv": {
     "title": "AI suhbat (hard / soft skill)",
@@ -7152,5 +7156,28 @@
     "notUploaded": "Yuklanmagan",
     "camera": "Rasmga olish",
     "file": "Fayl"
+  },
+  "srep": {
+    "subtitle": "Tuzilma bo'yicha bajarilgan ishlar va bajarilishi kerak bo'lganlar — bosing, kerakli joy ochiladi",
+    "done": "Bajarilgan",
+    "todo": "Bajarilishi kerak",
+    "k": {
+      "depts_head": "Boshlig'i tayinlangan bo'limlar",
+      "positions_profile": "Profili tasdiqlangan lavozimlar",
+      "positions_docs": "Hujjatlari biriktirilgan lavozimlar",
+      "branches": "Bo'limga biriktirilgan filiallar",
+      "employees_placed": "Lavozimga joylashtirilgan xodimlar",
+      "depts_nohead": "Boshliqsiz bo'limlar",
+      "positions_noprofile": "Profili yo'q lavozimlar",
+      "profiles_pending": "Tasdiqlashni kutayotgan profillar",
+      "vacancies": "Bo'sh shtat o'rinlari (vakansiya)",
+      "emp_nopos": "Lavozimi yo'q xodimlar",
+      "emp_nounit": "Bo'lim/filialsiz xodimlar",
+      "branches_nodept": "Bo'limga biriktirilmagan filiallar",
+      "branches_nomgr": "Mudiri yo'q filiallar",
+      "unsigned": "Imzolanmagan lavozim hujjatlari",
+      "uploads_pending": "Tekshirilmagan xodim hujjatlari",
+      "rotations_pending": "Kutilayotgan rotatsiyalar"
+    }
   }
 }

@@ -103,7 +103,7 @@ async def insights(
     reasons = Counter((e.dismissal_reason or "other") for e in left if e.dismissal_date >= start)
     return {
         "scope": {"department_id": department_id, "name": depts[department_id].name if department_id else None, "departments": len(scope) if scope is not None else len(depts)},
-        "headcount": len(active), "positions_total": len(pos_rows), "vacant_positions": sum(1 for p in pos_rows if p["count"] == 0),
+        "headcount": len(active), "positions_total": len(pos_rows), "branches_total": sum(1 for b in (await db.scalars(select(Branch).where(Branch.is_active.is_(True)))).all() if scope is None or b.department_id in scope), "vacant_positions": sum(1 for p in pos_rows if p["count"] == 0),
         "positions": pos_rows, "no_position": [card(e) for e in no_pos] if see else [], "no_position_count": len(no_pos),
         "newcomers": [card(e) for e in newcomers] if see else [], "newcomers_count": len(newcomers),
         "leavers": [card(e) for e in leavers] if see else [], "leavers_count": len(left),
@@ -174,4 +174,22 @@ async def scheme(request: Request, structure_id: int | None = None, db: AsyncSes
             {"id": p.id, "name": p.name, "department_id": pos_layout[p.id].department_id if p.id in pos_layout else p.department_id, "parent_id": pos_layout[p.id].parent_position_id if p.id in pos_layout else p.parent_id, "slots": p.slots, "is_head": p.is_head, "yqm": p.yqm, "occupants": occupants(p)}
             for p in positions
         ],
+        "branches": await _scheme_branches(db, emps, positions, person),
     }  # fmt: skip
+
+
+async def _scheme_branches(db: AsyncSession, emps: list[Employee], positions: list[Position], person) -> list[dict[str, Any]]:
+    """Filiallar: nomi, raqami, bo'limi, mudiri va filialda ishlayotgan xodimlar (lavozimi bilan)."""
+    pos_name = {p.id: p.name for p in positions}
+    by_branch: dict[int, list[Employee]] = defaultdict(list)
+    for e in emps:
+        if e.branch_id:
+            by_branch[e.branch_id].append(e)
+    rows = (await db.scalars(select(Branch).where(Branch.is_active.is_(True)).order_by(Branch.number, Branch.name))).all()
+    mgr_ids = {b.manager_user_id for b in rows if b.manager_user_id}
+    mgrs = {u.id: u.full_name for u in (await db.scalars(select(User).where(User.id.in_(mgr_ids)))).all()} if mgr_ids else {}
+    return [
+        {"id": b.id, "number": b.number, "name": b.name, "department_id": b.department_id, "manager": mgrs.get(b.manager_user_id or 0),
+         "employees": [{**person(e), "position": pos_name.get(e.position_id or 0)} for e in by_branch.get(b.id, [])]}
+        for b in rows
+    ]  # fmt: skip

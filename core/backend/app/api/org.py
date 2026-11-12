@@ -370,6 +370,71 @@ async def delete_department(
     await db.commit()
 
 
+@router.get("/structure-report")
+async def structure_report(db: AsyncSession = Depends(get_session), _: AuthContext = Depends(require("org.read"))):
+    """Tuzilma bo'yicha bajarilgan va bajarilishi kerak bo'lgan ishlar (har biri tegishli sahifaga havola bilan)."""
+    from app.models.competency import PositionProfile
+    from app.models.employees import EmployeeDocument
+    from app.models.hrdocs import HrDocument
+    from app.models.position_docs import DocumentSignature, PositionDocLink
+    from app.models.rotations import Rotation
+
+    async def n(stmt) -> int:
+        return await db.scalar(stmt) or 0
+
+    def cnt(model, *cond):
+        return select(func.count()).select_from(model).where(*cond)
+
+    active_pos = Position.is_active.is_(True)
+    depts = await n(cnt(Department))
+    depts_head = await n(cnt(Department, Department.head_user_id.is_not(None)))
+    positions = await n(cnt(Position, active_pos))
+    approved_pos = await n(select(func.count(func.distinct(PositionProfile.position_id))).where(PositionProfile.status == "approved"))
+    pending_prof = await n(cnt(PositionProfile, PositionProfile.status == "pending"))
+    branches = await n(cnt(Branch, Branch.is_active.is_(True)))
+    branches_nodept = await n(cnt(Branch, Branch.is_active.is_(True), Branch.department_id.is_(None)))
+    branches_nomgr = await n(cnt(Branch, Branch.is_active.is_(True), Branch.manager_user_id.is_(None)))
+    active_emp = Employee.status == "active"
+    employees = await n(cnt(Employee, active_emp))
+    emp_nopos = await n(cnt(Employee, active_emp, Employee.position_id.is_(None)))
+    emp_nodept = await n(cnt(Employee, active_emp, Employee.department_id.is_(None), Employee.branch_id.is_(None)))
+    slots = await n(select(func.coalesce(func.sum(Position.slots), 0)).where(active_pos))
+    occupied = await n(cnt(Employee, active_emp, Employee.position_id.is_not(None)))
+    vacancies = max(0, slots - occupied)
+    with_docs = await n(select(func.count(func.distinct(PositionDocLink.position_id))))
+    pending_uploads = await n(cnt(EmployeeDocument, EmployeeDocument.status == "pending"))
+    # imzolanmagan: lavozimga biriktirilgan hujjat x shu lavozimdagi hisobli xodim, joriy versiya imzosi yo'q
+    need = (await db.execute(
+        select(func.count()).select_from(PositionDocLink)
+        .join(Employee, (Employee.position_id == PositionDocLink.position_id) & active_emp & Employee.user_id.is_not(None))
+        .join(HrDocument, HrDocument.id == PositionDocLink.document_id)
+        .where(~select(DocumentSignature.id).where(DocumentSignature.document_id == PositionDocLink.document_id, DocumentSignature.user_id == Employee.user_id,
+                                                    DocumentSignature.version == HrDocument.version).exists())
+    )).scalar() or 0  # fmt: skip
+    rotations = await n(cnt(Rotation, Rotation.status == "pending"))
+    done = [
+        {"key": "depts_head", "value": depts_head, "total": depts, "to": "/org"},
+        {"key": "positions_profile", "value": approved_pos, "total": positions, "to": "/recruit/profiles"},
+        {"key": "positions_docs", "value": with_docs, "total": positions, "to": "/org"},
+        {"key": "branches", "value": branches - branches_nodept, "total": branches, "to": "/branches"},
+        {"key": "employees_placed", "value": employees - emp_nopos, "total": employees, "to": "/employees"},
+    ]
+    todo = [
+        {"key": "depts_nohead", "value": depts - depts_head, "to": "/org"},
+        {"key": "positions_noprofile", "value": max(0, positions - approved_pos), "to": "/recruit/profiles"},
+        {"key": "profiles_pending", "value": pending_prof, "to": "/recruit/approvals"},
+        {"key": "vacancies", "value": vacancies, "to": "/org"},
+        {"key": "emp_nopos", "value": emp_nopos, "to": "/employees"},
+        {"key": "emp_nounit", "value": emp_nodept, "to": "/employees"},
+        {"key": "branches_nodept", "value": branches_nodept, "to": "/branches"},
+        {"key": "branches_nomgr", "value": branches_nomgr, "to": "/branches"},
+        {"key": "unsigned", "value": need, "to": "/org"},
+        {"key": "uploads_pending", "value": pending_uploads, "to": "/org"},
+        {"key": "rotations_pending", "value": rotations, "to": "/org/rotations"},
+    ]
+    return {"done": done, "todo": todo}
+
+
 @router.get("/positions")
 async def list_positions(
     department_id: int | None = None,

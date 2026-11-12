@@ -213,3 +213,15 @@ async def test_delete_department_detach(new_client):
         assert (await s.get(Department, chid)).parent_id is None
         assert (await s.get(Position, pid)).department_id is None
         assert (await s.get(Branch, bid)).department_id is None
+
+
+async def test_structure_report(new_client):
+    from tests.conftest import login, make_user
+
+    await make_user("orgrep", "hr_direktor")
+    c = new_client()
+    assert (await login(c, "orgrep")).status_code == 200
+    r = await c.get("/api/v1/org/structure-report")
+    assert r.status_code == 200, r.text
+    d = r.json()
+    assert {x["key"] for x in d["todo"]} >= {"depts_nohead", "positions_noprofile", "vacancies", "unsigned"} and all("to" in x for x in d["done"])
