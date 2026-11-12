@@ -6957,6 +6957,37 @@
         "competency_update": "Kompetensiya tahrirlandi",
         "competency_delete": "Kompetensiya o'chirildi"
       }
+    },
+    "fun": {
+      "title": "Rekruting voronkasi",
+      "subtitle": "Zayavkadan ishga qabulgacha har bosqich: soni, konversiya va o'rtacha vaqt",
+      "details": "Rad etish sabablari va vakansiya bo'yicha",
+      "period": "Davr",
+      "allDepts": "Barcha bo'limlar",
+      "all": "Barchasi",
+      "recruiter": "Rekruter",
+      "byStage": "Bosqichlar bo'yicha ko'rsatkichlar",
+      "stageCol": "Bosqich",
+      "count": "Nomzodlar soni",
+      "conversion": "Konversiya",
+      "avgTime": "O'rtacha vaqt",
+      "nDays": "{{n}} kun",
+      "kpi": {
+        "candidates": "Umumiy nomzodlar",
+        "hired": "Ishga qabul qilingan",
+        "conversion": "Konversiya",
+        "avgClose": "O'rtacha yopilish vaqti"
+      },
+      "stage": {
+        "requests": "Zayavka",
+        "vacancies": "Vakansiya",
+        "found": "Nomzod topildi",
+        "screening": "Saralash",
+        "interview": "Intervyu",
+        "test": "Test / Assessment",
+        "offer": "Offer",
+        "hired": "Ishga qabul qilingan"
+      }
     }
   }
 }

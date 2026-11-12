@@ -427,3 +427,92 @@ async def overview(days: int = Query(default=30, ge=7, le=365), db: AsyncSession
         "dynamics": dynamics, "activity": activity, "pending": pending, "pending_total": await n(PositionProfile, PositionProfile.status == "pending") + await n(HireRequest, HireRequest.status == "pending"),
         "funnel": funnel,
     }  # fmt: skip
+
+
+@router.get("/funnel-report")
+async def funnel_report(
+    days: int = Query(default=90, ge=7, le=730),
+    department_id: int | None = None,
+    position_id: int | None = None,
+    recruiter_id: int | None = None,
+    db: AsyncSession = Depends(get_session),
+    _: AuthContext = Depends(_reader),
+):
+    """Voronka hisoboti: Zayavka -> Vakansiya -> Nomzod -> Saralash -> Intervyu -> Test -> Offer -> Ishga qabul.
+    Har bosqich: soni, oldingisiga nisbatan konversiya, arizadan shu bosqichgacha o'rtacha kun."""
+    from app.models.recruit import Application, ApplicationEvent, CandidateTest
+    from app.services.recruit_core import RANK
+
+    moment = now()
+    start = moment - timedelta(days=days)
+    vcond = []
+    if department_id:
+        vcond.append(Vacancy.department_id == department_id)
+    if position_id:
+        vcond.append(Vacancy.position_id == position_id)
+    rcond = [HireRequest.created_at >= start]
+    if department_id:
+        rcond.append(HireRequest.department_id == department_id)
+    if position_id:
+        rcond.append(HireRequest.position_id == position_id)
+    requests = await db.scalar(select(func.count()).select_from(HireRequest).where(*rcond)) or 0
+    vac_cond = [*vcond, Vacancy.created_at >= start]
+    if recruiter_id:
+        vac_cond.append(Vacancy.recruiter_id == recruiter_id)
+    vacancies = await db.scalar(select(func.count()).select_from(Vacancy).where(*vac_cond)) or 0
+
+    astmt = select(Application, Vacancy.created_at).join(Vacancy, Vacancy.id == Application.vacancy_id).where(Application.applied_at >= start, *vcond)
+    if recruiter_id:
+        astmt = astmt.where(or_(Application.recruiter_id == recruiter_id, Vacancy.recruiter_id == recruiter_id))
+    rows = (await db.execute(astmt.limit(10000))).all()
+    apps = {a.id: a for a, _ in rows}
+    vac_created = {a.id: vc for a, vc in rows}
+    best = {a.id: RANK.get(a.stage, 0) for a in apps.values()}
+    reached_at: dict[tuple[int, str], Any] = {}
+    if apps:
+        ev = (await db.execute(select(ApplicationEvent.application_id, ApplicationEvent.from_stage, ApplicationEvent.to_stage, ApplicationEvent.created_at).where(ApplicationEvent.application_id.in_(apps), ApplicationEvent.action.in_(("stage", "rejected", "hired"))))).all()
+        for aid, frm, to, at in ev:
+            for s in (frm, to):
+                if s in RANK:
+                    best[aid] = max(best[aid], RANK[s])
+            if to in RANK and (aid, to) not in reached_at:
+                reached_at[(aid, to)] = at
+        tested = set((await db.scalars(select(CandidateTest.application_id).where(CandidateTest.application_id.in_(apps)))).all())
+    else:
+        tested = set()
+
+    def avg_days(stage: str) -> float | None:
+        vals = []
+        for aid, a in apps.items():
+            at = a.hired_at if stage == "hired" and a.hired_at else reached_at.get((aid, stage))
+            if at and best[aid] >= RANK[stage]:
+                vals.append((at - a.applied_at).total_seconds() / 86400)
+        return round(sum(vals) / len(vals), 1) if vals else None
+
+    def reached(stage: str) -> int:
+        return sum(1 for aid in apps if best[aid] >= RANK[stage])
+
+    stages = [
+        {"stage": "requests", "count": requests, "days": None},
+        {"stage": "vacancies", "count": vacancies, "days": None},
+        {"stage": "found", "count": len(apps), "days": 0 if apps else None},
+        {"stage": "screening", "count": reached("screening"), "days": avg_days("screening")},
+        {"stage": "interview", "count": reached("interview"), "days": avg_days("interview")},
+        {"stage": "test", "count": sum(1 for aid in apps if aid in tested), "days": None},
+        {"stage": "offer", "count": reached("offer"), "days": avg_days("offer")},
+        {"stage": "hired", "count": reached("hired"), "days": avg_days("hired")},
+    ]
+    for i, s in enumerate(stages):
+        prev = stages[i - 1]["count"] if i else 0
+        # nomzodlar soni vakansiyalar soniga bo'linmaydi (birlik boshqa)
+        s["rate"] = None if s["stage"] == "found" else round(s["count"] / prev * 100, 1) if i and prev else (100.0 if i == 0 and s["count"] else None)
+    hired = [a for a in apps.values() if a.hired_at]
+    close = [(a.hired_at - vac_created[a.id]).total_seconds() / 86400 for a in hired if vac_created.get(a.id)]
+    candidates = len({a.candidate_id for a in apps.values()})
+    recruiters = (await db.execute(select(User.id, User.full_name).where(User.id.in_(select(Vacancy.recruiter_id).where(Vacancy.recruiter_id.is_not(None)).union(select(Application.recruiter_id).where(Application.recruiter_id.is_not(None))))).order_by(User.full_name))).all()
+    return {
+        "days": days,
+        "kpi": {"candidates": candidates, "hired": len(hired), "conversion": round(len(hired) / candidates * 100, 1) if candidates else None, "avg_close_days": round(sum(close) / len(close)) if close else None},
+        "stages": stages,
+        "recruiters": [{"id": i, "name": n} for i, n in recruiters],
+    }

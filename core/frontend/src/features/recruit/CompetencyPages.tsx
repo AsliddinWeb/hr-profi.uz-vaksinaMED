@@ -1007,3 +1007,140 @@ export function RecruitDashboardPage() {
     </div>
   )
 }
+
+type FunnelReport = {
+  days: number
+  kpi: { candidates: number; hired: number; conversion: number | null; avg_close_days: number | null }
+  stages: { stage: string; count: number; rate: number | null; days: number | null }[]
+  recruiters: { id: number; name: string }[]
+}
+const FUNNEL_COLORS = ['#2563eb', '#1d8cf0', '#0ea5e9', '#06b6d4', '#14b8a6', '#eab308', '#f97316', '#ec4899']
+
+/** /recruit/funnel — Rekruting voronkasi: filtrlar, asosiy ko'rsatkichlar, voronka va bosqichlar jadvali. */
+export function FunnelReportPage() {
+  const { t } = useTranslation()
+  const [days, setDays] = useState(90)
+  const [dept, setDept] = useState('')
+  const [pos, setPos] = useState('')
+  const [rec, setRec] = useState('')
+  const meta = useQuery({ queryKey: ['recruit', 'requests', 'meta'], queryFn: () => api<{ departments: { id: number; name: string }[]; positions: { id: number; name: string }[] }>('/api/v1/recruit/requests/meta') })
+  const params = new URLSearchParams({ days: String(days) })
+  if (dept) params.set('department_id', dept)
+  if (pos) params.set('position_id', pos)
+  if (rec) params.set('recruiter_id', rec)
+  const q = useQuery({ queryKey: ['recruit', 'funnel-report', params.toString()], queryFn: () => api<FunnelReport>(`/api/v1/recruit/funnel-report?${params}`), placeholderData: (p) => p })
+  const d = q.data
+  const top = Math.max(1, ...(d?.stages.map((s) => s.count) ?? [1]))
+  const kpis: [string, string][] = d
+    ? [
+        ['candidates', String(d.kpi.candidates)],
+        ['hired', String(d.kpi.hired)],
+        ['conversion', d.kpi.conversion == null ? '—' : `${d.kpi.conversion}%`],
+        ['avgClose', d.kpi.avg_close_days == null ? '—' : t('comp.fun.nDays', { n: d.kpi.avg_close_days })],
+      ]
+    : []
+  return (
+    <div className="mx-auto flex max-w-6xl flex-col gap-5">
+      <PageHeader
+        title={t('comp.fun.title')}
+        subtitle={t('comp.fun.subtitle')}
+        actions={
+          <Link to="/recruit/funnel/details">
+            <Button variant="outline">{t('comp.fun.details')}</Button>
+          </Link>
+        }
+      />
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <Select value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label={t('comp.ov.period')}>
+          {[30, 90, 180, 365].map((n) => (
+            <option key={n} value={n}>
+              {t('comp.fun.period')}: {t('comp.ov.lastDays', { n })}
+            </option>
+          ))}
+        </Select>
+        <Select value={dept} onChange={(e) => setDept(e.target.value)} aria-label={t('comp.prof.department')}>
+          <option value="">
+            {t('comp.prof.department')}: {t('comp.fun.allDepts')}
+          </option>
+          {meta.data?.departments.map((x) => (
+            <option key={x.id} value={x.id}>
+              {x.name}
+            </option>
+          ))}
+        </Select>
+        <Select value={pos} onChange={(e) => setPos(e.target.value)} aria-label={t('comp.prof.position')}>
+          <option value="">
+            {t('comp.prof.position')}: {t('comp.fun.all')}
+          </option>
+          {meta.data?.positions.map((x) => (
+            <option key={x.id} value={x.id}>
+              {x.name}
+            </option>
+          ))}
+        </Select>
+        <Select value={rec} onChange={(e) => setRec(e.target.value)} aria-label={t('comp.fun.recruiter')}>
+          <option value="">
+            {t('comp.fun.recruiter')}: {t('comp.fun.all')}
+          </option>
+          {d?.recruiters.map((x) => (
+            <option key={x.id} value={x.id}>
+              {x.name}
+            </option>
+          ))}
+        </Select>
+      </div>
+      {!d ? (
+        <Skeleton className="h-96" />
+      ) : (
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,380px)_1fr]">
+          <Card className="flex flex-col items-center gap-1.5 p-5">
+            {d.stages.map((s, i) => {
+              const w = 40 + (s.count / top) * 60
+              return (
+                <div key={s.stage} className="flex h-9 items-center justify-between rounded-md px-3 text-sm font-medium text-white" style={{ width: `${w}%`, background: FUNNEL_COLORS[i % FUNNEL_COLORS.length] }}>
+                  <span className="truncate">{t(`comp.fun.stage.${s.stage}`)}</span>
+                  <span className="font-mono">{s.count}</span>
+                </div>
+              )
+            })}
+          </Card>
+          <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {kpis.map(([k, v]) => (
+                <Card key={k} className="p-4">
+                  <div className="text-xs text-muted">{t(`comp.fun.kpi.${k}`)}</div>
+                  <div className="mt-2 font-mono text-[24px] font-medium leading-none tabular-nums">{v}</div>
+                </Card>
+              ))}
+            </div>
+            <Card className="overflow-hidden">
+              <div className="border-b border-border px-4 py-3 font-medium">{t('comp.fun.byStage')}</div>
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-border text-xs text-muted">
+                  <tr>
+                    <th className="w-10 px-4 py-2 font-medium">№</th>
+                    <th className="px-4 py-2 font-medium">{t('comp.fun.stageCol')}</th>
+                    <th className="px-4 py-2 font-medium">{t('comp.fun.count')}</th>
+                    <th className="px-4 py-2 font-medium">{t('comp.fun.conversion')}</th>
+                    <th className="px-4 py-2 font-medium">{t('comp.fun.avgTime')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {d.stages.map((s, i) => (
+                    <tr key={s.stage}>
+                      <td className="px-4 py-2 tabular-nums text-muted">{i + 1}</td>
+                      <td className="px-4 py-2">{t(`comp.fun.stage.${s.stage}`)}</td>
+                      <td className="px-4 py-2 tabular-nums">{s.count}</td>
+                      <td className="px-4 py-2 tabular-nums">{s.rate == null ? '—' : `${s.rate}%`}</td>
+                      <td className="px-4 py-2 tabular-nums">{s.days == null ? '—' : t('comp.fun.nDays', { n: s.days })}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

@@ -78,3 +78,12 @@ async def test_overview(new_client):
     assert r.status_code == 200, r.text
     d = r.json()
     assert len(d["dynamics"]) == 6 and d["funnel"][0]["stage"] == "requests" and "deltas" in d
+
+
+async def test_funnel_report(new_client):
+    hr, _ = await as_user(new_client, "hrfr", "hr_direktor")
+    r = await hr.get(f"{R}/funnel-report", params={"days": 90})
+    assert r.status_code == 200, r.text
+    d = r.json()
+    assert [s["stage"] for s in d["stages"]] == ["requests", "vacancies", "found", "screening", "interview", "test", "offer", "hired"]
+    assert set(d["kpi"]) == {"candidates", "hired", "conversion", "avg_close_days"}

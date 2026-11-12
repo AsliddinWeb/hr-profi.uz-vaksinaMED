@@ -1,4 +1,4 @@
-import { ApprovalsPage as RecruitApprovalsPage, CompetenciesPage, RecruitDashboardPage, ProfilesPage as PositionProfilesPage, ProfileWizardPage } from "./features/recruit/CompetencyPages";
+import { ApprovalsPage as RecruitApprovalsPage, CompetenciesPage, FunnelReportPage, RecruitDashboardPage, ProfilesPage as PositionProfilesPage, ProfileWizardPage } from "./features/recruit/CompetencyPages";
 import { createBrowserRouter } from "react-router-dom";
 
 import { AppShell } from "./components/layout/AppShell";
@@ -2138,6 +2138,14 @@ export function createRouter() {
                 },
                 {
                   path: "recruit/funnel",
+                  element: (
+                    <RequirePerm any={["recruit.read", "recruit.manage"]}>
+                      <FunnelReportPage />
+                    </RequirePerm>
+                  ),
+                },
+                {
+                  path: "recruit/funnel/details",
                   element: (
                     <RequirePerm any={["recruit.read", "recruit.manage"]}>
                       <FunnelPage />
