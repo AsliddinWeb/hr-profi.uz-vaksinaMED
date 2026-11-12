@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
-import { ArrowLeft, ArrowRight, Check, Eye, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Eye, Paperclip, Pencil, Plus, Search, Sparkles, Trash2, X } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -15,7 +15,7 @@ import { Pagination } from '../../components/ui/Pagination'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { Tabs } from '../../components/ui/Tabs'
 import { useConfirm } from '../../components/ui/confirmContext'
-import { api, ApiError, send } from '../../lib/api'
+import { api, ApiError, send, upload } from '../../lib/api'
 import { formatDate } from '../../lib/format'
 import { NotFound } from '../../pages/NotFound'
 import { errorText } from '../auth/errorText'
@@ -23,10 +23,10 @@ import { useCan } from '../auth/useAuth'
 
 type Cat = 'hard' | 'soft' | 'management' | 'knowledge' | 'experience'
 const CATS: Cat[] = ['hard', 'soft', 'management', 'knowledge', 'experience']
-type Comp = { id: number; name: string; category: Cat; description: string | null; is_active: boolean; positions: number }
+type Comp = { id: number; name: string; category: Cat; description: string | null; is_active: boolean; positions: number; position_list?: { id: number; name: string }[] }
 type CompPage = { total: number; page: number; size: number; counts: Record<Cat, number>; items: Comp[] }
 type PStatus = 'none' | 'draft' | 'pending' | 'approved' | 'returned' | 'archived'
-type ProfileComp = { competency_id: number; name: string; category: Cat; required_level: number; ideal_level: number; mandatory: boolean; method: string }
+type ProfileComp = { competency_id: number | null; name: string; category: Cat; required_level: number; ideal_level: number; mandatory: boolean; method: string }
 export type Profile = {
   id: number
   code: string
@@ -155,7 +155,10 @@ export function CompetenciesPage() {
                   </td>
                   <td className="hidden max-w-xs truncate px-4 py-2.5 text-muted md:table-cell">{c.description ?? '—'}</td>
                   <td className="px-4 py-2.5 tabular-nums">L1 – L5</td>
-                  <td className="px-4 py-2.5 tabular-nums">{t('comp.base.nPositions', { n: c.positions })}</td>
+                  <td className="px-4 py-2.5">
+                    <div className="tabular-nums">{t('comp.base.nPositions', { n: c.positions })}</div>
+                    {c.position_list && c.position_list.length > 0 && <div className="max-w-56 truncate text-xs text-muted" title={c.position_list.map((x) => x.name).join(', ')}>{c.position_list.map((x) => x.name).join(', ')}</div>}
+                  </td>
                   <td className="px-4 py-2.5">
                     <Badge tone={c.is_active ? 'success' : 'neutral'}>{t(c.is_active ? 'comp.base.on' : 'comp.base.off')}</Badge>
                   </td>
@@ -361,7 +364,9 @@ type Data = {
   education?: { level?: string; field?: string; experience?: string; languages?: string }
   kpi?: { name: string; target: string }[]
   portrait?: string
+  daily?: { tools?: string[]; routine?: { time: string; task: string }[] }
 }
+type Suggestion = { id: number; step: string; title: string; reason: string; add: unknown }
 
 /** /recruit/profiles/:id — lavozim profilini 10 qadamda yaratish, tasdiqlashga yuborish va tasdiqlash. */
 export function ProfileWizardPage() {
@@ -376,6 +381,30 @@ export function ProfileWizardPage() {
   const [comps, setComps] = useState<ProfileComp[]>([])
   const [note, setNote] = useState('')
   const [saved, setSaved] = useState(false)
+  const [aiText, setAiText] = useState('')
+  const [files, setFiles] = useState<string[]>([])
+  const [reviewData, setReview] = useState<{ score: number | null; summary: string; suggestions: Suggestion[] } | null>(null)
+  const review = { data: reviewData, isPending: false }
+  const lang = i18n.language === 'ru' ? 'ru' : 'uz'
+  const extract = useMutation({
+    mutationFn: (f: File) => {
+      const fd = new FormData()
+      fd.append('file', f)
+      return upload<{ name: string; text: string }>('POST', '/api/v1/recruit/profiles/extract-text', fd)
+    },
+    onSuccess: (r) => {
+      setAiText((s) => `${s}${s ? '\n\n' : ''}--- ${r.name} ---\n${r.text}`.slice(0, 6000))
+      setFiles((fs) => [...fs, r.name])
+    },
+  })
+  const fill = useMutation({
+    mutationFn: () => send<{ data: Data; competencies: ProfileComp[] }>('POST', `/api/v1/recruit/profiles/${id}/ai-fill`, { text: aiText, lang }),
+    onSuccess: (f) => applyFill(f),
+  })
+  const reviewMut = useMutation({
+    mutationFn: () => send<{ score: number | null; summary: string; suggestions: Suggestion[] }>('POST', `/api/v1/recruit/profiles/${id}/ai-review`, { lang, data, competencies: comps }),
+    onSuccess: (r) => setReview(r),
+  })
   const [loaded, setLoaded] = useState('')
   const stamp = q.data ? `${q.data.id}:${q.data.updated_at}:${q.data.status}` : ''
   if (q.data && loaded !== stamp) {
@@ -384,7 +413,7 @@ export function ProfileWizardPage() {
     setComps(q.data.competencies)
   }
   const save = useMutation({
-    mutationFn: () => send<Profile>('PUT', `/api/v1/recruit/profiles/${id}`, { data, competencies: comps }),
+    mutationFn: () => send<Profile>('PUT', `/api/v1/recruit/profiles/${id}`, { data, competencies: comps.map((c) => ((c.competency_id ?? 0) > 0 ? c : { ...c, competency_id: null })) }),
     onSuccess: (p) => {
       qc.setQueryData(['profiles', 'one', id], p)
       void qc.invalidateQueries({ queryKey: ['profiles'] })
@@ -404,6 +433,28 @@ export function ProfileWizardPage() {
   const p = q.data
   if (!p) return <Skeleton className="mx-auto h-96 max-w-6xl" />
   const ro = !p.can?.edit
+  const tmpId = () => -Math.floor(Math.random() * 1e9) - 1
+  const withIds = (cs: ProfileComp[]) => cs.map((c) => ({ ...c, competency_id: c.competency_id ?? tmpId() }))
+  const applyFill = (f: { data: Data; competencies: ProfileComp[] }) => {
+    setData((d) => ({ ...d, ...f.data, general: { ...d.general, ...Object.fromEntries(Object.entries(f.data.general ?? {}).filter(([, v]) => v)) } }))
+    setComps((cs) => {
+      const have = new Set(cs.map((c) => `${c.category}:${c.name.toLowerCase()}`))
+      return [...cs, ...withIds(f.competencies).filter((c) => !have.has(`${c.category}:${c.name.toLowerCase()}`))]
+    })
+    setSaved(false)
+  }
+  const accept = (s: Suggestion) => {
+    const a = s.add as Record<string, unknown> | string
+    if (s.step === 'functions' && typeof a === 'string') set('functions', [...(data.functions ?? []).filter((x) => x.trim()), a])
+    else if (s.step === 'kpi' && typeof a === 'object') set('kpi', [...(data.kpi ?? []).filter((x) => x.name.trim()), { name: String(a.name ?? ''), target: String(a.target ?? '') }])
+    else if (s.step === 'daily' && typeof a === 'object') {
+      const dl = data.daily ?? {}
+      set('daily', a.tool ? { ...dl, tools: [...(dl.tools ?? []), String(a.tool)] } : { ...dl, routine: [...(dl.routine ?? []), { time: String(a.time ?? ''), task: String(a.task ?? '') }] })
+    } else if ((s.step === 'goal' || s.step === 'portrait') && typeof a === 'string') set(s.step, [data[s.step], a].filter(Boolean).join(' '))
+    else if ((s.step === 'general' || s.step === 'education') && typeof a === 'object' && a.field) set(s.step, { ...(data[s.step] ?? {}), [String(a.field)]: String(a.value ?? '') })
+    else if (['hard', 'soft', 'management'].includes(s.step) && typeof a === 'object') applyFill({ data: {}, competencies: [a as unknown as ProfileComp] })
+    setReview((r) => r && { ...r, suggestions: r.suggestions.filter((x) => x.id !== s.id) })
+  }
   const key: StepKey = STEPS[step]
   const set = <K extends keyof Data>(k: K, v: Data[K]) => (setData((d) => ({ ...d, [k]: v })), setSaved(false))
   const stepDone = (k: StepKey) => {
@@ -445,7 +496,7 @@ export function ProfileWizardPage() {
   const compStep = (cat: Cat) => {
     const options = (all.data?.items ?? []).filter((c) => c.category === cat && !comps.some((x) => x.competency_id === c.id))
     const mine = comps.filter((c) => c.category === cat)
-    const upd = (cid: number, patch: Partial<ProfileComp>) => (setComps((cs) => cs.map((c) => (c.competency_id === cid ? { ...c, ...patch } : c))), setSaved(false))
+    const upd = (cid: number | null, patch: Partial<ProfileComp>) => (setComps((cs) => cs.map((c) => (c.competency_id === cid ? { ...c, ...patch } : c))), setSaved(false))
     return (
       <div className="flex flex-col gap-3">
         {!ro && (
@@ -547,7 +598,35 @@ export function ProfileWizardPage() {
       </div>
     ),
     goal: txt('goal'),
-    functions: list('functions'),
+    functions: (
+      <div className="flex flex-col gap-5">
+        {list('functions')}
+        <div className="flex flex-col gap-2 rounded-control border border-border p-3">
+          <div className="text-sm font-medium">{t('comp.ai.daily')}</div>
+          <div className="text-xs text-muted">{t('comp.ai.dailyHint')}</div>
+          <Field label={t('comp.ai.tools')}>
+            {(fid) => <Input id={fid} value={(data.daily?.tools ?? []).join(', ')} disabled={ro} onChange={(e) => set('daily', { ...data.daily, tools: e.target.value.split(',').map((x) => x.trimStart()) })} placeholder="Excel, 1C, Telegram" />}
+          </Field>
+          {(data.daily?.routine ?? []).map((r, i, arr) => (
+            <div key={i} className="grid grid-cols-[90px_1fr_auto] gap-2">
+              <Input value={r.time} placeholder="09:00" disabled={ro} aria-label={t('comp.ai.time')} onChange={(e) => set('daily', { ...data.daily, routine: arr.map((x, j) => (j === i ? { ...x, time: e.target.value } : x)) })} />
+              <Input value={r.task} disabled={ro} aria-label={t('comp.ai.task')} onChange={(e) => set('daily', { ...data.daily, routine: arr.map((x, j) => (j === i ? { ...x, task: e.target.value } : x)) })} />
+              {!ro && (
+                <Button variant="ghost" className="px-2" aria-label={t('common.delete')} onClick={() => set('daily', { ...data.daily, routine: arr.filter((_, j) => j !== i) })}>
+                  <Trash2 className="size-4" />
+                </Button>
+              )}
+            </div>
+          ))}
+          {!ro && (
+            <Button variant="outline" className="w-fit" onClick={() => set('daily', { ...data.daily, routine: [...(data.daily?.routine ?? []), { time: '', task: '' }] })}>
+              <Plus className="size-4" />
+              {t('comp.ai.addRoutine')}
+            </Button>
+          )}
+        </div>
+      </div>
+    ),
     education: (
       <div className="grid gap-3 sm:grid-cols-2">
         {sub('education', 'level', t('comp.wiz.f.eduLevel'))}
@@ -619,6 +698,67 @@ export function ProfileWizardPage() {
           </div>
         }
       />
+      {!ro && (
+        <Card className="flex flex-col gap-3 border-primary/30 p-5">
+          <div className="flex items-center gap-2 font-medium">
+            <Sparkles className="size-4 text-primary" />
+            {t('comp.ai.title')}
+          </div>
+          <div className="text-sm text-muted">{t('comp.ai.hint')}</div>
+          <textarea rows={4} className={area} value={aiText} onChange={(e) => setAiText(e.target.value)} placeholder={t('comp.ai.placeholder')} aria-label={t('comp.ai.title')} />
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-control border border-border px-3 text-sm hover:bg-surface-2">
+              <Paperclip className="size-4" />
+              {extract.isPending ? t('comp.ai.reading') : t('comp.ai.attach')}
+              <input type="file" className="hidden" accept=".pdf,.docx,.xlsx,.xlsm,.txt,.csv" onChange={(e) => (e.target.files?.[0] && extract.mutate(e.target.files[0]), (e.target.value = ''))} />
+            </label>
+            {files.map((f) => (
+              <Badge key={f} tone="info">
+                {f}
+              </Badge>
+            ))}
+            <span className="flex-1" />
+            <Button variant="outline" disabled={review.isPending} onClick={() => reviewMut.mutate()}>
+              <Search className="size-4" />
+              {reviewMut.isPending ? t('comp.ai.thinking') : t('comp.ai.review')}
+            </Button>
+            <Button disabled={fill.isPending || aiText.trim().length < 10} onClick={() => fill.mutate()}>
+              <Sparkles className="size-4" />
+              {fill.isPending ? t('comp.ai.thinking') : t('comp.ai.fill')}
+            </Button>
+          </div>
+          {(fill.isError || reviewMut.isError || extract.isError) && <p role="alert" className="text-sm text-danger">{errorText(t, fill.error ?? reviewMut.error ?? extract.error)}</p>}
+          {fill.isSuccess && !fill.isPending && <p className="text-sm text-success">{t('comp.ai.filled')}</p>}
+          {review.data && (
+            <div className="flex flex-col gap-2 border-t border-border pt-3">
+              <div className="flex items-center gap-2 text-sm">
+                {review.data.score != null && <Badge tone={review.data.score >= 80 ? 'success' : review.data.score >= 50 ? 'warning' : 'danger'}>{review.data.score}/100</Badge>}
+                <span>{review.data.summary}</span>
+                <button className="ml-auto text-muted hover:text-text" aria-label={t('common.close')} onClick={() => setReview(null)}>
+                  <X className="size-4" />
+                </button>
+              </div>
+              {review.data.suggestions.length === 0 && <div className="text-sm text-muted">{t('comp.ai.noSuggestions')}</div>}
+              {review.data.suggestions.map((s) => (
+                <div key={s.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-surface-2 px-3 py-2 text-sm">
+                  <Badge>{t(`comp.wiz.step.${s.step}`, { defaultValue: t('comp.ai.daily') })}</Badge>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium">{s.title}</div>
+                    {s.reason && <div className="text-xs text-muted">{s.reason}</div>}
+                  </div>
+                  <span className="text-xs text-muted">{t('comp.ai.addQ')}</span>
+                  <Button className="h-8" onClick={() => accept(s)}>
+                    {t('comp.ai.yes')}
+                  </Button>
+                  <Button variant="outline" className="h-8" onClick={() => setReview((r) => r && { ...r, suggestions: r.suggestions.filter((x) => x.id !== s.id) })}>
+                    {t('comp.ai.no')}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
       <div className="grid gap-5 lg:grid-cols-[240px_1fr]">
         <Card className="h-fit p-2">
           <ol className="flex flex-col gap-0.5">

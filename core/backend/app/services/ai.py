@@ -26,7 +26,7 @@ from app.rbac import matches
 from app.services import helpdesk, needs, tasks
 from app.timeutil import local_date, now, tz
 
-FEATURES = ("summary", "resume", "ticket", "scan", "interview")
+FEATURES = ("summary", "resume", "ticket", "scan", "interview", "profile")
 ENTITIES = ("ticket", "need", "task", "candidate")
 MAX_INPUT_CHARS = 12000
 LANGS = {"uz": "o'zbek (lotin)", "ru": "русский"}
@@ -63,7 +63,7 @@ async def _post(model: str, system: str, user: str, max_tokens: int) -> tuple[st
     s = get_settings()
     body = {"model": model, "max_tokens": max_tokens, "system": system, "messages": [{"role": "user", "content": user}]}
     headers = {"x-api-key": s.anthropic_api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"}
-    async with httpx.AsyncClient(timeout=45) as c:
+    async with httpx.AsyncClient(timeout=120 if max_tokens > 1500 else 45) as c:
         r = await c.post(f"{s.anthropic_base_url}/v1/messages", json=body, headers=headers)
     if r.status_code >= 400:
         raise RuntimeError(f"http_{r.status_code}")

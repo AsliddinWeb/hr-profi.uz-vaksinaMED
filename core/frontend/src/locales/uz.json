@@ -482,7 +482,8 @@
     "profile_incomplete": "Profil to'liq to'ldirilmagan: barcha qadamlarni to'ldiring.",
     "not_editable": "Bu holatda tahrirlab bo'lmaydi.",
     "unknown_competency": "Kompetensiya topilmadi.",
-    "duplicate": "Bunday nom allaqachon bor"
+    "duplicate": "Bunday nom allaqachon bor",
+    "unsupported_file": "Bu fayl turi qo'llab-quvvatlanmaydi (PDF, Word .docx, Excel .xlsx, TXT)"
   },
   "auth": {
     "heroTitle": "Kadrlar va filiallar — bitta tizimda",
@@ -6988,6 +6989,27 @@
         "offer": "Offer",
         "hired": "Ishga qabul qilingan"
       }
+    },
+    "ai": {
+      "title": "AI yordamchi",
+      "hint": "Lavozim haqida o'z so'zingiz bilan yozing yoki hujjat (PDF, Word, Excel) biriktiring: AI profilni to'liq to'ldiradi, keyin tekshirib kamchiliklarni taklif qiladi.",
+      "placeholder": "Masalan: AXO boshlig'i ofis xo'jaligi, xarid, ta'mirlash, haydovchilar va farroshlarga javob beradi. Har kuni buyurtmalarni ko'radi, Excel va 1C da ishlaydi...",
+      "attach": "Fayl biriktirish",
+      "reading": "O'qilmoqda…",
+      "fill": "AI bilan to'ldirish",
+      "review": "AI tekshiruvi",
+      "thinking": "AI ishlayapti…",
+      "filled": "AI profilni to'ldirdi. Ko'rib chiqing va \"Qoralama saqlash\" ni bosing.",
+      "noSuggestions": "Kamchilik topilmadi",
+      "addQ": "Qo'shilsinmi?",
+      "yes": "Ha, qo'sh",
+      "no": "Yo'q",
+      "daily": "Kundalik ish va dasturlar",
+      "dailyHint": "Kompyuterda qaysi dasturlarda ishlaydi va ish kuni qanday o'tadi (soatma-soat).",
+      "tools": "Dasturlar (vergul bilan)",
+      "time": "Vaqt",
+      "task": "Ish",
+      "addRoutine": "Kun tartibiga qo'shish"
     }
   }
 }

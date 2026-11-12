@@ -87,3 +87,86 @@ async def test_funnel_report(new_client):
     d = r.json()
     assert [s["stage"] for s in d["stages"]] == ["requests", "vacancies", "found", "screening", "interview", "test", "offer", "hired"]
     assert set(d["kpi"]) == {"candidates", "hired", "conversion", "avg_close_days"}
+
+
+async def test_ai_fill_and_review(new_client, monkeypatch):
+    import json as _json
+
+    from app.services import ai
+
+    hr, _ = await as_user(new_client, "hrai", "hr_direktor")
+    async with SessionLocal() as s:
+        p = Position(name="AXO boshlig'i")
+        s.add(p)
+        await s.commit()
+        pid = p.id
+    sql = (await hr.post(f"{R}/competencies", json={"name": "Byudjetlash", "category": "hard"})).json()["id"]
+    prof = (await hr.post(f"{R}/profiles", json={"position_id": pid})).json()
+    fill = {
+        "general": {"title": "AXO boshlig'i", "grade": "M2"}, "goal": "Ofis xo'jaligini ta'minlash", "functions": ["Ta'minotni rejalash", 5],
+        "daily": {"tools": ["Excel", "1C"], "routine": [{"time": "09:00", "task": "Buyurtmalarni ko'rish"}]},
+        "kpi": [{"name": "Xarajat", "target": "-5%"}], "portrait": "Tartibli",
+        "competencies": [{"name": "byudjetlash", "category": "hard", "required_level": 4, "ideal_level": 5}, {"name": "Muzokara", "category": "soft", "required_level": 9}, {"name": "x", "category": "bad"}],
+    }
+    review = {"score": 60, "summary": "KPI kam", "suggestions": [
+        {"step": "kpi", "title": "Muddat KPI", "reason": "yo'q", "add": {"name": "Muddatida bajarish", "target": "95%"}},
+        {"step": "hard", "title": "Xarid", "add": {"name": "Xarid jarayoni", "required_level": 3}},
+        {"step": "nope", "title": "x"},
+    ]}
+    answers = iter([_json.dumps(fill), "```json\n" + _json.dumps(review) + "\n```"])
+
+    async def fake_run(db, auth, feature, system, user, **kw):
+        assert feature == "profile" and "<data>" in user
+        return next(answers), "test"
+
+    monkeypatch.setattr(ai, "run", fake_run)
+    f = (await hr.post(f"{R}/profiles/{prof['id']}/ai-fill", json={"text": "Ofis xo'jaligi, xarid, ta'mirlash"})).json()
+    assert f["data"]["functions"] == ["Ta'minotni rejalash"] and f["data"]["daily"]["tools"] == ["Excel", "1C"]
+    by = {c["name"]: c for c in f["competencies"]}
+    assert by["byudjetlash"]["competency_id"] == sql and by["Muzokara"]["competency_id"] is None and by["Muzokara"]["required_level"] == 5 and len(by) == 2
+    # yangi kompetensiya nomi bilan saqlash -> bazaga qo'shiladi
+    saved = (await hr.put(f"{R}/profiles/{prof['id']}", json={"data": f["data"], "competencies": f["competencies"]})).json()
+    assert {c["name"] for c in saved["competencies"]} == {"Byudjetlash", "Muzokara", "Excel", "1C"} and saved["data"]["daily"]["routine"][0]["time"] == "09:00"
+    r = (await hr.post(f"{R}/profiles/{prof['id']}/ai-review", json={"data": saved["data"], "competencies": saved["competencies"]})).json()
+    assert r["score"] == 60 and [x["step"] for x in r["suggestions"]] == ["kpi", "hard"] and r["suggestions"][1]["add"]["category"] == "hard"
+
+
+async def test_extract_text_from_files(new_client):
+    import io
+    import zipfile
+
+    from openpyxl import Workbook
+
+    hr, _ = await as_user(new_client, "hrfile", "hr_direktor")
+    wb = Workbook()
+    wb.active.append(["Vazifa", "Ombor hisobi"])
+    xb = io.BytesIO()
+    wb.save(xb)
+    r = (await hr.post(f"{R}/profiles/extract-text", files={"file": ("a.xlsx", xb.getvalue())})).json()
+    assert "Ombor hisobi" in r["text"]
+    db = io.BytesIO()
+    with zipfile.ZipFile(db, "w") as z:
+        z.writestr("word/document.xml", "<w:document><w:p><w:t>Kun tartibi</w:t></w:p></w:document>")
+    assert "Kun tartibi" in (await hr.post(f"{R}/profiles/extract-text", files={"file": ("b.docx", db.getvalue())})).json()["text"]
+    assert (await hr.post(f"{R}/profiles/extract-text", files={"file": ("c.exe", b"x")})).json()["detail"]["code"] == "unsupported_file"
+
+
+async def test_profile_additions_land_in_base(new_client):
+    hr, _ = await as_user(new_client, "hrsync", "hr_direktor")
+    async with SessionLocal() as s:
+        p = Position(name="Omborchi")
+        s.add(p)
+        await s.commit()
+        pid = p.id
+    prof = (await hr.post(f"{R}/profiles", json={"position_id": pid})).json()
+    data = {"daily": {"tools": ["Excel", "1C"]}, "education": {"field": "Logistika", "experience": "2 yil omborda", "languages": "rus, ingliz"}}
+    saved = (await hr.put(f"{R}/profiles/{prof['id']}", json={"data": data, "competencies": [{"name": "Inventarizatsiya", "category": "hard"}]})).json()
+    cats = {(c["category"], c["name"]) for c in saved["competencies"]}
+    assert {("hard", "Inventarizatsiya"), ("knowledge", "Excel"), ("knowledge", "1C"), ("knowledge", "Logistika"), ("knowledge", "rus"), ("knowledge", "ingliz"), ("experience", "2 yil omborda")} == cats
+    kb = (await hr.get(f"{R}/competencies", params={"category": "knowledge"})).json()
+    excel = next(i for i in kb["items"] if i["name"] == "Excel")
+    assert excel["positions"] == 1 and excel["position_list"][0]["name"] == "Omborchi"
+    # dastur ro'yxatdan olib tashlansa, bog'lanish ham olinadi (qayta saqlashda)
+    data["daily"]["tools"] = ["Excel"]
+    again = (await hr.put(f"{R}/profiles/{prof['id']}", json={"data": data, "competencies": saved["competencies"]})).json()
+    assert ("knowledge", "1C") not in {(c["category"], c["name"]) for c in again["competencies"]}

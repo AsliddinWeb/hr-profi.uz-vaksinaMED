@@ -6,7 +6,7 @@ Rekruting zayafkasi faqat tasdiqlangan lavozim profili asosida yaratiladi (compa
 from datetime import timedelta
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,6 +26,29 @@ from app.timeutil import now
 router = APIRouter(prefix="/v1/recruit", tags=["recruit"])
 
 STEPS = ("general", "goal", "functions", "education", "hard", "soft", "management", "kpi", "portrait")
+EXTRA = ("daily",)
+DERIVED = ("knowledge", "experience")
+
+
+def _derived(data: dict[str, Any]) -> list[tuple[str, str, str]]:
+    """Profil ma'lumotidan bazaga tushadigan Bilim/Tajriba: kundalik dasturlar, ta'lim yo'nalishi, tillar, tajriba."""
+    out: list[tuple[str, str, str]] = []
+    daily = data.get("daily") if isinstance(data.get("daily"), dict) else {}
+    edu = data.get("education") if isinstance(data.get("education"), dict) else {}
+    for tool in daily.get("tools") or []:
+        if isinstance(tool, str) and tool.strip():
+            out.append(("knowledge", tool.strip()[:160], "practical"))
+    for key in ("field", "languages"):
+        val = edu.get(key)
+        if isinstance(val, str):
+            for part in val.split(",") if key == "languages" else [val]:
+                if part.strip():
+                    out.append(("knowledge", part.strip()[:160], "test" if key == "languages" else "interview"))
+    exp = edu.get("experience")
+    if isinstance(exp, str) and exp.strip():
+        out.append(("experience", exp.strip()[:160], "interview"))
+    seen: set[tuple[str, str]] = set()
+    return [x for x in out if not ((x[0], x[1].lower()) in seen or seen.add((x[0], x[1].lower())))]  # kundalik ish: kompyuterda ishlatiladigan dasturlar va kun tartibi (to'ldirilganlikka kirmaydi)
 METHODS = ("practical", "test", "portfolio", "interview")
 
 register_template("profile.submitted", {"uz": "Lavozim profili tasdiqlashga yuborildi", "ru": "Профиль должности отправлен на утверждение"}, {"uz": "{position} (v{version})", "ru": "{position} (v{version})"}, "info")
@@ -82,15 +105,19 @@ async def list_competencies(
         cond.append(Competency.category == category)
     total = await db.scalar(select(func.count()).select_from(Competency).where(*cond)) or 0
     rows = (await db.scalars(select(Competency).where(*cond).order_by(Competency.name).offset((page - 1) * size).limit(size))).all()
-    linked = dict((await db.execute(
-        select(ProfileCompetency.competency_id, func.count(func.distinct(PositionProfile.position_id)))
+    pairs = (await db.execute(
+        select(ProfileCompetency.competency_id, Position.id, Position.name)
         .join(PositionProfile, PositionProfile.id == ProfileCompetency.profile_id)
+        .join(Position, Position.id == PositionProfile.position_id)
         .where(ProfileCompetency.competency_id.in_([c.id for c in rows]), PositionProfile.status != "archived")
-        .group_by(ProfileCompetency.competency_id)
-    )).all()) if rows else {}  # fmt: skip
+        .distinct()
+    )).all() if rows else []  # fmt: skip
+    names: dict[int, list[dict[str, Any]]] = {}
+    for cid, pid_, pname in pairs:
+        names.setdefault(cid, []).append({"id": pid_, "name": pname})
     return {
         "total": total, "page": page, "size": size, "counts": {k: counts.get(k, 0) for k in CATEGORIES},
-        "items": [{"id": c.id, "name": c.name, "category": c.category, "description": c.description, "is_active": c.is_active, "positions": linked.get(c.id, 0)} for c in rows],
+        "items": [{"id": c.id, "name": c.name, "category": c.category, "description": c.description, "is_active": c.is_active, "positions": len(names.get(c.id, [])), "position_list": sorted(names.get(c.id, []), key=lambda x: x["name"])} for c in rows],
     }  # fmt: skip
 
 
@@ -134,7 +161,9 @@ async def delete_competency(cid: int, request: Request, db: AsyncSession = Depen
 
 
 class ProfileCompIn(BaseModel):
-    competency_id: int
+    competency_id: int | None = None  # yo'q bo'lsa name+category bo'yicha bazaga qo'shiladi
+    name: str | None = Field(default=None, max_length=160)
+    category: str | None = Field(default=None, pattern="^(hard|soft|management|knowledge|experience)$")
     required_level: int = Field(default=3, ge=1, le=5)
     ideal_level: int = Field(default=4, ge=1, le=5)
     mandatory: bool = True
@@ -240,6 +269,17 @@ async def save_profile(pid: int, body: ProfileIn, request: Request, db: AsyncSes
         raise error(404, "not_found")
     if p.status not in ("draft", "returned"):
         raise error(409, "not_editable")
+    # bazada yo'q kompetensiyalar (AI taklifi): nomi bo'yicha topiladi yoki yaratiladi
+    for c in body.competencies:
+        if c.competency_id is None:
+            if not (c.name and c.name.strip() and c.category):
+                raise error(400, "unknown_competency")
+            found = await db.scalar(select(Competency).where(func.lower(Competency.name) == c.name.strip().lower(), Competency.category == c.category))
+            if found is None:
+                found = Competency(name=c.name.strip()[:160], category=c.category, is_active=True)
+                db.add(found)
+                await db.flush()
+            c.competency_id = found.id
     ids = {c.competency_id for c in body.competencies}
     comps = {c.id: c for c in (await db.scalars(select(Competency).where(Competency.id.in_(ids)))).all()} if ids else {}
     if len(comps) != len(ids):
@@ -247,10 +287,23 @@ async def save_profile(pid: int, body: ProfileIn, request: Request, db: AsyncSes
     for old in (await db.scalars(select(ProfileCompetency).where(ProfileCompetency.profile_id == p.id))).all():
         await db.delete(old)
     by_cat: dict[str, int] = {}
+    linked_ids: set[int] = set()
     for c in {c.competency_id: c for c in body.competencies}.values():
+        if comps[c.competency_id].category in DERIVED:
+            continue  # Bilim/Tajriba quyida profil ma'lumotidan qayta hosil qilinadi
         db.add(ProfileCompetency(profile_id=p.id, competency_id=c.competency_id, required_level=c.required_level, ideal_level=max(c.ideal_level, c.required_level), mandatory=c.mandatory, method=c.method))
+        linked_ids.add(c.competency_id)
         by_cat[comps[c.competency_id].category] = by_cat.get(comps[c.competency_id].category, 0) + 1
-    p.data = {k: v for k, v in body.data.items() if k in STEPS}
+    p.data = {k: v for k, v in body.data.items() if k in STEPS or k in EXTRA}
+    for cat, name, method in _derived(p.data):
+        comp = await db.scalar(select(Competency).where(func.lower(Competency.name) == name.lower(), Competency.category == cat))
+        if comp is None:
+            comp = Competency(name=name, category=cat, is_active=True, description="Lavozim profilidan avtomatik qo'shilgan")
+            db.add(comp)
+            await db.flush()
+        if comp.id not in linked_ids:
+            linked_ids.add(comp.id)
+            db.add(ProfileCompetency(profile_id=p.id, competency_id=comp.id, required_level=3, ideal_level=4, mandatory=False, method=method))
     p.filled_pct = _filled(p.data, by_cat)
     await db.flush()
     await db.commit()
@@ -516,3 +569,189 @@ async def funnel_report(
         "stages": stages,
         "recruiters": [{"id": i, "name": n} for i, n in recruiters],
     }
+
+
+# --- AI yordamchi: profilni to'ldirish va ko'rib chiqish ---------------------------------------
+
+PROFILE_SHAPE = (
+    '{"general": {"title": str, "grade": str, "reports_to": str, "work_mode": str}, "goal": str, "functions": [str], '
+    '"education": {"level": str, "field": str, "experience": str, "languages": str}, '
+    '"daily": {"tools": [str], "routine": [{"time": "HH:MM", "task": str}]}, '
+    '"kpi": [{"name": str, "target": str}], "portrait": str, '
+    '"competencies": [{"name": str, "category": "hard"|"soft"|"management", "required_level": 1-5, "ideal_level": 1-5, "mandatory": bool, "method": "practical"|"test"|"portfolio"|"interview"}]}'
+)
+
+
+class AiIn(BaseModel):
+    text: str | None = Field(default=None, max_length=6000)
+    lang: str = Field(default="uz", pattern="^(uz|ru)$")
+    data: dict[str, Any] = Field(default_factory=dict)
+    competencies: list[dict[str, Any]] = Field(default_factory=list, max_length=200)
+
+
+async def _base_names(db: AsyncSession) -> str:
+    rows = (await db.execute(select(Competency.category, Competency.name).where(Competency.is_active.is_(True), Competency.category.in_(("hard", "soft", "management"))).order_by(Competency.name).limit(300))).all()
+    by: dict[str, list[str]] = {}
+    for c, n in rows:
+        by.setdefault(c, []).append(n)
+    return "; ".join(f"{k}: {', '.join(v)}" for k, v in by.items()) or "(bo'sh)"
+
+
+def _clean_profile(d: dict[str, Any], base: dict[tuple[str, str], int]) -> dict[str, Any]:
+    """AI javobini tekshiradi: faqat ma'lum maydonlar, to'g'ri turlar, chegaralangan uzunlik."""
+    def s(v: Any, n: int = 2000) -> str:
+        return v.strip()[:n] if isinstance(v, str) else ""
+
+    def lst(v: Any, n: int = 30) -> list[str]:
+        return [s(x, 400) for x in v if s(x, 400)][:n] if isinstance(v, list) else []
+
+    g = d.get("general") if isinstance(d.get("general"), dict) else {}
+    e = d.get("education") if isinstance(d.get("education"), dict) else {}
+    dl = d.get("daily") if isinstance(d.get("daily"), dict) else {}
+    data = {
+        "general": {k: s(g.get(k), 160) for k in ("title", "grade", "reports_to", "work_mode")},
+        "goal": s(d.get("goal")),
+        "functions": lst(d.get("functions")),
+        "education": {k: s(e.get(k), 300) for k in ("level", "field", "experience", "languages")},
+        "daily": {"tools": lst(dl.get("tools"), 20), "routine": [{"time": s(r.get("time"), 5), "task": s(r.get("task"), 300)} for r in (dl.get("routine") or []) if isinstance(r, dict) and s(r.get("task"), 300)][:20]},
+        "kpi": [{"name": s(k.get("name"), 200), "target": s(k.get("target"), 100)} for k in (d.get("kpi") or []) if isinstance(k, dict) and s(k.get("name"), 200)][:15],
+        "portrait": s(d.get("portrait")),
+    }
+    comps = []
+    for c in d.get("competencies") or []:
+        if not isinstance(c, dict) or c.get("category") not in ("hard", "soft", "management") or not s(c.get("name"), 160):
+            continue
+        name = s(c.get("name"), 160)
+        req = min(5, max(1, int(c.get("required_level") or 3))) if str(c.get("required_level", "3")).isdigit() else 3
+        ideal = min(5, max(req, int(c.get("ideal_level") or req))) if str(c.get("ideal_level", "4")).isdigit() else max(req, 4)
+        comps.append({"competency_id": base.get((c["category"], name.lower())), "name": name, "category": c["category"], "required_level": req, "ideal_level": ideal,
+                      "mandatory": bool(c.get("mandatory", True)), "method": c.get("method") if c.get("method") in METHODS else "interview"})  # fmt: skip
+    return {"data": data, "competencies": comps[:40]}
+
+
+async def _base_map(db: AsyncSession) -> dict[tuple[str, str], int]:
+    return {(c, n.lower()): i for i, c, n in (await db.execute(select(Competency.id, Competency.category, Competency.name).where(Competency.is_active.is_(True)))).all()}
+
+
+async def _editable(db: AsyncSession, pid: int) -> tuple[PositionProfile, Position | None]:
+    p = await db.get(PositionProfile, pid)
+    if not p:
+        raise error(404, "not_found")
+    if p.status not in ("draft", "returned"):
+        raise error(409, "not_editable")
+    return p, await db.get(Position, p.position_id)
+
+
+@router.post("/profiles/{pid}/ai-fill")
+async def ai_fill(pid: int, body: AiIn, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(_editor)):
+    """Rahbar o'z so'zi bilan yozadi -> AI butun profilni (kundalik ish va kompetensiyalar bilan) taklif qiladi. Saqlanmaydi: frontend ko'rsatib, qo'llaydi."""
+    from app.services import ai
+
+    p, pos = await _editable(db, pid)
+    dept = await db.get(Department, pos.department_id) if pos and pos.department_id else None
+    lang = ai.LANGS[body.lang]
+    system = (
+        f"{ai.SYSTEM_RULES}\nVazifa: siz tajribali HRBP siz. Rahbarning erkin tavsifi asosida lavozim profilini to'liq tuzing. "
+        f"Javob tili: {lang}. FAQAT bitta JSON obyekt qaytaring, boshqa matn yo'q, shakl: {PROFILE_SHAPE}. "
+        "functions — 6–12 ta aniq vazifa (fe'l bilan). daily.tools — kompyuterda ishlatiladigan dasturlar (Excel, 1C, CRM, Telegram va h.k.). "
+        "daily.routine — ish kunining 6–10 bandli tartibi (soat va ish). kpi — 4–8 ta o'lchanadigan ko'rsatkich va maqsad. "
+        "competencies — hard 4–8, soft 3–6, management 0–5 (rahbarlik bo'lmasa 0). Bazadagi mavjud nomlarga mos kelsa aynan o'sha nomni ishlating. "
+        "Tavsifda yo'q narsani lavozim uchun odatiy va mantiqiy tarzda to'ldiring."
+    )
+    user = (
+        f"Lavozim: {pos.name if pos else '—'}\nBo'lim: {dept.name if dept else '—'}\nBazadagi kompetensiyalar: {await _base_names(db)}\n"
+        f"<data>\n{(body.text or '').strip()[:6000]}\n</data>"
+    )
+    raw, _ = await ai.run(db, auth, "profile", system, user, max_tokens=3500, entity="position_profile", entity_id=p.id)
+    return _clean_profile(ai.extract_json(raw), await _base_map(db))
+
+
+@router.post("/profiles/{pid}/ai-review")
+async def ai_review(pid: int, body: AiIn, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(_editor)):
+    """Joriy (saqlanmagan bo'lishi ham mumkin) profilni tahlil qiladi: kamchiliklar va har biri uchun qo'shiladigan aniq taklif."""
+    import json
+
+    from app.services import ai
+
+    p, pos = await _editable(db, pid)
+    lang = ai.LANGS[body.lang]
+    system = (
+        f"{ai.SYSTEM_RULES}\nVazifa: lavozim profilini HRBP sifatida tekshiring va kamchiliklarni toping. Javob tili: {lang}. "
+        'FAQAT JSON: {"score": 0-100, "summary": str, "suggestions": [{"step": "general"|"goal"|"functions"|"education"|"daily"|"hard"|"soft"|"management"|"kpi"|"portrait", '
+        '"title": str, "reason": str, "add": <qo\'shiladigan qiymat>}]}. '
+        "add shakli: functions -> str (bitta vazifa); kpi -> {\"name\": str, \"target\": str}; daily -> {\"time\": \"HH:MM\", \"task\": str} yoki {\"tool\": str}; "
+        "hard/soft/management -> {\"name\": str, \"required_level\": 1-5, \"ideal_level\": 1-5, \"mandatory\": bool, \"method\": \"practical\"|\"test\"|\"portfolio\"|\"interview\"}; "
+        "goal/portrait -> qo'shiladigan jumla (str); general/education -> {\"field\": maydon nomi, \"value\": str}. 4–10 ta eng muhim taklif bering, mavjud narsani takrorlamang."
+    )
+    current = {"data": body.data or p.data, "competencies": [{"name": c.get("name"), "category": c.get("category"), "required_level": c.get("required_level")} for c in body.competencies]}
+    user = f"Lavozim: {pos.name if pos else '—'}\n<data>\n{json.dumps(current, ensure_ascii=False)[:9000]}\n</data>"
+    raw, _ = await ai.run(db, auth, "profile", system, user, max_tokens=2000, entity="position_profile", entity_id=p.id)
+    d = ai.extract_json(raw)
+    base = await _base_map(db)
+    out = []
+    valid = {*STEPS, "daily"}
+    for i, sg in enumerate(d.get("suggestions") or []):
+        if not isinstance(sg, dict) or sg.get("step") not in valid or not isinstance(sg.get("title"), str):
+            continue
+        add = sg.get("add")
+        if sg["step"] in ("hard", "soft", "management"):
+            if not isinstance(add, dict) or not isinstance(add.get("name"), str):
+                continue
+            add = _clean_profile({"competencies": [{**add, "category": sg["step"]}]}, base)["competencies"]
+            if not add:
+                continue
+            add = add[0]
+        out.append({"id": i, "step": sg["step"], "title": sg["title"][:200], "reason": str(sg.get("reason") or "")[:500], "add": add})
+    score = d.get("score")
+    return {"score": score if isinstance(score, int) and 0 <= score <= 100 else None, "summary": str(d.get("summary") or "")[:1000], "suggestions": out[:12]}
+
+
+MAX_UPLOAD = 10 * 1024 * 1024
+
+
+def _file_text(name: str, raw: bytes) -> str:
+    """PDF / Word (.docx) / Excel (.xlsx) / matn fayldan oddiy matn."""
+    import io
+    import re as _re
+    import zipfile
+
+    low = name.lower()
+    if low.endswith(".pdf"):
+        from pypdf import PdfReader
+
+        return "\n".join((pg.extract_text() or "") for pg in PdfReader(io.BytesIO(raw)).pages[:30])
+    if low.endswith(".docx"):
+        with zipfile.ZipFile(io.BytesIO(raw)) as z:
+            xml = z.read("word/document.xml").decode("utf8", "ignore")
+        xml = _re.sub(r"</w:p>", "\n", xml)
+        return _re.sub(r"<[^>]+>", "", xml)
+    if low.endswith((".xlsx", ".xlsm")):
+        from openpyxl import load_workbook
+
+        wb = load_workbook(io.BytesIO(raw), read_only=True, data_only=True)
+        lines = []
+        for ws in wb.worksheets[:5]:
+            for row in ws.iter_rows(max_row=300, values_only=True):
+                cells = [str(c) for c in row if c not in (None, "")]
+                if cells:
+                    lines.append(" | ".join(cells))
+        return "\n".join(lines)
+    if low.endswith((".txt", ".csv", ".md")):
+        return raw.decode("utf8", "ignore")
+    raise error(400, "unsupported_file")
+
+
+@router.post("/profiles/extract-text")
+async def extract_text(file: UploadFile, _: AuthContext = Depends(_editor)):
+    """Yuklangan hujjatdan matn: AI profil to'ldirishga manba sifatida qo'shiladi (fayl saqlanmaydi)."""
+    raw = await file.read(MAX_UPLOAD + 1)
+    if len(raw) > MAX_UPLOAD:
+        raise error(400, "file_too_large")
+    try:
+        text = _file_text(file.filename or "", raw)
+    except Exception as e:  # buzilgan fayl
+        if getattr(e, "status_code", None):
+            raise
+        raise error(400, "unsupported_file") from None
+    text = "\n".join(line.strip() for line in text.splitlines() if line.strip())
+    return {"name": file.filename, "text": text[:6000], "truncated": len(text) > 6000}
