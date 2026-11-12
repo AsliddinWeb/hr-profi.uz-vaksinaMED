@@ -199,3 +199,17 @@ async def test_management_not_applicable_completes_profile(new_client):
     r = (await hr.put(f"{R}/profiles/{prof['id']}", json={"data": {**FULL, "management_na": True}, "competencies": comps})).json()
     assert r["filled_pct"] == 100
     assert (await hr.post(f"{R}/profiles/{prof['id']}/action", json={"action": "submit"})).json()["status"] == "pending"
+
+
+async def test_competencies_by_position(new_client):
+    hr, _ = await as_user(new_client, "hrbp", "hr_direktor")
+    async with SessionLocal() as s:
+        p = Position(name="Rekruter")
+        s.add(p)
+        await s.commit()
+        pid = p.id
+    prof = (await hr.post(f"{R}/profiles", json={"position_id": pid})).json()
+    await hr.put(f"{R}/profiles/{prof['id']}", json={"data": {"daily": {"tools": ["Excel"]}}, "competencies": [{"name": "Saralash", "category": "hard"}, {"name": "Muloqot", "category": "soft"}]})
+    items = (await hr.get(f"{R}/competencies/by-position")).json()["items"]
+    row = next(i for i in items if i["position"]["id"] == pid)
+    assert row["profile_id"] == prof["id"] and row["counts"]["hard"] == 1 and row["counts"]["knowledge"] == 1 and row["total"] == 3

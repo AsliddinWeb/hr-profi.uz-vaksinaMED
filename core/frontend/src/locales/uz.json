@@ -6808,7 +6808,13 @@
       "search": "Kompetensiya nomi bo'yicha qidirish",
       "nPositions": "{{n}} ta",
       "total": "Jami: {{n}} ta",
-      "deleteQ": "\"{{name}}\" o'chirilsinmi? Profillarda ishlatilgan bo'lsa nofaol qilinadi."
+      "deleteQ": "\"{{name}}\" o'chirilsinmi? Profillarda ishlatilgan bo'lsa nofaol qilinadi.",
+      "byPosition": "Lavozimlar bo'yicha",
+      "catalog": "Barcha kompetensiyalar",
+      "subtitlePos": "Har lavozim uchun kompetensiyalar: lavozimni bosing va hammasini ko'ring",
+      "totalCol": "Jami",
+      "noPositions": "Hali birorta lavozim profili yo'q",
+      "openProfile": "Profilni ochish"
     },
     "dash": {
       "positions": "Jami lavozimlar",

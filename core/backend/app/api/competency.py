@@ -85,6 +85,34 @@ class CompetencyIn(BaseModel):
     is_active: bool = True
 
 
+@router.get("/competencies/by-position")
+async def competencies_by_position(q: str | None = None, db: AsyncSession = Depends(get_session), _: AuthContext = Depends(_reader)):
+    """Kompetensiyalar bazasi lavozimlar kesimida: har lavozimning amaldagi profili va har kategoriya bo'yicha soni."""
+    latest: dict[int, PositionProfile] = {}
+    for p in (await db.scalars(select(PositionProfile).where(PositionProfile.status != "archived").order_by(PositionProfile.position_id, PositionProfile.version))).all():
+        latest[p.position_id] = p
+    if not latest:
+        return {"items": []}
+    positions = {x.id: x for x in (await db.scalars(select(Position).where(Position.id.in_(latest)))).all()}
+    depts = {d.id: d.name for d in (await db.scalars(select(Department))).all()}
+    counts: dict[int, dict[str, int]] = {}
+    for pid_, cat, n in (await db.execute(
+        select(ProfileCompetency.profile_id, Competency.category, func.count()).join(Competency, Competency.id == ProfileCompetency.competency_id)
+        .where(ProfileCompetency.profile_id.in_([p.id for p in latest.values()])).group_by(ProfileCompetency.profile_id, Competency.category)
+    )).all():  # fmt: skip
+        counts.setdefault(pid_, {})[cat] = n
+    items = []
+    for pos_id, p in latest.items():
+        pos = positions.get(pos_id)
+        if not pos or (q and q.strip().lower() not in pos.name.lower()):
+            continue
+        c = counts.get(p.id, {})
+        items.append({"profile_id": p.id, "position": {"id": pos.id, "name": pos.name}, "department": depts.get(pos.department_id or 0), "status": p.status, "version": p.version,
+                      "filled_pct": p.filled_pct, "counts": {k: c.get(k, 0) for k in CATEGORIES}, "total": sum(c.values())})  # fmt: skip
+    items.sort(key=lambda x: x["position"]["name"])
+    return {"items": items}
+
+
 @router.get("/competencies")
 async def list_competencies(
     category: str | None = Query(default=None, pattern="^(hard|soft|management|knowledge|experience)$"),
@@ -599,8 +627,11 @@ async def _base_names(db: AsyncSession) -> str:
 
 def _clean_profile(d: dict[str, Any], base: dict[tuple[str, str], int]) -> dict[str, Any]:
     """AI javobini tekshiradi: faqat ma'lum maydonlar, to'g'ri turlar, chegaralangan uzunlik."""
+    import re as _re
+
     def s(v: Any, n: int = 2000) -> str:
-        return v.strip()[:n] if isinstance(v, str) else ""
+        # faqat lotin/kirill, raqam va tinish belgilari (model ba'zan begona yozuvdagi so'z qo'shib yuboradi)
+        return _re.sub(r"[^ -ɏЀ-ӿ‐-‧ʻʼ]", "", v).strip()[:n] if isinstance(v, str) else ""
 
     def lst(v: Any, n: int = 30) -> list[str]:
         return [s(x, 400) for x in v if s(x, 400)][:n] if isinstance(v, list) else []
@@ -654,7 +685,7 @@ async def ai_fill(pid: int, body: AiIn, db: AsyncSession = Depends(get_session),
     lang = ai.LANGS[body.lang]
     system = (
         f"{ai.SYSTEM_RULES}\nVazifa: siz tajribali HRBP siz. Rahbarning erkin tavsifi asosida lavozim profilini to'liq tuzing. "
-        f"Javob tili: {lang}. FAQAT bitta JSON obyekt qaytaring, boshqa matn yo'q, shakl: {PROFILE_SHAPE}. "
+        f"Javob tili: {lang}; faqat shu tilning alifbosida yozing, boshqa til yoki yozuvdagi so'z ishlatmang. FAQAT bitta JSON obyekt qaytaring, boshqa matn yo'q, shakl: {PROFILE_SHAPE}. "
         "functions — 6–12 ta aniq vazifa (fe'l bilan). daily.tools — kompyuterda ishlatiladigan dasturlar (Excel, 1C, CRM, Telegram va h.k.). "
         "daily.routine — ish kunining 6–10 bandli tartibi (soat va ish). kpi — 4–8 ta o'lchanadigan ko'rsatkich va maqsad. "
         "competencies — hard 4–8, soft 3–6, management 0–5 (rahbarlik bo'lmasa 0). Bazadagi mavjud nomlarga mos kelsa aynan o'sha nomni ishlating. "

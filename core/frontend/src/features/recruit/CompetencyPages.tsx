@@ -49,8 +49,194 @@ const METHODS = ['practical', 'test', 'portfolio', 'interview'] as const
 const pill = (on: boolean) => 'rounded-full border px-3 py-1.5 text-xs font-medium ' + (on ? 'border-primary bg-primary text-primary-fg' : 'border-border bg-surface text-muted hover:text-text')
 const area = 'w-full rounded-control border border-border bg-surface px-3 py-2 text-sm'
 
-/** /recruit/competencies: kompaniyadagi barcha lavozimlar uchun yagona kompetensiyalar bazasi. */
+type ByPos = { profile_id: number; position: { id: number; name: string }; department: string | null; status: PStatus; version: number; filled_pct: number; counts: Record<Cat, number>; total: number }
+
+/** /recruit/competencies: kompetensiyalar bazasi — asosiy ko'rinish lavozimlar kesimida, ikkinchi tab — umumiy katalog. */
 export function CompetenciesPage() {
+  const { t } = useTranslation()
+  const [view, setView] = useState<'positions' | 'catalog'>('positions')
+  const switcher = (
+    <Tabs
+      items={[
+        { key: 'positions' as const, label: t('comp.base.byPosition') },
+        { key: 'catalog' as const, label: t('comp.base.catalog') },
+      ]}
+      value={view}
+      onChange={setView}
+    />
+  )
+  return view === 'positions' ? <PositionsView switcher={switcher} /> : <CompetencyCatalog switcher={switcher} />
+}
+
+function PositionsView({ switcher }: { switcher: ReactNode }) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const [q, setQ] = useState('')
+  const list = useQuery({ queryKey: ['competencies', 'by-position'], queryFn: () => api<{ items: ByPos[] }>('/api/v1/recruit/competencies/by-position') })
+  const rows = list.data?.items.filter((r) => !q || r.position.name.toLowerCase().includes(q.toLowerCase()))
+  return (
+    <div className="mx-auto flex max-w-6xl flex-col gap-5">
+      <PageHeader title={t('comp.base.title')} subtitle={t('comp.base.subtitlePos')} />
+      {switcher}
+      <Card className="overflow-hidden">
+        <div className="flex items-center gap-2 border-b border-border p-3">
+          <Search className="size-4 text-muted" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('comp.prof.search')} className="max-w-sm border-0 shadow-none" aria-label={t('comp.prof.search')} />
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-border text-xs text-muted">
+              <tr>
+                <th className="w-10 px-4 py-2.5 font-medium">№</th>
+                <th className="px-4 py-2.5 font-medium">{t('comp.prof.position')}</th>
+                <th className="hidden px-4 py-2.5 font-medium md:table-cell">{t('comp.prof.department')}</th>
+                {CATS.map((k) => (
+                  <th key={k} className="hidden px-3 py-2.5 text-center font-medium lg:table-cell">
+                    {t(`comp.cat.${k}`)}
+                  </th>
+                ))}
+                <th className="px-3 py-2.5 text-center font-medium">{t('comp.base.totalCol')}</th>
+                <th className="px-4 py-2.5 font-medium">{t('comp.base.status')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {!rows && (
+                <tr>
+                  <td colSpan={10} className="p-4">
+                    <Skeleton className="h-32" />
+                  </td>
+                </tr>
+              )}
+              {rows?.map((r, i) => (
+                <tr key={r.profile_id} data-href className="cursor-pointer hover:bg-surface-2" onClick={() => navigate(`/recruit/competencies/position/${r.profile_id}`)}>
+                  <td className="px-4 py-2.5 tabular-nums text-muted">{i + 1}</td>
+                  <td className="px-4 py-2.5 font-medium text-primary">{r.position.name}</td>
+                  <td className="hidden px-4 py-2.5 text-muted md:table-cell">{r.department ?? '—'}</td>
+                  {CATS.map((k) => (
+                    <td key={k} className="hidden px-3 py-2.5 text-center tabular-nums lg:table-cell">
+                      {r.counts[k] || '—'}
+                    </td>
+                  ))}
+                  <td className="px-3 py-2.5 text-center font-medium tabular-nums">{r.total}</td>
+                  <td className="px-4 py-2.5">
+                    <Badge tone={TONE[r.status]}>{t(`comp.st.${r.status}`)}</Badge>
+                  </td>
+                </tr>
+              ))}
+              {rows && rows.length === 0 && (
+                <tr>
+                  <td colSpan={10}>
+                    <EmptyState icon={Search} title={t('comp.base.noPositions')} />
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  )
+}
+
+/** /recruit/competencies/position/:id — bitta lavozimning kompetensiyalari va profil ma'lumotlari. */
+export function PositionCompetenciesPage() {
+  const { t } = useTranslation()
+  const id = Number(useParams().id)
+  const q = useQuery({ queryKey: ['profiles', 'one', id], queryFn: () => api<Profile>(`/api/v1/recruit/profiles/${id}`), retry: false })
+  if (q.error instanceof ApiError && q.error.status === 404) return <NotFound />
+  const p = q.data
+  if (!p) return <Skeleton className="mx-auto h-96 max-w-6xl" />
+  const d = p.data as Data
+  return (
+    <div className="mx-auto flex max-w-6xl flex-col gap-5">
+      <PageHeader
+        title={p.position.name ?? ''}
+        subtitle={`${p.department ?? ''}${p.department ? ' · ' : ''}${p.code} · v${p.version}.0`}
+        backTo="/recruit/competencies"
+        backLabel={t('comp.base.title')}
+        actions={
+          <div className="flex items-center gap-2">
+            <Badge tone={TONE[p.status]}>{t(`comp.st.${p.status}`)}</Badge>
+            <Link to={`/recruit/profiles/${p.id}`}>
+              <Button variant="outline">{t('comp.base.openProfile')}</Button>
+            </Link>
+          </div>
+        }
+      />
+      {d.goal && (
+        <Card className="p-5 text-sm">
+          <div className="mb-1 font-medium">{t('comp.wiz.step.goal')}</div>
+          <div className="text-muted">{d.goal}</div>
+        </Card>
+      )}
+      <div className="grid gap-4 lg:grid-cols-2">
+        {CATS.map((k) => {
+          const rows = p.competencies.filter((c) => c.category === k)
+          return (
+            <Card key={k} className="overflow-hidden">
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <span className="font-medium">{t(`comp.cat.${k}`)}</span>
+                <Badge tone="info">{rows.length}</Badge>
+              </div>
+              {rows.length === 0 ? (
+                <div className="px-4 py-5 text-center text-sm text-muted">{k === 'management' && d.management_na ? t('comp.wiz.noManagement') : '—'}</div>
+              ) : (
+                <table className="w-full text-left text-sm">
+                  <thead className="text-xs text-muted">
+                    <tr>
+                      <th className="px-4 py-2 font-medium">{t('comp.base.name')}</th>
+                      <th className="px-2 py-2 font-medium">{t('comp.base.levels')}</th>
+                      <th className="px-2 py-2 font-medium">{t('comp.wiz.mandatory')}</th>
+                      <th className="px-4 py-2 font-medium">{t('comp.wiz.method')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {rows.map((c) => (
+                      <tr key={`${c.category}${c.competency_id}`}>
+                        <td className="px-4 py-2 font-medium">{c.name}</td>
+                        <td className="whitespace-nowrap px-2 py-2 tabular-nums">
+                          L{c.required_level} → L{c.ideal_level}
+                        </td>
+                        <td className="px-2 py-2">
+                          <Badge tone={c.mandatory ? 'danger' : 'warning'}>{t(c.mandatory ? 'comp.wiz.must' : 'comp.wiz.extra')}</Badge>
+                        </td>
+                        <td className="px-4 py-2 text-muted">{t(`comp.method.${c.method}`)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </Card>
+          )
+        })}
+        {(d.daily?.routine?.length ?? 0) > 0 && (
+          <Card className="p-5 text-sm">
+            <div className="mb-2 font-medium">{t('comp.ai.daily')}</div>
+            {d.daily?.routine?.map((r, i) => (
+              <div key={i} className="flex gap-3 py-0.5">
+                <span className="w-12 shrink-0 tabular-nums text-muted">{r.time}</span>
+                <span>{r.task}</span>
+              </div>
+            ))}
+          </Card>
+        )}
+        {(d.kpi?.length ?? 0) > 0 && (
+          <Card className="p-5 text-sm">
+            <div className="mb-2 font-medium">{t('comp.wiz.step.kpi')}</div>
+            {d.kpi?.map((k, i) => (
+              <div key={i} className="flex justify-between gap-3 py-0.5">
+                <span>{k.name}</span>
+                <span className="text-muted">{k.target}</span>
+              </div>
+            ))}
+          </Card>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function CompetencyCatalog({ switcher }: { switcher: ReactNode }) {
   const { t } = useTranslation()
   const can = useCan()
   const qc = useQueryClient()
@@ -86,6 +272,7 @@ export function CompetenciesPage() {
           )
         }
       />
+      {switcher}
       <Tabs items={CATS.map((k) => ({ key: k, label: t(`comp.cat.${k}`), count: d?.counts[k] ?? 0 }))} value={cat} onChange={(k) => (setCat(k), setPage(1))} />
       {form && (
         <Card className="flex flex-col gap-3 p-5">
