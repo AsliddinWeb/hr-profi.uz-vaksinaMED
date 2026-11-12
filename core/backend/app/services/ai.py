@@ -78,10 +78,20 @@ def parse_gemini(data: dict[str, Any]) -> tuple[str, int, int]:
 
 async def _post_gemini(system: str, user: str, max_tokens: int) -> tuple[str, int, int]:
     s = get_settings()
-    body = {"system_instruction": {"parts": [{"text": system}]}, "contents": [{"role": "user", "parts": [{"text": user}]}], "generationConfig": {"maxOutputTokens": max(max_tokens, 1024) * 2}}
+    body = {"system_instruction": {"parts": [{"text": system}]}, "contents": [{"role": "user", "parts": [{"text": user}]}],
+            "generationConfig": {"maxOutputTokens": max(max_tokens, 1024) * 2, "thinkingConfig": {"thinkingLevel": "low"}}}
     headers = {"x-goog-api-key": s.gemini_api_key, "content-type": "application/json"}  # kalit URL da emas, sarlavhada
-    async with httpx.AsyncClient(timeout=120) as c:
-        r = await c.post(f"{s.gemini_base_url}/v1beta/models/{s.gemini_model}:generateContent", json=body, headers=headers)
+    r = None
+    async with httpx.AsyncClient(timeout=60) as c:
+        for model in dict.fromkeys((s.gemini_model, s.gemini_fallback_model)):
+            try:
+                r = await c.post(f"{s.gemini_base_url}/v1beta/models/{model}:generateContent", json=body, headers=headers)
+            except httpx.TimeoutException:
+                continue  # javob bermadi: zaxira modelga o'tadi
+            if r.status_code not in (429, 503):
+                break  # band bo'lsa zaxira modelga o'tadi
+    if r is None:
+        raise RuntimeError("timeout")
     if r.status_code >= 400:
         raise RuntimeError(f"http_{r.status_code}")
     return parse_gemini(r.json())
