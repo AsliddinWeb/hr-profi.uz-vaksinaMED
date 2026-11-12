@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     anthropic_base_url: str = "https://api.anthropic.com"
     ai_default_model: str = "claude-haiku-5-5"
+    # Bepul muqobil: Google Gemini (aistudio.google.com). Anthropic kaliti bo'sh bo'lsa AI shu orqali ishlaydi
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.5-flash"
+    gemini_base_url: str = "https://generativelanguage.googleapis.com"
     # Nutqni matnga aylantirish (OpenAI Whisper): AI suhbatda ovozli javob va prebordingda ovoz chiqarib o'qish.
     # Kalit bo'sh bo'lsa ovozli funksiyalar o'chiq, yozma javob ishlayveradi.
     openai_api_key: str = ""

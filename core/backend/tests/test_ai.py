@@ -178,3 +178,17 @@ async def test_global_search_respects_permissions(new_client):
     assert (await ali.get("/api/v1/search", params={"q": "k"})).status_code == 422
     # maxsus belgilar literal sifatida qidiriladi
     assert (await hr.get("/api/v1/search", params={"q": "%%"})).json()["total"] == 0
+
+
+def test_gemini_provider_and_parse(monkeypatch):
+    from app.config import get_settings
+    from app.services import ai
+
+    s = get_settings()
+    monkeypatch.setattr(s, "anthropic_api_key", "")
+    monkeypatch.setattr(s, "gemini_api_key", "test-key")
+    assert ai.provider() == "gemini" and ai.configured()
+    data = {"candidates": [{"content": {"parts": [{"text": "o'ylash", "thought": True}, {"text": '{"a": 1}'}]}}], "usageMetadata": {"promptTokenCount": 10, "candidatesTokenCount": 4}}
+    assert ai.parse_gemini(data) == ('{"a": 1}', 10, 4)
+    monkeypatch.setattr(s, "anthropic_api_key", "x")
+    assert ai.provider() == "anthropic"

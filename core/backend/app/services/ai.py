@@ -37,8 +37,18 @@ SYSTEM_RULES = (
 )
 
 
+def provider() -> str | None:
+    """Qaysi AI ishlatiladi: Claude (kalit bo'lsa) yoki bepul Gemini; ikkalasi ham bo'lmasa None."""
+    s = get_settings()
+    if s.anthropic_api_key:
+        return "anthropic"
+    if s.gemini_api_key:
+        return "gemini"
+    return None
+
+
 def configured() -> bool:
-    return bool(get_settings().anthropic_api_key)
+    return provider() is not None
 
 
 async def get_cfg(db: AsyncSession) -> AiSettings:
@@ -59,7 +69,27 @@ async def used_today(db: AsyncSession, user_id: int, moment: datetime) -> int:
     return await db.scalar(select(func.count()).select_from(AiRequest).where(AiRequest.user_id == user_id, AiRequest.created_at >= start)) or 0
 
 
+def parse_gemini(data: dict[str, Any]) -> tuple[str, int, int]:
+    parts = ((data.get("candidates") or [{}])[0].get("content") or {}).get("parts") or []
+    text = "".join(p.get("text", "") for p in parts if isinstance(p, dict) and not p.get("thought")).strip()
+    usage = data.get("usageMetadata") or {}
+    return text, int(usage.get("promptTokenCount", 0)), int(usage.get("candidatesTokenCount", 0))
+
+
+async def _post_gemini(system: str, user: str, max_tokens: int) -> tuple[str, int, int]:
+    s = get_settings()
+    body = {"system_instruction": {"parts": [{"text": system}]}, "contents": [{"role": "user", "parts": [{"text": user}]}], "generationConfig": {"maxOutputTokens": max(max_tokens, 1024) * 2}}
+    headers = {"x-goog-api-key": s.gemini_api_key, "content-type": "application/json"}  # kalit URL da emas, sarlavhada
+    async with httpx.AsyncClient(timeout=120) as c:
+        r = await c.post(f"{s.gemini_base_url}/v1beta/models/{s.gemini_model}:generateContent", json=body, headers=headers)
+    if r.status_code >= 400:
+        raise RuntimeError(f"http_{r.status_code}")
+    return parse_gemini(r.json())
+
+
 async def _post(model: str, system: str, user: str, max_tokens: int) -> tuple[str, int, int]:
+    if provider() == "gemini":
+        return await _post_gemini(system, user, max_tokens)
     s = get_settings()
     body = {"model": model, "max_tokens": max_tokens, "system": system, "messages": [{"role": "user", "content": user}]}
     headers = {"x-api-key": s.anthropic_api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"}
@@ -94,7 +124,7 @@ async def run_for(db: AsyncSession, user_id: int, feature: str, system: str, use
             raise RuntimeError("empty")
     except (httpx.HTTPError, RuntimeError, ValueError) as e:
         ok, err = False, str(e)[:120] or type(e).__name__
-    db.add(AiRequest(user_id=user_id, feature=feature, entity=entity, entity_id=entity_id, model=cfg.model, input_tokens=tin, output_tokens=tout, ok=ok, error=err, duration_ms=int((time.monotonic() - started) * 1000)))
+    db.add(AiRequest(user_id=user_id, feature=feature, entity=entity, entity_id=entity_id, model=get_settings().gemini_model if provider() == "gemini" else cfg.model, input_tokens=tin, output_tokens=tout, ok=ok, error=err, duration_ms=int((time.monotonic() - started) * 1000)))
     await db.commit()  # so'rov hisobi xato bo'lsa ham saqlansin
     if not ok:
         raise error(502, "ai_failed")
