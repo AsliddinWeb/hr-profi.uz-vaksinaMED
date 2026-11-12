@@ -26,7 +26,7 @@ from app.timeutil import now
 router = APIRouter(prefix="/v1/recruit", tags=["recruit"])
 
 STEPS = ("general", "goal", "functions", "education", "hard", "soft", "management", "kpi", "portrait")
-EXTRA = ("daily",)
+EXTRA = ("daily", "management_na")  # management_na: lavozimda boshqaruv vazifasi yo'q (qadam to'ldirilgan hisoblanadi)
 DERIVED = ("knowledge", "experience")
 
 
@@ -180,7 +180,7 @@ def _filled(data: dict[str, Any], comps: dict[str, int]) -> int:
     done = 0
     for s in STEPS:
         if s in ("hard", "soft", "management"):
-            done += bool(comps.get(s))
+            done += bool(comps.get(s)) or (s == "management" and data.get("management_na") is True)
         else:
             v = data.get(s)
             done += bool(v and (any(x for x in v.values()) if isinstance(v, dict) else v))
@@ -617,7 +617,7 @@ def _clean_profile(d: dict[str, Any], base: dict[tuple[str, str], int]) -> dict[
         "kpi": [{"name": s(k.get("name"), 200), "target": s(k.get("target"), 100)} for k in (d.get("kpi") or []) if isinstance(k, dict) and s(k.get("name"), 200)][:15],
         "portrait": s(d.get("portrait")),
     }
-    comps = []
+    comps: list[dict[str, Any]] = []
     for c in d.get("competencies") or []:
         if not isinstance(c, dict) or c.get("category") not in ("hard", "soft", "management") or not s(c.get("name"), 160):
             continue
@@ -626,6 +626,8 @@ def _clean_profile(d: dict[str, Any], base: dict[tuple[str, str], int]) -> dict[
         ideal = min(5, max(req, int(c.get("ideal_level") or req))) if str(c.get("ideal_level", "4")).isdigit() else max(req, 4)
         comps.append({"competency_id": base.get((c["category"], name.lower())), "name": name, "category": c["category"], "required_level": req, "ideal_level": ideal,
                       "mandatory": bool(c.get("mandatory", True)), "method": c.get("method") if c.get("method") in METHODS else "interview"})  # fmt: skip
+    if d.get("general") is not None and not any(c["category"] == "management" for c in comps):
+        data["management_na"] = True  # AI rahbarlik ko'nikmasi bermadi: boshqaruvsiz lavozim
     return {"data": data, "competencies": comps[:40]}
 
 

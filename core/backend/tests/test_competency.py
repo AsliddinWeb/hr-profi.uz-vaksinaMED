@@ -183,3 +183,19 @@ async def test_ai_fill_fallback_without_key(new_client):
     text = "- Davlat idoralari bilan ishlash.\n- Kommunal xarajatlarni nazorat qilish, Excel va 1C da hisob.\nqisqa"
     r = (await hr.post(f"{R}/profiles/{prof['id']}/ai-fill", json={"text": text})).json()
     assert r["fallback"] is True and len(r["data"]["functions"]) == 2 and r["data"]["daily"]["tools"] == ["Excel", "1C"]
+
+
+async def test_management_not_applicable_completes_profile(new_client):
+    hr, _ = await as_user(new_client, "hrna", "hr_direktor")
+    async with SessionLocal() as s:
+        p = Position(name="Rekruter")
+        s.add(p)
+        await s.commit()
+        pid = p.id
+    prof = (await hr.post(f"{R}/profiles", json={"position_id": pid})).json()
+    comps = [{"name": "Saralash", "category": "hard"}, {"name": "Muloqot", "category": "soft"}]
+    r = (await hr.put(f"{R}/profiles/{prof['id']}", json={"data": FULL, "competencies": comps})).json()
+    assert r["filled_pct"] == 89
+    r = (await hr.put(f"{R}/profiles/{prof['id']}", json={"data": {**FULL, "management_na": True}, "competencies": comps})).json()
+    assert r["filled_pct"] == 100
+    assert (await hr.post(f"{R}/profiles/{prof['id']}/action", json={"action": "submit"})).json()["status"] == "pending"

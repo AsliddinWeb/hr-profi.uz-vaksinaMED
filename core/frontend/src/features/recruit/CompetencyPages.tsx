@@ -365,6 +365,7 @@ type Data = {
   kpi?: { name: string; target: string }[]
   portrait?: string
   daily?: { tools?: string[]; routine?: { time: string; task: string }[] }
+  management_na?: boolean
 }
 type Suggestion = { id: number; step: string; title: string; reason: string; add: unknown }
 
@@ -459,6 +460,7 @@ export function ProfileWizardPage() {
   const set = <K extends keyof Data>(k: K, v: Data[K]) => (setData((d) => ({ ...d, [k]: v })), setSaved(false))
   const stepDone = (k: StepKey) => {
     if (k === 'review') return false
+    if (k === 'management' && data.management_na) return true
     if (k === 'hard' || k === 'soft' || k === 'management') return comps.some((c) => c.category === k)
     const v = data[k as keyof Data]
     return Array.isArray(v) ? v.some((x) => (typeof x === 'string' ? x.trim() : x.name.trim())) : typeof v === 'object' && v ? Object.values(v).some((x) => x && String(x).trim()) : !!(v && String(v).trim())
@@ -637,7 +639,15 @@ export function ProfileWizardPage() {
     ),
     hard: compStep('hard'),
     soft: compStep('soft'),
-    management: compStep('management'),
+    management: (
+      <div className="flex flex-col gap-3">
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={!!data.management_na} disabled={ro} onChange={(e) => set('management_na', e.target.checked)} />
+          {t('comp.wiz.noManagement')}
+        </label>
+        {!data.management_na && compStep('management')}
+      </div>
+    ),
     kpi: (
       <div className="flex flex-col gap-2">
         {(data.kpi ?? [{ name: '', target: '' }]).map((k, i, arr) => (

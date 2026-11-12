@@ -6893,7 +6893,8 @@
         "languages": "Tillar",
         "kpiName": "Ko'rsatkich",
         "kpiTarget": "Maqsad"
-      }
+      },
+      "noManagement": "Bu lavozimda boshqaruv (rahbarlik) vazifasi yo'q"
     },
     "appr": {
       "title": "Tasdiqlash markazi",
