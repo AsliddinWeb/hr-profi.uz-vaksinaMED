@@ -3,6 +3,7 @@
 Rekruting zayafkasi faqat tasdiqlangan lavozim profili asosida yaratiladi (company setting `recruit.require_profile`).
 """
 
+import re
 from datetime import timedelta
 from typing import Any
 
@@ -26,6 +27,21 @@ from app.timeutil import now
 router = APIRouter(prefix="/v1/recruit", tags=["recruit"])
 
 STEPS = ("general", "goal", "functions", "education", "hard", "soft", "management", "kpi", "portrait")
+EDITABLE = ("draft", "returned", "pending")  # tasdiqlangan profil faqat yangi versiya orqali o'zgaradi
+BAD_TEXT = re.compile(r"[^\u0000-\u024F\u0400-\u04FF\u2010-\u2027\u02BB\u02BC]")  # lotin/kirill, raqam va tinish belgilaridan boshqasi
+
+
+def _scrub(v: Any) -> Any:
+    """Matndan begona yozuv belgilarini olib tashlaydi (ichma-ich dict/list ham)."""
+    if isinstance(v, str):
+        return BAD_TEXT.sub("", v)
+    if isinstance(v, list):
+        return [_scrub(x) for x in v]
+    if isinstance(v, dict):
+        return {k: _scrub(x) for k, x in v.items()}
+    return v
+
+
 EXTRA = ("daily", "management_na")  # management_na: lavozimda boshqaruv vazifasi yo'q (qadam to'ldirilgan hisoblanadi)
 DERIVED = ("knowledge", "experience")
 
@@ -227,8 +243,9 @@ async def _profile_out(db: AsyncSession, p: PositionProfile, auth: AuthContext |
         "competencies": [{"competency_id": c.id, "name": c.name, "category": c.category, "required_level": pc.required_level, "ideal_level": pc.ideal_level, "mandatory": pc.mandatory, "method": pc.method} for pc, c in rows],
     }  # fmt: skip
     if auth is not None:
-        editable = p.status in ("draft", "returned") and _has(auth, "recruit.manage", "org.manage")
-        out["can"] = {"edit": editable, "submit": editable, "decide": p.status == "pending" and _approver(auth), "new_version": p.status == "approved" and _has(auth, "recruit.manage", "org.manage")}
+        manager = _has(auth, "recruit.manage", "org.manage")
+        editable = p.status in EDITABLE and manager
+        out["can"] = {"edit": editable, "submit": p.status in ("draft", "returned") and manager, "decide": p.status == "pending" and _approver(auth), "new_version": p.status == "approved" and _has(auth, "recruit.manage", "org.manage")}
     return out
 
 
@@ -295,7 +312,7 @@ async def save_profile(pid: int, body: ProfileIn, request: Request, db: AsyncSes
     p = await db.scalar(select(PositionProfile).where(PositionProfile.id == pid).with_for_update())
     if not p:
         raise error(404, "not_found")
-    if p.status not in ("draft", "returned"):
+    if p.status not in EDITABLE:
         raise error(409, "not_editable")
     # bazada yo'q kompetensiyalar (AI taklifi): nomi bo'yicha topiladi yoki yaratiladi
     for c in body.competencies:
@@ -322,7 +339,7 @@ async def save_profile(pid: int, body: ProfileIn, request: Request, db: AsyncSes
         db.add(ProfileCompetency(profile_id=p.id, competency_id=c.competency_id, required_level=c.required_level, ideal_level=max(c.ideal_level, c.required_level), mandatory=c.mandatory, method=c.method))
         linked_ids.add(c.competency_id)
         by_cat[comps[c.competency_id].category] = by_cat.get(comps[c.competency_id].category, 0) + 1
-    p.data = {k: v for k, v in body.data.items() if k in STEPS or k in EXTRA}
+    p.data = _scrub({k: v for k, v in body.data.items() if k in STEPS or k in EXTRA})
     for cat, name, method in _derived(p.data):
         comp = await db.scalar(select(Competency).where(func.lower(Competency.name) == name.lower(), Competency.category == cat))
         if comp is None:
@@ -629,7 +646,7 @@ def _clean_profile(d: dict[str, Any], base: dict[tuple[str, str], int]) -> dict[
     """AI javobini tekshiradi: faqat ma'lum maydonlar, to'g'ri turlar, chegaralangan uzunlik."""
     import re as _re
 
-    BAD_CHARS = r"[^\u0000-\u024F\u0400-\u04FF\u2010-\u2027\u02BB\u02BC]"
+    BAD_CHARS = BAD_TEXT
 
     def s(v: Any, n: int = 2000) -> str:
         # faqat lotin/kirill, raqam va tinish belgilari (model ba'zan begona yozuvdagi so'z qo'shib yuboradi)
@@ -672,7 +689,7 @@ async def _editable(db: AsyncSession, pid: int) -> tuple[PositionProfile, Positi
     p = await db.get(PositionProfile, pid)
     if not p:
         raise error(404, "not_found")
-    if p.status not in ("draft", "returned"):
+    if p.status not in EDITABLE:
         raise error(409, "not_editable")
     return p, await db.get(Position, p.position_id)
 

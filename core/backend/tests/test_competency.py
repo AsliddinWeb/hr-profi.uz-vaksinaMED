@@ -213,3 +213,20 @@ async def test_competencies_by_position(new_client):
     items = (await hr.get(f"{R}/competencies/by-position")).json()["items"]
     row = next(i for i in items if i["position"]["id"] == pid)
     assert row["profile_id"] == prof["id"] and row["counts"]["hard"] == 1 and row["counts"]["knowledge"] == 1 and row["total"] == 3
+
+
+async def test_pending_profile_editable_and_scrubbed(new_client):
+    hr, _ = await as_user(new_client, "hred", "hr_direktor")
+    async with SessionLocal() as s:
+        p = Position(name="Rekruter2")
+        s.add(p)
+        await s.commit()
+        pid = p.id
+    prof = (await hr.post(f"{R}/profiles", json={"position_id": pid})).json()
+    comps = [{"name": "Saralash", "category": "hard"}, {"name": "Muloqot", "category": "soft"}]
+    await hr.put(f"{R}/profiles/{prof['id']}", json={"data": {**FULL, "management_na": True}, "competencies": comps})
+    assert (await hr.post(f"{R}/profiles/{prof['id']}/action", json={"action": "submit"})).json()["status"] == "pending"
+    got = (await hr.get(f"{R}/profiles/{prof['id']}")).json()
+    assert got["can"]["edit"] is True and got["can"]["submit"] is False
+    r = (await hr.put(f"{R}/profiles/{prof['id']}", json={"data": {**FULL, "management_na": True, "goal": "kadr\u1019\u103b\u102c lar"}, "competencies": comps})).json()
+    assert r["status"] == "pending" and r["data"]["goal"] == "kadr lar"

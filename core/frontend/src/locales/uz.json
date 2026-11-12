@@ -6900,7 +6900,10 @@
         "kpiName": "Ko'rsatkich",
         "kpiTarget": "Maqsad"
       },
-      "noManagement": "Bu lavozimda boshqaruv (rahbarlik) vazifasi yo'q"
+      "noManagement": "Bu lavozimda boshqaruv (rahbarlik) vazifasi yo'q",
+      "edit": "Tahrirlash (yangi versiya)",
+      "awaitingYou": "Bu profil sizning tasdiqlashingizni kutmoqda",
+      "awaitingHint": "Ko'rib chiqing: hammasi to'g'ri bo'lsa «Tasdiqlash», kamchilik bo'lsa izoh yozib «Qayta ishlashga qaytarish». Kerak bo'lsa pastda o'zingiz tahrirlashingiz ham mumkin."
     },
     "appr": {
       "title": "Tasdiqlash markazi",

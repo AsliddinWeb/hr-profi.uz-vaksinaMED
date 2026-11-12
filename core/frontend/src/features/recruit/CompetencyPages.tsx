@@ -888,6 +888,12 @@ export function ProfileWizardPage() {
         actions={
           <div className="flex items-center gap-3">
             <Badge tone={TONE[p.status]}>{t(`comp.st.${p.status}`)}</Badge>
+            {p.can?.new_version && (
+              <Button variant="outline" className="h-8" disabled={newVersion.isPending} onClick={() => newVersion.mutate()}>
+                <Pencil className="size-4" />
+                {t('comp.wiz.edit')}
+              </Button>
+            )}
             <span className="hidden text-xs text-muted sm:inline">{t('comp.wiz.filled', { n: ro ? p.filled_pct : pct })}</span>
             <span className="hidden h-1.5 w-32 overflow-hidden rounded-full bg-surface-2 sm:block">
               <span className="block h-full bg-primary" style={{ width: `${ro ? p.filled_pct : pct}%` }} />
@@ -895,6 +901,23 @@ export function ProfileWizardPage() {
           </div>
         }
       />
+      {p.can?.decide && (
+        <Card className="flex flex-col gap-3 border-warning/50 bg-warning/5 p-5">
+          <div className="font-medium">{t('comp.wiz.awaitingYou')}</div>
+          <div className="text-sm text-muted">{t('comp.wiz.awaitingHint')}</div>
+          <textarea rows={2} className={area} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('comp.wiz.decisionNote')} aria-label={t('comp.wiz.decisionNote')} />
+          {action.isError && <p role="alert" className="text-sm text-danger">{errorText(t, action.error)}</p>}
+          <div className="flex flex-wrap gap-2">
+            <Button disabled={action.isPending || save.isPending} onClick={() => (ro ? action.mutate('approve') : save.mutate(undefined, { onSuccess: () => action.mutate('approve') }))}>
+              <Check className="size-4" />
+              {t('comp.wiz.approve')}
+            </Button>
+            <Button variant="outline" disabled={action.isPending} onClick={() => action.mutate('return')}>
+              {t('comp.wiz.return')}
+            </Button>
+          </div>
+        </Card>
+      )}
       {!ro && (
         <Card className="flex flex-col gap-3 border-primary/30 p-5">
           <div className="flex items-center gap-2 font-medium">
@@ -1041,7 +1064,16 @@ export function ApprovalsPage() {
   const [type, setType] = useState<'all' | 'profile' | 'request'>('all')
   const [q, setQ] = useState('')
   const [st, setSt] = useState('')
-  const list = useQuery({ queryKey: ['approvals', type], queryFn: () => api<{ counts: Record<string, number>; items: Approval[] }>(`/api/v1/recruit/approvals?type=${type}`), refetchInterval: 60_000 })
+  const qc = useQueryClient()
+  const list = useQuery({ queryKey: ['approvals', type], queryFn: () => api<{ counts: Record<string, number>; items: Approval[]; can_decide: boolean }>(`/api/v1/recruit/approvals?type=${type}`), refetchInterval: 60_000 })
+  const approve = useMutation({
+    mutationFn: (pid: number) => send('POST', `/api/v1/recruit/profiles/${pid}/action`, { action: 'approve' }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['approvals'] })
+      void qc.invalidateQueries({ queryKey: ['profiles'] })
+      void qc.invalidateQueries({ queryKey: ['comp'] })
+    },
+  })
   const items = list.data?.items.filter((i) => (!st || i.status === st) && (!q || `${i.code} ${i.title} ${i.requester}`.toLowerCase().includes(q.toLowerCase())))
   const c = list.data?.counts
   return (
@@ -1105,7 +1137,12 @@ export function ApprovalsPage() {
                   <td className="px-4 py-2.5">
                     <Badge tone={ATONE[i.status]}>{t(`comp.appr.st.${i.status}`)}</Badge>
                   </td>
-                  <td className="px-4 py-2.5 text-right">
+                  <td className="whitespace-nowrap px-4 py-2.5 text-right">
+                    {list.data?.can_decide && i.type === 'profile' && i.status === 'pending' && (
+                      <Button className="mr-1 h-8" disabled={approve.isPending} onClick={() => approve.mutate(i.id)}>
+                        {t('comp.wiz.approve')}
+                      </Button>
+                    )}
                     <Link to={i.link}>
                       <Button variant="ghost" className="h-8 px-2" aria-label={t('comp.prof.open')}>
                         <Eye className="size-4" />
