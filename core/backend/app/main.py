@@ -17,6 +17,7 @@ from app import (
 from app.api import (
     ai,
     ai_interview,
+    announcements,
     answers,
     attendance,
     attendance_issues,
@@ -199,7 +200,7 @@ def create_app() -> FastAPI:
     for module in (
         health, metrics, meta, auth, users, roles, audit, notifications, telegram, home, org, org_insights, branches,
         employee_io, employee_bulk, employees, employee_files,
-        schedule_config, schedule, attendance, attendance_issues, attestation, growth, integrations, complaints, coord_report, face, answers, letters, penalties, tasks, reminders, pharmacy, needs, checklist_status, checklists, competency, position_docs, recruit_core, recruit_eval, recruit, recruit_pipeline, recruit_requests, recruit_sources, employee_dossier, retention, rotations, duty, hrdocs, staffdocs, references, revisions, ratings, devices, segments, internship, preboarding, onboarding, plan, payroll, canteen, logistics, warehouse, mobile, coffee, reception, helpdesk, calls, ai, ai_interview, conference, reports, migration,
+        schedule_config, schedule, attendance, attendance_issues, attestation, growth, integrations, complaints, coord_report, face, answers, letters, penalties, tasks, reminders, pharmacy, needs, checklist_status, checklists, announcements, competency, position_docs, recruit_core, recruit_eval, recruit, recruit_pipeline, recruit_requests, recruit_sources, employee_dossier, retention, rotations, duty, hrdocs, staffdocs, references, revisions, ratings, devices, segments, internship, preboarding, onboarding, plan, payroll, canteen, logistics, warehouse, mobile, coffee, reception, helpdesk, calls, ai, ai_interview, conference, reports, migration,
     ):  # fmt: skip
         app.include_router(module.router, prefix="/api")
     app.include_router(letters.public_router, prefix="/api")

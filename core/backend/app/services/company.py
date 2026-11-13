@@ -14,6 +14,7 @@ SETTINGS: dict[str, tuple[int, int, int]] = {
     "revisions.cycle_days": (90, 7, 730),
     "revisions.soon_days": (14, 1, 90),
     "recruit.require_profile": (1, 0, 1),
+    "recruit.ad_review": (1, 0, 1),
 }
 
 

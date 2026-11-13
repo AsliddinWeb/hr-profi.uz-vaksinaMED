@@ -1,3 +1,4 @@
+import { AnnouncementDetailPage, AnnouncementsPage } from "./features/recruit/AnnouncementPages";
 import { MyDocumentsPage } from "./features/org/PositionDocs";
 import { ApprovalsPage as RecruitApprovalsPage, CompetenciesPage, PositionCompetenciesPage, FunnelReportPage, RecruitDashboardPage, ProfilesPage as PositionProfilesPage, ProfileWizardPage } from "./features/recruit/CompetencyPages";
 import { createBrowserRouter } from "react-router-dom";
@@ -2113,6 +2114,8 @@ export function createRouter() {
                 { path: "recruit/profiles/:id", element: <ProfileWizardPage /> },
                 { path: "recruit/approvals", element: <RecruitApprovalsPage /> },
                 { path: "recruit/requests", element: <HireRequestsPage /> },
+                { path: "recruit/announcements", element: <AnnouncementsPage /> },
+                { path: "recruit/announcements/:id", element: <AnnouncementDetailPage /> },
                 {
                   path: "recruit/requests/new",
                   element: <HireRequestFormPage />,

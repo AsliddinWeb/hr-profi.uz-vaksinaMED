@@ -362,3 +362,27 @@ class HireRequest(Base):
     decision_note: Mapped[str | None] = mapped_column(Text)
     vacancy_id: Mapped[int | None] = mapped_column(ForeignKey("vacancies.id", ondelete="SET NULL"))
     profile_id: Mapped[int | None] = mapped_column(ForeignKey("position_profiles.id", ondelete="SET NULL"))
+    card: Mapped[dict] = mapped_column(JSONB, default=dict, server_default="{}")  # bo'lim boshlig'i qo'shgan kompetensiya kartochkasi
+
+
+class Announcement(Base):
+    """E'lon: tasdiqlangan zayavkadan avtomatik qoralama -> AI tekshiruv va tahrir -> joylar (kanallar) -> tasdiq -> vakansiya ochiladi."""
+
+    __tablename__ = "announcements"
+    __table_args__ = (Index("ix_announcements_status", "status"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    request_id: Mapped[int | None] = mapped_column(ForeignKey("hire_requests.id", ondelete="SET NULL"), index=True)
+    position_id: Mapped[int | None] = mapped_column(ForeignKey("positions.id", ondelete="SET NULL"))
+    title: Mapped[str] = mapped_column(String(200))
+    text: Mapped[str] = mapped_column(Text)
+    channels: Mapped[list] = mapped_column(JSONB, default=list)  # [{"channel": "telegram", "targets": ["@kanal1", ...]}]
+    status: Mapped[str] = mapped_column(String(10), default="draft")  # draft | approved | cancelled
+    ai_review: Mapped[dict | None] = mapped_column(JSONB)
+    vacancy_id: Mapped[int | None] = mapped_column(ForeignKey("vacancies.id", ondelete="SET NULL"))
+    recruiter_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

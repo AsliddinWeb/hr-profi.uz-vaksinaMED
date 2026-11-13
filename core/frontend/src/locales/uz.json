@@ -485,7 +485,8 @@
     "duplicate": "Bunday nom allaqachon bor",
     "unsupported_file": "Bu fayl turi qo'llab-quvvatlanmaydi (PDF, Word .docx, Excel .xlsx, TXT)",
     "already_signed": "Bu hujjat allaqachon imzolangan",
-    "bad_signature": "Imzo noto'g'ri"
+    "bad_signature": "Imzo noto'g'ri",
+    "channels_required": "Kamida bitta joyni tanlang"
   },
   "auth": {
     "heroTitle": "Kadrlar va filiallar — bitta tizimda",
@@ -5955,6 +5956,21 @@
         "f3": "Tasdiqlash (HR)",
         "f4": "Vakansiya ochiladi"
       }
+    },
+    "card": {
+      "title": "Qo'shimcha kompetensiyalar",
+      "hint": "Bo'lim boshlig'i lavozim profiliga qo'shimcha talablarni yozadi; yangi ko'nikmalar kompetensiyalar bazasiga qo'shiladi va e'longa kiradi.",
+      "duties": "Vazifalar",
+      "hard": "Kasbiy ko'nikmalar (hard skills)",
+      "soft": "Shaxsiy sifatlar (soft skills)",
+      "comma": "Vergul bilan ajrating",
+      "languages": "Tillar",
+      "education": "Ma'lumot",
+      "experience": "Kamida tajriba (yil)",
+      "exclusions": "Istisno mezonlari",
+      "exclusionsHint": "Shu so'z nomzod ma'lumotida topilsa moslik 0 bo'ladi",
+      "questions": "Intervyu savollari",
+      "questionsHint": "Har qatorga bitta savol: suhbat kartochkasida ko'rinadi"
     }
   },
   "rdash": {
@@ -7231,5 +7247,46 @@
     "placeholder": "Masalan: 8 000 000 yoki 8 mln + 500 ming",
     "invalid": "Formula noto'g'ri",
     "currency": "so'm"
+  },
+  "ann": {
+    "title": "E'lonlar",
+    "subtitle": "Tasdiqlangan zayavkalardan avtomatik tayyorlangan e'lonlar: tekshiring, joylarni tanlang va tasdiqlang — vakansiya ochiladi",
+    "empty": "E'lonlar yo'q",
+    "st": {
+      "draft": "Tayyorlangan",
+      "approved": "Tasdiqlangan",
+      "cancelled": "Bekor qilingan"
+    },
+    "fromRequest": "Zayavka",
+    "vacancyOpened": "E'lon tasdiqlandi, vakansiya ochildi.",
+    "openVacancy": "Vakansiyani ochish",
+    "titleField": "Sarlavha",
+    "text": "E'lon matni",
+    "textHint": "Lavozim shabloni, zayavka va kompetensiya kartochkasidan avtomatik tuzilgan. {link} — nomzod havolasi o'rniga qo'yiladi.",
+    "aiCheck": "AI tekshiruvi",
+    "aiResult": "AI xulosasi",
+    "applyImproved": "Yaxshilangan matnni qo'llash",
+    "whereTitle": "Qayerga joylashtiriladi",
+    "whereHint": "Kanallarni belgilang; Telegram kanallari, Instagram sahifalari va saytlar nomini bir nechta qo'shish mumkin.",
+    "ch": {
+      "instagram": "Instagram",
+      "telegram": "Telegram kanallari",
+      "target": "Target reklama",
+      "hh_uz": "hh.uz",
+      "olx": "OLX",
+      "site": "Kompaniya sayti",
+      "other": "Boshqa saytlar"
+    },
+    "ph": {
+      "instagram": "@sahifa",
+      "telegram": "@kanal_nomi",
+      "target": "Instagram / Facebook / Telegram Ads",
+      "site": "sayt.uz/vakansiya",
+      "other": "ishbor.uz, vakansiya.uz ..."
+    },
+    "approveHint": "Tasdiqlangach vakansiya ochiladi va tanlangan joylar vakansiyaga yoziladi.",
+    "approve": "Tasdiqlash va vakansiya ochish",
+    "cancel": "E'lonni bekor qilish",
+    "approved": "E'lon tasdiqlandi, vakansiya ochildi"
   }
 }

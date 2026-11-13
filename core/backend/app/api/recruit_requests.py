@@ -25,9 +25,11 @@ from app.models.recruit import (
 )
 from app.rbac import matches
 from app.services import growth
+from app.services import recruit_core as core
 from app.services import recruit_sources as src
 from app.services.answers import users_with_permission
 from app.services.audit import audit
+from app.services.company import get_setting
 from app.services.notifications import deliver, notify, register_template
 from app.timeutil import local_date, now, tz
 
@@ -125,6 +127,7 @@ class RequestIn(BaseModel):
     requirements: str | None = Field(default=None, max_length=10000)
     salary_from: int | None = Field(default=None, ge=0, le=1_000_000_000)
     salary_to: int | None = Field(default=None, ge=0, le=1_000_000_000)
+    card: dict[str, Any] = Field(default_factory=dict)
 
 
 @router.post("/requests", status_code=201)
@@ -157,10 +160,11 @@ async def create_request(body: RequestIn, request: Request, db: AsyncSession = D
     r = HireRequest(
         number=await _number(db, moment), department_id=body.department_id, branch_id=body.branch_id, position_id=pos.id, count=body.count, urgency=body.urgency,
         needed_from=body.needed_from, reason=(body.reason or "").strip() or None, requirements=reqs, salary_from=body.salary_from, salary_to=body.salary_to,
-        status="pending", created_by=auth.user.id, profile_id=profile.id if profile else None,
+        status="pending", created_by=auth.user.id, profile_id=profile.id if profile else None, card=core.clean_card(body.card),
     )  # fmt: skip
     db.add(r)
     await db.flush()
+    await _sync_card_to_base(db, r.card)
     unit = next((d.name for d in deps if d.id == body.department_id), None) or next((b.name for b in brs if b.id == body.branch_id), "—")
     targets = set(await users_with_permission(db, "recruit.manage")) | set(await users_with_permission(db, "recruit.approve"))
     notes = await notify(db, [u for u in targets if u != auth.user.id], "recruit.request_new", link=f"/recruit/requests/{r.id}", params={"number": r.number, "position": pos.name, "count": r.count, "unit": unit})
@@ -220,7 +224,16 @@ async def decide(rid: int, body: DecideIn, request: Request, db: AsyncSession = 
     r.decided_by, r.decided_at, r.decision_note = auth.user.id, moment, note
     notes: list = []
     post: tuple[int, str] | None = None
-    if body.action == "approve":
+    if body.action == "approve" and await get_setting(db, "recruit.ad_review"):
+        # yangi tartib: avval e'lon (AI tekshiruv, joylar), e'lon tasdiqlangach vakansiya ochiladi
+        from app.api.announcements import draft_from_request
+
+        r.status = "approved"
+        ann = await draft_from_request(db, r, body.recruiter_id, auth.user.id)
+        notes += await notify(db, [r.created_by] if r.created_by else [], "recruit.request_approved", link=f"/recruit/requests/{r.id}", params={"number": r.number, "position": pos.name if pos else ""})
+        targets = [body.recruiter_id] if body.recruiter_id else await users_with_permission(db, "recruit.manage")
+        notes += await notify(db, [x for x in targets if x and x != auth.user.id], "ann.draft", params={"title": ann.title}, link=f"/recruit/announcements/{ann.id}")
+    elif body.action == "approve":
         dep = await db.get(Department, r.department_id) if r.department_id else None
         br = await db.get(Branch, r.branch_id) if r.branch_id else None
         sla = (await growth.get_setting(db, "recruit"))["sla_days"]
@@ -446,3 +459,15 @@ async def daily(
     total = {k: sum(r[k] for r in rows) for k in ("received", "attached", "calls", "invited", "came", "hired")}
     recruiters = (await db.execute(select(User.id, User.full_name).where(User.id.in_(select(Application.recruiter_id).where(Application.recruiter_id.is_not(None)).distinct())))).all()
     return {"days": rows, "total": total, "by_source": sorted(({"source": k, "count": n} for k, n in by_source.items()), key=lambda x: -x["count"]), "recruiters": [{"id": i, "name": n} for i, n in recruiters]}
+
+
+async def _sync_card_to_base(db: AsyncSession, card: dict[str, Any]) -> None:
+    """Zayavkadagi qo'shimcha ko'nikmalar kompetensiyalar bazasiga qo'shiladi (yo'q bo'lsa)."""
+    from app.models.competency import Competency
+
+    pairs = [("hard", x) for x in card.get("hard_skills") or []] + [("soft", x) for x in card.get("soft_skills") or []] + [("knowledge", x) for x in card.get("languages") or []]
+    for cat, raw in pairs:
+        name = str(raw).strip()[:160]
+        if name and not await db.scalar(select(Competency.id).where(func.lower(Competency.name) == name.lower(), Competency.category == cat)):
+            db.add(Competency(name=name, category=cat, is_active=True, description="Zayavkadan qo'shilgan"))
+    await db.flush()

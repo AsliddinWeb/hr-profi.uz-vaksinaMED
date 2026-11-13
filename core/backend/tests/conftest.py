@@ -54,7 +54,7 @@ async def _clean(_database):
     async with engine.begin() as conn:
         await conn.execute(
             text(
-                "TRUNCATE audit_log, user_sessions, user_devices, device_settings, users, role_permissions, roles, schedule_entries, "
+                "TRUNCATE audit_log, competencies, company_settings, announcements, user_sessions, user_devices, device_settings, users, role_permissions, roles, schedule_entries, "
                 "schedule_patterns, holidays, work_groups, shift_templates, face_attempts, leave_requests, "
                 "explanation_letters, letter_templates, penalties, tasks, task_templates, reminders, staff_needs, need_requests, need_categories, checklist_visits, checklist_templates, vacancies, candidates, internship_enrollments, internship_programs, pay_schemes, pay_items, payroll_runs, canteen_menus, canteen_settings, trips, vehicles, driver_profiles, warehouses, mobile_permits, visits, tickets, ticket_categories, calls, ai_requests, ai_summaries, report_schedules, report_runs, migration_batches, migration_mappings, migration_checks RESTART IDENTITY CASCADE"
             )

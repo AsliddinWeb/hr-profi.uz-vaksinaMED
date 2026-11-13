@@ -48,6 +48,7 @@ from app.models.pharmacy import StaffNeed
 from app.models.position_docs import DocumentSignature, PositionDocLink, PositionRequiredDoc
 from app.models.reception import Visit
 from app.models.recruit import (
+    Announcement,
     Application,
     ApplicationEvent,
     BackgroundCheck,
@@ -76,6 +77,7 @@ from app.models.tasks import Task, TaskComment, TaskEvent, TaskFile, TaskTemplat
 from app.models.warehouse import Warehouse
 
 __all__ = [
+    "Announcement",
     "CompanySetting",
     "Competency",
     "PositionProfile",

@@ -170,10 +170,11 @@ export function RequestFormPage() {
   const [sTo, setSTo] = useState(draft.sTo ?? '')
   const [goal, setGoal] = useState(draft.goal ?? '')
   const [reportsTo, setReportsTo] = useState(draft.reportsTo ?? '')
+  const [card, setCard] = useState<CardForm>(draft.card ?? { duties: '', hard: '', soft: '', languages: '', education: '', experience: '', exclusions: '', questions: '' })
   const [extra, setExtra] = useState<'goal' | 'reports' | null>(draft.goal ? 'goal' : draft.reportsTo ? 'reports' : null)
   const saveDraft = () => {
     try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({ unit, pos, count, urgency, from, reason, reqs, sFrom, sTo, goal, reportsTo }))
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ unit, pos, count, urgency, from, reason, reqs, sFrom, sTo, goal, reportsTo, card }))
       toast.push({ title: t('rreq.d.draftSaved'), tone: 'success' })
     } catch {
       toast.push({ title: t('rreq.d.draftFailed'), tone: 'warning' })
@@ -195,7 +196,7 @@ export function RequestFormPage() {
       const [kind, id] = unit.split(':')
       return send<HireRequest>('POST', '/api/v1/recruit/requests', {
         department_id: kind === 'd' ? Number(id) : null, branch_id: kind === 'b' ? Number(id) : null, position_id: Number(pos), count, urgency,
-        needed_from: from || null, reason: reason || null, requirements: fullReqs || null, salary_from: sFrom ? Number(sFrom) : null, salary_to: sTo ? Number(sTo) : null,
+        needed_from: from || null, reason: reason || null, requirements: fullReqs || null, salary_from: sFrom ? Number(sFrom) : null, salary_to: sTo ? Number(sTo) : null, card: cardPayload(card),
       }) // prettier-ignore
     },
     onSuccess: (r) => {
@@ -399,6 +400,22 @@ export function RequestFormPage() {
                   </div>
                 </div>
               )}
+              <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
+                <div>
+                  <div className="font-medium">{t('rreq.card.title')}</div>
+                  <div className="text-xs text-muted">{t('rreq.card.hint')}</div>
+                </div>
+                <Field label={t('rreq.card.duties')}>{(fid) => <textarea id={fid} rows={3} className={area} value={card.duties} onChange={(e) => setCard({ ...card, duties: e.target.value })} />}</Field>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label={t('rreq.card.hard')} hint={t('rreq.card.comma')}>{(fid) => <Input id={fid} value={card.hard} onChange={(e) => setCard({ ...card, hard: e.target.value })} />}</Field>
+                  <Field label={t('rreq.card.soft')}>{(fid) => <Input id={fid} value={card.soft} onChange={(e) => setCard({ ...card, soft: e.target.value })} />}</Field>
+                  <Field label={t('rreq.card.languages')}>{(fid) => <Input id={fid} value={card.languages} onChange={(e) => setCard({ ...card, languages: e.target.value })} />}</Field>
+                  <Field label={t('rreq.card.education')}>{(fid) => <Input id={fid} value={card.education} onChange={(e) => setCard({ ...card, education: e.target.value })} />}</Field>
+                  <Field label={t('rreq.card.experience')}>{(fid) => <Input id={fid} type="number" min={0} max={50} value={card.experience} onChange={(e) => setCard({ ...card, experience: e.target.value })} />}</Field>
+                  <Field label={t('rreq.card.exclusions')} hint={t('rreq.card.exclusionsHint')}>{(fid) => <Input id={fid} value={card.exclusions} onChange={(e) => setCard({ ...card, exclusions: e.target.value })} />}</Field>
+                </div>
+                <Field label={t('rreq.card.questions')} hint={t('rreq.card.questionsHint')}>{(fid) => <textarea id={fid} rows={3} className={area} value={card.questions} onChange={(e) => setCard({ ...card, questions: e.target.value })} />}</Field>
+              </div>
               <Field label={t('rreq.requirements')} hint={t('rreq.requirementsHint')}>
                 {(id) => <textarea id={id} rows={10} maxLength={10000} value={reqs} onChange={(e) => setReqs(e.target.value)} className={area} />}
               </Field>
@@ -490,7 +507,10 @@ export function RequestFormPage() {
 }
 
 const DRAFT_KEY = 'hrprofi:request-draft'
-type Draft = Partial<{ unit: string; pos: string; count: number; urgency: string; from: string; reason: string; reqs: string; sFrom: string; sTo: string; goal: string; reportsTo: string }>
+type Draft = Partial<{ unit: string; pos: string; count: number; urgency: string; from: string; reason: string; reqs: string; sFrom: string; sTo: string; goal: string; reportsTo: string; card: CardForm }>
+type CardForm = { duties: string; hard: string; soft: string; languages: string; education: string; experience: string; exclusions: string; questions: string }
+const splitList = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean)
+const cardPayload = (c: CardForm) => ({ duties: c.duties || null, hard_skills: splitList(c.hard), soft_skills: splitList(c.soft), languages: splitList(c.languages), education: c.education || null, min_experience: c.experience ? Number(c.experience) : null, exclusions: splitList(c.exclusions), questions: c.questions.split('\n').map((x) => x.trim()).filter(Boolean) })
 function loadDraft(): Draft {
   try {
     return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') as Draft

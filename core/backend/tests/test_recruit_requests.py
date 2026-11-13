@@ -1,6 +1,7 @@
 import pytest
 
 from app.db import SessionLocal
+from app.models.company import CompanySetting
 from app.models.competency import PositionProfile
 from app.models.org import Department, Position
 from app.models.recruit import Candidate
@@ -28,6 +29,7 @@ async def test_request_flow_dashboard_compare(new_client):
         await s.commit()
         did, pid = d.id, p.id
         s.add(PositionProfile(position_id=pid, status="approved", data={}))
+        await s.merge(CompanySetting(key="recruit.ad_review", value="0"))
         await s.commit()
     body = {"department_id": did, "position_id": pid, "count": 2, "reason": "Yangi loyiha"}
     assert (await other.post(f"{R}/requests", json=body)).status_code == 403
@@ -72,6 +74,7 @@ async def test_auto_links_jobs_anketa_daily_dossier(new_client, monkeypatch):
         await s.commit()
         did, pid = d.id, p.id
         s.add(PositionProfile(position_id=pid, status="approved", data={}))
+        await s.merge(CompanySetting(key="recruit.ad_review", value="0"))
         await s.commit()
     r = (await head.post(f"{R}/requests", json={"department_id": did, "position_id": pid})).json()
     vid = (await hr.post(f"{R}/requests/{r['id']}/decide", json={"action": "approve"})).json()["vacancy_id"]
