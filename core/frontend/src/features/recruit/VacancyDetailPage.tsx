@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Megaphone, Pencil, UserPlus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -8,11 +9,13 @@ import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { Skeleton } from '../../components/ui/Skeleton'
+import { Tabs } from '../../components/ui/Tabs'
 import { api, ApiError, send } from '../../lib/api'
 import { formatDate, formatDateTime } from '../../lib/format'
 import { NotFound } from '../../pages/NotFound'
 import { errorText } from '../auth/errorText'
 import { useCan } from '../auth/useAuth'
+import { KitStats, RecruiterActivity, RecruiterSearch } from './VacancyKit'
 import { VacancyDashboard } from './VacancyDashboard'
 import { STAGE_TONE, STAGES, salaryText, VSTATUS_TONE, type Board, type Vacancy, type VStatus } from './api'
 
@@ -29,7 +32,10 @@ export function VacancyDetailPage() {
   const { t, i18n } = useTranslation()
   const id = Number(useParams().id)
   const qc = useQueryClient()
-  const manage = useCan()('recruit.manage')
+  const can = useCan()
+  const manage = can('recruit.manage')
+  // HR (tasdiqlovchi) — nazorat, rekruter — xodim qidirish ko'rinishi bilan ochiladi
+  const [view, setView] = useState<'search' | 'control'>(can('recruit.approve') ? 'control' : 'search')
   const q = useQuery({ queryKey: ['recruit', 'vacancy', id], queryFn: () => api<Vacancy>(`/api/v1/recruit/vacancies/${id}`), retry: false })
   const board = useQuery({ queryKey: ['recruit', 'board', id], queryFn: () => api<Board>(`/api/v1/recruit/board?vacancy_id=${id}`), refetchInterval: 30_000 })
   const status = useMutation({ mutationFn: (s: VStatus) => send('POST', `/api/v1/recruit/vacancies/${id}/status`, { status: s }), onSuccess: () => void qc.invalidateQueries({ queryKey: ['recruit'] }) })
@@ -72,7 +78,13 @@ export function VacancyDetailPage() {
           )
         }
       />
+      <Tabs items={[{ key: 'search' as const, label: t('vkit.viewSearch') }, { key: 'control' as const, label: t('vkit.viewControl') }]} value={view} onChange={setView} />
+      <KitStats id={v.id} />
+      {view === 'search' && <RecruiterSearch id={v.id} />}
+      {view === 'control' && (
+        <>
       <VacancyDashboard id={v.id} />
+      <RecruiterActivity id={v.id} />
       <Card className="flex flex-col gap-4 p-6">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={VSTATUS_TONE[v.status]}>{t(`recruit.vacancy.status.${v.status}`)}</Badge>
@@ -130,6 +142,8 @@ export function VacancyDetailPage() {
             </section>
           ))}
         </div>
+      )}
+        </>
       )}
     </div>
   )

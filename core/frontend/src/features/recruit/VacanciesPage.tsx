@@ -71,10 +71,17 @@ export function VacanciesPage() {
                 <Card className="flex h-full flex-col gap-3 p-5 transition-shadow hover:shadow-card">
                   <div className="flex items-start justify-between gap-3">
                     <h2 className="font-semibold">{v.title}</h2>
-                    <Badge tone={VSTATUS_TONE[v.status]}>{t(`recruit.vacancy.status.${v.status}`)}</Badge>
+                    <span className="flex gap-1">
+                      {v.status === 'open' && <Badge tone={v.filled ? 'success' : 'info'}>{t(v.filled ? 'vkit.found' : 'vkit.searching')}</Badge>}
+                      <Badge tone={VSTATUS_TONE[v.status]}>{t(`recruit.vacancy.status.${v.status}`)}</Badge>
+                    </span>
                   </div>
                   <p className="text-sm text-muted">{[v.branch?.name, v.position?.name, salaryText(v.salary_from, v.salary_to)].filter((x) => x && x !== '—').join(' · ') || '—'}</p>
                   <div className="mt-auto flex flex-wrap gap-x-5 gap-y-1 text-sm tabular-nums">
+                    <span>
+                      <span className="text-muted">{t('vkit.k.resumes')}: </span>
+                      {f ? Object.values(f).reduce((s, n) => s + n, 0) : 0}
+                    </span>
                     <span>
                       <span className="text-muted">{t('recruit.vacancy.inProcess')}: </span>
                       {open}

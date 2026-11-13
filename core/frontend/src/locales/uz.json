@@ -4420,7 +4420,26 @@
     "name": "F.I.Sh.",
     "phone": "Telefon",
     "note": "Qisqacha o'zingiz haqingizda",
-    "submit": "Ariza yuborish"
+    "submit": "Ariza yuborish",
+    "whatWeNeed": "Biz kimni qidiryapmiz",
+    "minExp": "Kamida {{n}} yil tajriba",
+    "cat": {
+      "hard": "Kasbiy ko'nikmalar",
+      "soft": "Shaxsiy sifatlar",
+      "management": "Boshqaruv",
+      "knowledge": "Bilimlar",
+      "experience": "Tajriba"
+    },
+    "manual": "Qo'lda to'ldirish",
+    "withResume": "Rezyume biriktirish",
+    "resumeHint": "PDF, Word (.docx) yoki matn fayl. Fayldagi ism va telefon avtomatik olinadi, qolganini anketada to'ldirasiz.",
+    "reading": "Rezyume o'qilmoqda…",
+    "filledFromResume": "Rezyumedan ma'lumotlar olindi. Tekshirib, yetmaganini to'ldiring.",
+    "fillRest": "Rezyumeda ism/telefon topilmadi — qo'lda kiriting.",
+    "nextManual": "Keyingi qadamda to'liq anketa ochiladi.",
+    "nextResume": "Keyingi qadamda anketa rezyumedan to'lgan holda ochiladi — faqat yetmaganini to'ldirasiz.",
+    "badFile": "Bu fayl turi qabul qilinmaydi (PDF, Word, TXT)",
+    "bigFile": "Fayl juda katta (10 MB gacha)"
   },
   "pipeline": {
     "invite": "Suhbatga chaqirish",
@@ -7288,5 +7307,47 @@
     "approve": "Tasdiqlash va vakansiya ochish",
     "cancel": "E'lonni bekor qilish",
     "approved": "E'lon tasdiqlandi, vakansiya ochildi"
+  },
+  "vkit": {
+    "viewSearch": "Xodim qidirish",
+    "viewControl": "Nazorat (HR)",
+    "searching": "Qidirilmoqda",
+    "found": "Topildi",
+    "k": {
+      "state": "Holat",
+      "resumes": "Rezyumelar",
+      "withResume": "Rezyume/anketa bilan",
+      "today": "Bugun kelgan",
+      "hired": "Ishga olingan",
+      "daysOpen": "Ochiq (kun)"
+    },
+    "compTitle": "Qidirilayotgan xodim: kompetensiyalar",
+    "noComps": "Lavozim profili yoki zayavka kartochkasi yo'q",
+    "minExp": "Kamida {{n}} yil tajriba",
+    "questions": "Intervyu savollari",
+    "linksTitle": "Nomzod havolasi",
+    "linksHint": "Havolani nomzodlarga yuboring: ular qo'lda to'ldiradi yoki rezyumesini biriktiradi — ma'lumot avtomatik olinadi.",
+    "noLinks": "Havola hali yo'q.",
+    "makeLink": "Havola yaratish",
+    "linkStats": "{{c}} marta ochildi · {{a}} ariza",
+    "copy": "Nusxa olish",
+    "copied": "Havola nusxalandi",
+    "resumesTitle": "Kelgan rezyumelar ({{n}})",
+    "compare": "Rezyumelarni solishtirish",
+    "noResumes": "Hali rezyume kelmagan",
+    "hasResume": "Rezyume",
+    "anketa": "Anketa",
+    "activityTitle": "Rekruter faoliyati",
+    "noActivity": "Hali harakat yo'q",
+    "system": "Tizim",
+    "act": {
+      "applied": "ariza",
+      "stage": "bosqich",
+      "rejected": "rad etildi",
+      "reopened": "qayta ochildi",
+      "comment": "izoh",
+      "hired": "ishga olindi",
+      "rating": "baho"
+    }
   }
 }

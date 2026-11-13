@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -261,7 +261,11 @@ async def apply_info(code: str, request: Request, db: AsyncSession = Depends(get
     lk.clicks += 1
     branch = await db.get(Branch, v.branch_id) if v.branch_id else None
     await db.commit()
-    return {"title": v.title, "branch": svc.branch_label(branch) if branch else None, "salary_from": v.salary_from, "salary_to": v.salary_to, "requirements": v.requirements}
+    from app.api.vacancy_kit import vacancy_competencies
+
+    comp = await vacancy_competencies(db, v)
+    return {"title": v.title, "branch": svc.branch_label(branch) if branch else None, "salary_from": v.salary_from, "salary_to": v.salary_to, "requirements": v.requirements,
+            "competencies": comp["by_category"], "duties": comp["duties"][:15], "min_experience": comp["min_experience"]}  # fmt: skip
 
 
 class ApplyIn(BaseModel):
@@ -293,3 +297,59 @@ async def apply(code: str, body: ApplyIn, request: Request, db: AsyncSession = D
     await db.commit()
     await deliver(request.app, notes)
     return {"ok": True, **({"duplicate": True} if status == "duplicate" else {}), **({"profile_url": profile} if profile else {})}
+
+
+# --- Rezyume bilan ariza: fayldan ma'lumot avtomatik, yetmaganini nomzod qo'lda kiritadi -----------------
+
+
+async def _resume_text(file: UploadFile) -> str:
+    from app.api.competency import MAX_UPLOAD, _file_text
+
+    raw = await file.read(MAX_UPLOAD + 1)
+    if len(raw) > MAX_UPLOAD:
+        raise error(400, "file_too_large")
+    try:
+        text = _file_text(file.filename or "", raw)
+    except Exception as e:  # buzilgan yoki noma'lum fayl
+        if getattr(e, "status_code", None):
+            raise
+        raise error(400, "unsupported_file") from None
+    return "\n".join(line.strip() for line in text.splitlines() if line.strip())[:20000]
+
+
+@public_router.post("/apply/{code}/parse")
+async def apply_parse(code: str, request: Request, file: UploadFile = File(...), db: AsyncSession = Depends(get_session)):
+    """Nomzod rezyumesini o'qiydi va formaga tushadigan maydonlarni qaytaradi (hech narsa saqlanmaydi)."""
+    await _rate(request, "apply_parse", 20, 3600)
+    await _open_link(db, code)
+    text = await _resume_text(file)
+    p = rsvc.parse_resume(text)
+    return {"full_name": p.get("full_name"), "phone": p.get("phone"), "email": p.get("email"), "found": [k for k, v in p.items() if v], "chars": len(text)}
+
+
+@public_router.post("/apply/{code}/resume", status_code=201)
+async def apply_with_resume(code: str, request: Request, file: UploadFile = File(...), full_name: str = Form(..., min_length=3, max_length=250),
+                            phone: str = Form(..., min_length=7, max_length=20), note: str | None = Form(default=None, max_length=1000),
+                            website: str | None = Form(default=None, max_length=100), db: AsyncSession = Depends(get_session)):  # fmt: skip
+    """Rezyume bilan ariza: nomzod, ariza va rezyume matni saqlanadi; anketa maydonlari rezyumedan avtomatik to'ladi."""
+    await _rate(request, "apply_post", 5, 3600)
+    lk, v = await _open_link(db, code)
+    if website:
+        return {"ok": True}
+    text = await _resume_text(file)
+    try:
+        ph = emp_svc.normalize_phone(phone)
+    except ValueError:
+        raise error(400, "phone_invalid") from None
+    existed = await db.scalar(select(Candidate.id).where(Candidate.phone == ph))
+    status, cand, notes = await svc.submit_application(db, lk, v, full_name=full_name, phone=ph, note=note or "Rezyume biriktirildi", chat_id=None, moment=now())
+    profile = None
+    if cand is not None:
+        if not cand.resume_text:
+            cand.resume_text = text
+        if existed is None:
+            cand.profile_token = cand.profile_token or core.new_token()
+            profile = f"/profile/{cand.profile_token}"
+    await db.commit()
+    await deliver(request.app, notes)
+    return {"ok": True, "from_resume": True, **({"duplicate": True} if status == "duplicate" else {}), **({"profile_url": profile} if profile else {})}
