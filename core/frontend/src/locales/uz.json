@@ -7492,7 +7492,9 @@
       "reject": "Rad etildi",
       "comment": "Izoh",
       "hire": "Ishga olindi",
-      "call": "Qo'ng'iroq"
+      "call": "Qo'ng'iroq",
+      "attended": "Intervyuga keldi",
+      "no_show": "Intervyuga kelmadi"
     },
     "f": {
       "title": "Nomi",
@@ -7506,6 +7508,42 @@
       "openings": "O'rinlar soni",
       "recruiter_id": "Rekruter",
       "deadline": "Muddat"
+    }
+  },
+  "ctl": {
+    "title": "Nomzod tarixi",
+    "hint": "Arizalar, qo'ng'iroqlar, intervyu (keldi/kelmadi), tekshiruv, offer va ishga qabul — bitta lentada.",
+    "attendanceQ": "Intervyuga keldimi?",
+    "came": "Keldi",
+    "notCame": "Kelmadi",
+    "callback": "Qayta qo'ng'iroq",
+    "kind": {
+      "application": "Arizalar",
+      "call": "Qo'ng'iroqlar",
+      "interview": "Intervyu",
+      "stage": "Bosqichlar",
+      "background": "Tekshiruv",
+      "offer": "Offer",
+      "hire": "Ishga qabul",
+      "candidate": "Profil"
+    },
+    "a": {
+      "candidate_created": "Nomzod bazaga qo'shildi",
+      "profile_confirmed": "Anketa to'ldirildi",
+      "applied": "Ariza topshirdi",
+      "interview_scheduled": "Intervyu belgilandi",
+      "attended": "Intervyuga keldi",
+      "no_show": "Intervyuga kelmadi",
+      "interviewed": "Intervyu o'tkazildi",
+      "invite_sent": "Taklifnoma yuborildi",
+      "invite_replied": "Taklifnomaga javob berdi",
+      "bg_started": "Xavfsizlik tekshiruvi boshlandi",
+      "bg_finished": "Tekshiruv yakunlandi",
+      "offer_sent": "Offer yuborildi",
+      "offer_accepted": "Offerni qabul qildi",
+      "offer_declined": "Offerni rad etdi",
+      "hired": "Ishga qabul qilindi",
+      "call": "Qo'ng'iroq"
     }
   }
 }

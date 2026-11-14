@@ -448,7 +448,7 @@ async def delete_file(cid: int, fid: int, request: Request, db: AsyncSession = D
 def _app_out(a: Application, cands: dict[int, Candidate], vac: dict[int, Vacancy], unames: dict[int, str]) -> dict[str, Any]:
     c, v = cands.get(a.candidate_id), vac.get(a.vacancy_id)
     return {
-        "id": a.id, "stage": a.stage, "rating": a.rating, "reject_reason": a.reject_reason, "reject_code": a.reject_code, "match_score": a.match_score, "match_detail": a.match_detail, "interview_at": a.interview_at, "applied_at": a.applied_at, "stage_changed_at": a.stage_changed_at,
+        "id": a.id, "stage": a.stage, "rating": a.rating, "reject_reason": a.reject_reason, "reject_code": a.reject_code, "match_score": a.match_score, "match_detail": a.match_detail, "interview_at": a.interview_at, "interview_attended": a.interview_attended, "attendance_at": a.attendance_at, "applied_at": a.applied_at, "stage_changed_at": a.stage_changed_at,
         "candidate": {"id": a.candidate_id, "full_name": c.full_name if c else None, "phone": c.phone if c else None, "source": c.source if c else None, "skills": (c.skills if c else []) or []},
         "vacancy": {"id": a.vacancy_id, "title": v.title if v else None},
         "recruiter": {"id": a.recruiter_id, "name": unames.get(a.recruiter_id or 0)} if a.recruiter_id else None,

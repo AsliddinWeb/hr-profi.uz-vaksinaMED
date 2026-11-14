@@ -17,6 +17,7 @@ import { NotFound } from '../../pages/NotFound'
 import { errorText } from '../auth/errorText'
 import { useCan } from '../auth/useAuth'
 import { sizeText } from '../tasks/api'
+import { CandidateTimeline } from './CandidateTimeline'
 import { ProfileSection } from './CoreParts'
 import { STAGE_TONE, type CandidateDetail } from './api'
 
@@ -110,6 +111,8 @@ export function CandidateDetailPage() {
           {c.applications.length === 0 && <li className="py-4 text-center text-muted">{t('common.empty')}</li>}
         </ul>
       </Card>
+
+      <CandidateTimeline id={c.id} />
 
       <Card className="flex flex-col gap-4 p-6">
         <div className="flex items-center justify-between gap-3">

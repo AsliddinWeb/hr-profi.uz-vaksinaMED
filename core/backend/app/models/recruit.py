@@ -93,6 +93,8 @@ class Application(Base, TimestampMixin):
     interview_notes: Mapped[str | None] = mapped_column(Text)
     interviewed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     interviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    interview_attended: Mapped[bool | None] = mapped_column(Boolean)  # intervyuga keldi (True) / kelmadi (False)
+    attendance_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     bg_status: Mapped[str | None] = mapped_column(String(8))  # pending | passed | failed
     bg_note: Mapped[str | None] = mapped_column(Text)
     bg_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))

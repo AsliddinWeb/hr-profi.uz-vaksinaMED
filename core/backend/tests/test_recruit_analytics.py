@@ -63,3 +63,32 @@ async def test_recruit_analytics_kpi_sources_and_drill(new_client):
     await make_user("anaxodim", "farmasevt")
     assert (await login(staff, "anaxodim")).status_code == 200
     assert (await staff.get("/api/v1/recruit/analytics")).status_code == 403
+
+
+async def test_attendance_and_candidate_timeline(new_client):
+    uid = await make_user("hrtl", "hr_direktor")
+    hr = new_client()
+    assert (await login(hr, "hrtl")).status_code == 200
+    t = now() - timedelta(hours=3)
+    async with SessionLocal() as s:
+        v = Vacancy(title="Farmatsevt", status="open", openings=1, recruiter_id=uid, opened_at=t)
+        c = Candidate(full_name="Timeline Nomzod", phone="+998901112233")
+        s.add_all([v, c])
+        await s.flush()
+        a = Application(vacancy_id=v.id, candidate_id=c.id, stage="interview", interview_at=t, applied_at=t, stage_changed_at=t, recruiter_id=uid)
+        s.add(a)
+        s.add(RecruitCall(recruiter_id=uid, phone="+998901112233", outcome="suitable", direction="out", called_at=t))
+        await s.flush()
+        aid, cid = a.id, c.id
+        await s.commit()
+    r = await hr.post(f"/api/v1/recruit/applications/{aid}/attendance", json={"attended": False, "note": "telefonni ko'tarmadi"})
+    assert r.status_code == 200 and r.json()["interview_attended"] is False
+    d = (await hr.get("/api/v1/recruit/analytics")).json()
+    assert d["kpi"]["no_show"] == 1 and d["kpi"]["interview_attended"] == 0
+    tl = (await hr.get(f"/api/v1/recruit/candidates/{cid}/timeline")).json()
+    acts = [x["action"] for x in tl["items"]]
+    assert "applied" in acts and "interview_scheduled" in acts and "no_show" in acts and "call" in acts
+    assert tl["counts"]["call"] == 1
+    assert (await hr.post(f"/api/v1/recruit/applications/{aid}/attendance", json={"attended": True})).json()["interview_attended"] is True
+    d = (await hr.get("/api/v1/recruit/analytics")).json()
+    assert d["kpi"]["interview_attended"] == 1 and d["kpi"]["no_show"] == 0

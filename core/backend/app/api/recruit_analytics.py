@@ -147,7 +147,7 @@ async def _collect(db: AsyncSession, f: Filters) -> dict[str, Any]:
             m.add("screening_passed")
         if a.interview_at or a.id in invited or a.interviewed_at or st in ("offer", "hired"):
             m.add("interview_invited")
-        if a.interviewed_at or st in ("offer", "hired") or a.offer_status:
+        if a.interview_attended or a.interviewed_at or st in ("offer", "hired") or a.offer_status:
             m.add("interview_attended")
         if st in ("offer", "hired") or a.offer_status or a.bg_status in ("pending", "passed") or a.id in bg:
             m.add("interview_passed")
@@ -159,10 +159,10 @@ async def _collect(db: AsyncSession, f: Filters) -> dict[str, Any]:
             m.add("offer_accepted")
         if st == "hired" or a.hired_at:
             m.add("hired")
+        if a.interview_attended is False or a.reject_code == "no_show":
+            m.add("no_show")
         if st == "rejected":
             m.add("rejected")
-            if a.reject_code == "no_show":
-                m.add("no_show")
         elif "hired" not in m:
             m.add("active")
         x["m"] = m

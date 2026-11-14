@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, UserCheck } from 'lucide-react'
+import { Check, UserCheck, UserX } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
@@ -88,6 +88,27 @@ export function ApplicationDetailPage() {
         <Info label={t('recruit.vacancy.recruiter')}>{a.recruiter?.name ?? '—'}</Info>
         <Info label={t('recruit.application.rating')}>{a.rating ? <span className="text-warning">{'★'.repeat(a.rating)}</span> : '—'}</Info>
         {a.interview_at && <Info label={t('recruit.application.interviewAt')}>{formatDateTime(a.interview_at, i18n.language)}</Info>}
+        {(a.interview_at || a.stage === 'interview') && (
+          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3 sm:col-span-4">
+            <span className="text-xs text-muted">{t('ctl.attendanceQ')}</span>
+            {a.interview_attended != null && (
+              <Badge tone={a.interview_attended ? 'success' : 'danger'}>
+                {t(a.interview_attended ? 'ctl.a.attended' : 'ctl.a.no_show')}
+                {a.attendance_at ? ` · ${formatDateTime(a.attendance_at, i18n.language)}` : ''}
+              </Badge>
+            )}
+            <span className="ml-auto flex gap-2">
+              <Button variant={a.interview_attended === true ? 'primary' : 'outline'} disabled={act.isPending} onClick={() => act.mutate({ path: 'attendance', body: { attended: true } })}>
+                <Check className="size-4" />
+                {t('ctl.came')}
+              </Button>
+              <Button variant={a.interview_attended === false ? 'danger' : 'outline'} disabled={act.isPending} onClick={() => act.mutate({ path: 'attendance', body: { attended: false } })}>
+                <UserX className="size-4" />
+                {t('ctl.notCame')}
+              </Button>
+            </span>
+          </div>
+        )}
         {a.candidate.skills.length > 0 && (
           <div className="flex flex-wrap gap-1.5 sm:col-span-4">
             {a.candidate.skills.map((s) => (

@@ -70,6 +70,8 @@ export interface Application {
   rating: number | null
   reject_reason: string | null
   interview_at: string | null
+  interview_attended?: boolean | null
+  attendance_at?: string | null
   applied_at: string
   stage_changed_at: string
   candidate: { id: number; full_name: string | null; phone: string | null; source: string | null; skills: string[] }
