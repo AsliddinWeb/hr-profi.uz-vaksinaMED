@@ -6340,7 +6340,8 @@
     "removePosQ": "Удалить должность «{{name}}»?",
     "manager": "Заведующий",
     "branchesNode": "Филиалы",
-    "branchesN": "филиалов: {{n}}"
+    "branchesN": "филиалов: {{n}}",
+    "mouseHint": "Колесо — масштаб, перетаскивание или Пробел + мышь — сдвиг"
   },
   "aiiv": {
     "title": "AI-интервью (hard / soft skills)",

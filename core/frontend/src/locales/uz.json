@@ -6341,7 +6341,8 @@
     "removePosQ": "«{{name}}» lavozimi o'chirilsinmi?",
     "manager": "Mudir",
     "branchesNode": "Filiallar",
-    "branchesN": "{{n}} ta filial"
+    "branchesN": "{{n}} ta filial",
+    "mouseHint": "G'ildirak — kattalashtirish, sudrash yoki Probel + sichqoncha — surish"
   },
   "aiiv": {
     "title": "AI suhbat (hard / soft skill)",

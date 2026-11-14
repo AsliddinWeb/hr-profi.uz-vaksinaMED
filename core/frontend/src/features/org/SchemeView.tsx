@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Maximize2, Minimize2, Minus, Pencil, Plus, RotateCcw, ScanSearch, X } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent as RMouseEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
@@ -199,6 +199,81 @@ export function SchemeView({ onSelect }: { onSelect?: (n: { kind: 'dept'; d: Dep
   const structureId = Number(selected) || defaultId
   const q = useQuery({ queryKey: ['org', 'scheme', structureId], queryFn: () => api<Scheme>(`/api/v1/org/scheme${structureId ? `?structure_id=${structureId}` : ''}`), enabled: !!structures.data })
   const [zoom, setZoom] = useState(0.85)
+  // sichqoncha: g'ildirak — kursor atrofida kattalashtirish; sudrash (bo'sh joy, Probel yoki o'rta tugma) — surish
+  const anchor = useRef<{ x: number; y: number; cx: number; cy: number } | null>(null)
+  const drag = useRef<{ x: number; y: number; l: number; t: number; moved: boolean } | null>(null)
+  const [space, setSpace] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  useLayoutEffect(() => {
+    const a = anchor.current
+    const el = box.current
+    if (a && el) {
+      el.scrollLeft = a.cx * zoom - a.x
+      el.scrollTop = a.cy * zoom - a.y
+      anchor.current = null
+    }
+  }, [zoom])
+  useEffect(() => {
+    const el = box.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      if (e.shiftKey) return // Shift + g'ildirak — yonga surish (brauzerning o'zi)
+      e.preventDefault()
+      const r = el.getBoundingClientRect()
+      const x = e.clientX - r.left
+      const y = e.clientY - r.top
+      setZoom((z) => {
+        const nz = Math.min(1.6, Math.max(0.15, +(z * (e.deltaY < 0 ? 1.12 : 1 / 1.12)).toFixed(3)))
+        anchor.current = { x, y, cx: (el.scrollLeft + x) / z, cy: (el.scrollTop + y) / z }
+        return nz
+      })
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  })
+  useEffect(() => {
+    const typing = (e: KeyboardEvent) => !!(e.target as HTMLElement)?.closest?.('input,textarea,select,[contenteditable="true"]')
+    const down = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !typing(e)) {
+        e.preventDefault()
+        setSpace(true)
+      }
+    }
+    const up = (e: KeyboardEvent) => e.code === 'Space' && setSpace(false)
+    const move = (e: MouseEvent) => {
+      const g = drag.current
+      const el = box.current
+      if (!g || !el) return
+      const dx = e.clientX - g.x
+      const dy = e.clientY - g.y
+      if (Math.abs(dx) + Math.abs(dy) > 3) g.moved = true
+      el.scrollLeft = g.l - dx
+      el.scrollTop = g.t - dy
+    }
+    const stop = () => {
+      if (drag.current) setDragging(false)
+      setTimeout(() => (drag.current = null), 0)
+    }
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    window.addEventListener('mousemove', move)
+    window.addEventListener('mouseup', stop)
+    return () => {
+      window.removeEventListener('keydown', down)
+      window.removeEventListener('keyup', up)
+      window.removeEventListener('mousemove', move)
+      window.removeEventListener('mouseup', stop)
+    }
+  }, [])
+  const startDrag = (e: RMouseEvent<HTMLDivElement>) => {
+    const el = box.current
+    if (!el) return
+    const onEmpty = !(e.target as HTMLElement).closest('a,button,input,select,textarea,.cursor-pointer')
+    if (!(e.button === 1 || (e.button === 0 && (space || onEmpty)))) return
+    e.preventDefault()
+    drag.current = { x: e.clientX, y: e.clientY, l: el.scrollLeft, t: el.scrollTop, moved: false }
+    setDragging(true)
+  }
   const box = useRef<HTMLDivElement>(null)
   const inner = useRef<HTMLDivElement>(null)
   const wrap = useRef<HTMLDivElement>(null)
@@ -395,7 +470,7 @@ export function SchemeView({ onSelect }: { onSelect?: (n: { kind: 'dept'; d: Dep
           {t(editing ? 'scheme.editDone' : 'scheme.edit')}
         </Button>
       )}
-      {editing && <span className="text-xs text-muted">{t('scheme.editHint')}</span>}
+      {editing ? <span className="text-xs text-muted">{t('scheme.editHint')}</span> : <span className="hidden text-xs text-muted md:inline">{t('scheme.mouseHint')}</span>}
       <div className="flex items-center gap-1 rounded-control border border-border bg-surface p-1 shadow-card">
         <button type="button" title={t('scheme.fit')} aria-label={t('scheme.fit')} onClick={fit} className="rounded p-1 hover:bg-surface-2">
           <ScanSearch className="size-4" />
@@ -415,7 +490,13 @@ export function SchemeView({ onSelect }: { onSelect?: (n: { kind: 'dept'; d: Dep
         </button>
       </div>
       </div>
-      <div ref={box} className={`overflow-auto p-4 ${full ? 'flex-1' : ''}`} style={full ? undefined : { height: 'calc(100vh - 230px)', minHeight: 420 }}>
+      <div
+        ref={box}
+        onMouseDown={startDrag}
+        onClickCapture={(e) => drag.current?.moved && (e.stopPropagation(), e.preventDefault())}
+        className={`overflow-auto p-4 select-none ${full ? 'flex-1' : ''} ${dragging ? 'cursor-grabbing' : space ? 'cursor-grab' : 'cursor-default'}`}
+        style={full ? undefined : { height: 'calc(100vh - 230px)', minHeight: 420 }}
+      >
         <div ref={inner} className="org-tree scheme mx-auto w-max origin-top-left" style={{ zoom }}>
           <ul>
             <li>
