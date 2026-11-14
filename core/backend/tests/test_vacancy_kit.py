@@ -36,3 +36,23 @@ async def test_apply_with_resume_and_vacancy_kit(new_client):
     kit = (await hr.get(f"/api/v1/recruit/vacancies/{vid}/kit")).json()
     assert kit["stats"]["total"] == 1 and kit["stats"]["with_resume"] == 1 and kit["resumes"][0]["has_resume"] is True
     assert kit["links"][0]["applications"] == 1 and kit["links"][0]["clicks"] >= 1 and kit["vacancy"]["found"] is False
+
+
+async def test_vacancy_history_records_changes(new_client):
+    await make_user("hrhist", "hr_direktor")
+    hr = new_client()
+    assert (await login(hr, "hrhist")).status_code == 200
+    r = await hr.post("/api/v1/recruit/vacancies", json={"title": "Kassir", "openings": 1})
+    assert r.status_code in (200, 201), r.text
+    vid = r.json()["id"]
+    body = {**r.json(), "title": "Katta kassir", "openings": 2}
+    body = {k: body.get(k) for k in ("title", "branch_id", "department_id", "position_id", "description", "requirements", "salary_from", "salary_to", "openings", "recruiter_id", "deadline")}
+    assert (await hr.put(f"/api/v1/recruit/vacancies/{vid}", json=body)).status_code == 200
+    assert (await hr.post(f"/api/v1/recruit/vacancies/{vid}/status", json={"status": "open"})).status_code == 200
+    h = (await hr.get(f"/api/v1/recruit/vacancies/{vid}/history")).json()
+    acts = [x["action"] for x in h["items"]]
+    assert "vacancy_create" in acts and "vacancy_update" in acts and "vacancy_status" in acts
+    upd = next(x for x in h["items"] if x["action"] == "vacancy_update")
+    assert upd["data"]["changes"]["title"] == ["Kassir", "Katta kassir"] and upd["actor"]
+    only = (await hr.get(f"/api/v1/recruit/vacancies/{vid}/history", params={"kind": "vacancy"})).json()
+    assert only["total"] == 3

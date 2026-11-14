@@ -62,11 +62,15 @@ function Section({ title, children, action }: { title: string; children: ReactNo
   )
 }
 
-export function RecruitAnalyticsPage() {
+/** Rekruting tahlili. `vacancyId` berilsa — vakansiya kartasidagi «Tahlil» tabi sifatida (sarlavhasiz, shu vakansiya bo'yicha). */
+export function RecruitAnalyticsPage({ vacancyId, since }: { vacancyId?: number; since?: string } = {}) {
   const { t, i18n } = useTranslation()
   const can = useCan()
 
-  const [start, setStart] = useState(() => iso(new Date(Date.now() - 29 * 86400000)))
+  const [start, setStart] = useState(() => {
+    const floor = iso(new Date(Date.now() - 799 * 86400000))
+    return since ? (since.slice(0, 10) < floor ? floor : since.slice(0, 10)) : iso(new Date(Date.now() - 29 * 86400000))
+  })
   const [end, setEnd] = useState(() => iso(new Date()))
   const [branch, setBranch] = useState('')
   const [dept, setDept] = useState('')
@@ -77,6 +81,7 @@ export function RecruitAnalyticsPage() {
   const meta = useQuery({ queryKey: ['recruit', 'requests', 'meta'], queryFn: () => api<{ departments: { id: number; name: string }[]; positions: { id: number; name: string }[] }>('/api/v1/recruit/requests/meta') })
   const branches = useQuery({ queryKey: ['branches', 'select'], queryFn: () => api<BranchPage>('/api/v1/branches?size=200'), enabled: can('branches.read') })
   const params = new URLSearchParams({ start, end })
+  if (vacancyId) params.set('vacancy_id', String(vacancyId))
   for (const [k, v] of [['branch_id', branch], ['department_id', dept], ['position_id', pos], ['recruiter_id', rec], ['source', source]]) if (v) params.set(k, v)
   const q = useQuery({ queryKey: ['recruit', 'analytics', params.toString()], queryFn: () => api<Analytics>(`/api/v1/recruit/analytics?${params}`), placeholderData: (p) => p })
   const d = q.data
@@ -126,10 +131,8 @@ export function RecruitAnalyticsPage() {
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-5 print:max-w-none">
-      <PageHeader
-        title={t('ana.title')}
-        subtitle={t('ana.subtitle')}
-        actions={
+      {vacancyId ? (
+        <div className="flex justify-end">
           <div className="flex flex-wrap gap-2 print:hidden">
             <Button variant="outline" onClick={exportAll} disabled={!d}>
               <Download className="size-4" />
@@ -140,11 +143,30 @@ export function RecruitAnalyticsPage() {
               PDF
             </Button>
           </div>
-        }
-      />
+        </div>
+      ) : (
+        <PageHeader
+          title={t('ana.title')}
+          subtitle={t('ana.subtitle')}
+          actions={
+          <div className="flex flex-wrap gap-2 print:hidden">
+            <Button variant="outline" onClick={exportAll} disabled={!d}>
+              <Download className="size-4" />
+              {t('ana.excel')}
+            </Button>
+            <Button variant="outline" onClick={() => window.print()}>
+              <Printer className="size-4" />
+              PDF
+            </Button>
+          </div>
+          }
+        />
+      )}
       <Card className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-4 lg:grid-cols-7 print:hidden">
         <Input type="date" value={start} max={end} onChange={(e) => setStart(e.target.value)} aria-label={t('ana.start')} />
         <Input type="date" value={end} min={start} onChange={(e) => setEnd(e.target.value)} aria-label={t('ana.end')} />
+        {!vacancyId && (
+          <>
         <Select value={branch} onChange={(e) => setBranch(e.target.value)} aria-label={t('ana.branch')}>
           <option value="">{t('ana.allBranches')}</option>
           {branches.data?.items.map((b) => (
@@ -169,6 +191,8 @@ export function RecruitAnalyticsPage() {
             </option>
           ))}
         </Select>
+          </>
+        )}
         <Select value={rec} onChange={(e) => setRec(e.target.value)} aria-label={t('ana.recruiter')}>
           <option value="">{t('ana.allRecruiters')}</option>
           {d?.recruiters.map((x) => (

@@ -7453,5 +7453,59 @@
       "no_answer": "Javob bermadi",
       "callback": "Qayta qo'ng'iroq"
     }
+  },
+  "vhist": {
+    "tabAnalytics": "Tahlil",
+    "tabHistory": "Tarix",
+    "title": "Vakansiya tarixi",
+    "hint": "O'zgarmas jurnal: har bir hodisa vaqti va bajaruvchisi bilan saqlanadi, o'chirilmaydi va tahrirlanmaydi.",
+    "all": "Hammasi",
+    "more": "Yana {{n}} ta eski hodisa",
+    "kind": {
+      "request": "Zayavka",
+      "announcement": "E'lon",
+      "vacancy": "Vakansiya",
+      "channel": "Kanallar",
+      "link": "Havolalar",
+      "application": "Arizalar",
+      "stage": "Bosqichlar",
+      "call": "Qo'ng'iroqlar"
+    },
+    "a": {
+      "request_created": "Zayavka yaratildi",
+      "request_approved": "Zayavka tasdiqlandi",
+      "request_rejected": "Zayavka rad etildi",
+      "request_cancelled": "Zayavka bekor qilindi",
+      "request_pending": "Zayavka ko'rib chiqilmoqda",
+      "announcement_created": "E'lon qoralamasi tuzildi",
+      "announcement_approved": "E'lon tasdiqlandi",
+      "vacancy_create": "Vakansiya ochildi",
+      "vacancy_update": "Vakansiya tahrirlandi",
+      "vacancy_status": "Holat o'zgardi",
+      "vacancy_delete": "Vakansiya o'chirildi",
+      "channel_add": "Kanal qo'shildi",
+      "channel_posted": "E'lon joylandi",
+      "channel_closed": "E'lon olib tashlandi",
+      "link_created": "Nomzod havolasi yaratildi",
+      "applied": "Ariza keldi",
+      "stage": "Bosqich o'zgardi",
+      "reject": "Rad etildi",
+      "comment": "Izoh",
+      "hire": "Ishga olindi",
+      "call": "Qo'ng'iroq"
+    },
+    "f": {
+      "title": "Nomi",
+      "branch_id": "Filial",
+      "department_id": "Bo'lim",
+      "position_id": "Lavozim",
+      "description": "Tavsif",
+      "requirements": "Talablar",
+      "salary_from": "Oylik (dan)",
+      "salary_to": "Oylik (gacha)",
+      "openings": "O'rinlar soni",
+      "recruiter_id": "Rekruter",
+      "deadline": "Muddat"
+    }
   }
 }

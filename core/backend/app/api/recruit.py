@@ -208,9 +208,13 @@ async def update_vacancy(vid: int, body: VacancyIn, request: Request, db: AsyncS
         notes = await notify(db, [body.recruiter_id], "recruit.assigned", link=f"/recruit/vacancies/{v.id}", params={"vacancy": body.title})
     if body.deadline != v.deadline:
         v.sla_warned_at = v.sla_overdue_at = None
+    changes: dict[str, list] = {}
     for k, val in {**body.model_dump(), "title": body.title.strip()}.items():
+        old = getattr(v, k)
+        if old != val:
+            changes[k] = [None if old is None else str(old)[:300], None if val is None else str(val)[:300]]
         setattr(v, k, val)
-    await audit(db, request, "recruit.vacancy_update", actor=auth.user, entity="vacancy", entity_id=v.id, data={"title": v.title})
+    await audit(db, request, "recruit.vacancy_update", actor=auth.user, entity="vacancy", entity_id=v.id, data={"title": v.title, "changes": changes})
     await db.commit()
     await deliver(request.app, notes)
     return await _vacancy_detail(db, v)

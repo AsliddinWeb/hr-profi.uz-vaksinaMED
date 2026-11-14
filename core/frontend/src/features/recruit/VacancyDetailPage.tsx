@@ -15,7 +15,9 @@ import { formatDate, formatDateTime } from '../../lib/format'
 import { NotFound } from '../../pages/NotFound'
 import { errorText } from '../auth/errorText'
 import { useCan } from '../auth/useAuth'
+import { RecruitAnalyticsPage } from './AnalyticsPage'
 import { KitStats, RecruiterActivity, RecruiterSearch } from './VacancyKit'
+import { VacancyHistory } from './VacancyHistory'
 import { VacancyDashboard } from './VacancyDashboard'
 import { STAGE_TONE, STAGES, salaryText, VSTATUS_TONE, type Board, type Vacancy, type VStatus } from './api'
 
@@ -35,7 +37,7 @@ export function VacancyDetailPage() {
   const can = useCan()
   const manage = can('recruit.manage')
   // HR (tasdiqlovchi) — nazorat, rekruter — xodim qidirish ko'rinishi bilan ochiladi
-  const [view, setView] = useState<'search' | 'control'>(can('recruit.approve') ? 'control' : 'search')
+  const [view, setView] = useState<'search' | 'control' | 'analytics' | 'history'>(can('recruit.approve') ? 'control' : 'search')
   const q = useQuery({ queryKey: ['recruit', 'vacancy', id], queryFn: () => api<Vacancy>(`/api/v1/recruit/vacancies/${id}`), retry: false })
   const board = useQuery({ queryKey: ['recruit', 'board', id], queryFn: () => api<Board>(`/api/v1/recruit/board?vacancy_id=${id}`), refetchInterval: 30_000 })
   const status = useMutation({ mutationFn: (s: VStatus) => send('POST', `/api/v1/recruit/vacancies/${id}/status`, { status: s }), onSuccess: () => void qc.invalidateQueries({ queryKey: ['recruit'] }) })
@@ -78,9 +80,11 @@ export function VacancyDetailPage() {
           )
         }
       />
-      <Tabs items={[{ key: 'search' as const, label: t('vkit.viewSearch') }, { key: 'control' as const, label: t('vkit.viewControl') }]} value={view} onChange={setView} />
+      <Tabs items={[{ key: 'search' as const, label: t('vkit.viewSearch') }, { key: 'control' as const, label: t('vkit.viewControl') }, { key: 'analytics' as const, label: t('vhist.tabAnalytics') }, { key: 'history' as const, label: t('vhist.tabHistory') }]} value={view} onChange={setView} />
       <KitStats id={v.id} />
       {view === 'search' && <RecruiterSearch id={v.id} />}
+      {view === 'analytics' && <RecruitAnalyticsPage vacancyId={v.id} since={v.opened_at ?? v.created_at} />}
+      {view === 'history' && <VacancyHistory id={v.id} />}
       {view === 'control' && (
         <>
       <VacancyDashboard id={v.id} />

@@ -7452,5 +7452,59 @@
       "no_answer": "Не ответил",
       "callback": "Перезвонить"
     }
+  },
+  "vhist": {
+    "tabAnalytics": "Аналитика",
+    "tabHistory": "История",
+    "title": "История вакансии",
+    "hint": "Неизменяемый журнал: каждое событие хранится со временем и исполнителем, не удаляется и не редактируется.",
+    "all": "Все",
+    "more": "Ещё {{n}} старых событий",
+    "kind": {
+      "request": "Заявка",
+      "announcement": "Объявление",
+      "vacancy": "Вакансия",
+      "channel": "Каналы",
+      "link": "Ссылки",
+      "application": "Отклики",
+      "stage": "Этапы",
+      "call": "Звонки"
+    },
+    "a": {
+      "request_created": "Создана заявка",
+      "request_approved": "Заявка утверждена",
+      "request_rejected": "Заявка отклонена",
+      "request_cancelled": "Заявка отменена",
+      "request_pending": "Заявка на рассмотрении",
+      "announcement_created": "Создан черновик объявления",
+      "announcement_approved": "Объявление утверждено",
+      "vacancy_create": "Вакансия открыта",
+      "vacancy_update": "Вакансия изменена",
+      "vacancy_status": "Статус изменён",
+      "vacancy_delete": "Вакансия удалена",
+      "channel_add": "Добавлен канал",
+      "channel_posted": "Объявление размещено",
+      "channel_closed": "Объявление снято",
+      "link_created": "Создана ссылка для кандидатов",
+      "applied": "Новый отклик",
+      "stage": "Смена этапа",
+      "reject": "Отказ",
+      "comment": "Комментарий",
+      "hire": "Принят на работу",
+      "call": "Звонок"
+    },
+    "f": {
+      "title": "Название",
+      "branch_id": "Филиал",
+      "department_id": "Отдел",
+      "position_id": "Должность",
+      "description": "Описание",
+      "requirements": "Требования",
+      "salary_from": "Оклад (от)",
+      "salary_to": "Оклад (до)",
+      "openings": "Кол-во мест",
+      "recruiter_id": "Рекрутер",
+      "deadline": "Срок"
+    }
   }
 }

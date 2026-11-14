@@ -13,15 +13,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
 from app.deps import AuthContext, error, get_auth
-from app.models.auth import User
+from app.models.auth import AuditLog, User
 from app.models.competency import Competency, PositionProfile, ProfileCompetency
 from app.models.recruit import (
+    Announcement,
     Application,
     ApplicationEvent,
     Candidate,
     HireRequest,
+    RecruitCall,
     SourceLink,
     Vacancy,
+    VacancyChannel,
 )
 from app.rbac import matches
 from app.services import recruit_sources as src
@@ -93,3 +96,57 @@ async def vacancy_kit(vid: int, db: AsyncSession = Depends(get_session), _: Auth
                      "has_resume": bool(c.resume_text), "anketa": bool(c.profile_confirmed_at)} for a, c in apps[:200]],
         "activity": [{"at": e.created_at, "actor": names.get(e.actor_id or 0), "action": e.action, "to": e.to_stage, "candidate": n} for e, n in events],
     }  # fmt: skip
+
+
+HISTORY_KINDS = ("request", "announcement", "vacancy", "channel", "link", "application", "stage", "call")
+
+
+@router.get("/{vid}/history")
+async def vacancy_history(vid: int, kind: str | None = None, db: AsyncSession = Depends(get_session), _: AuthContext = Depends(_reader)):
+    """O'zgarmas tarix (TZ): vakansiyaga oid barcha hodisalar bitta xronologiyada. Faqat o'qiladi — manbalar (audit jurnali,
+    zayavka, e'lon, kanallar, havolalar, arizalar, bosqich hodisalari, qo'ng'iroqlar) o'zi qo'shilib boriladi, tahrir qilinmaydi."""
+    v = await db.get(Vacancy, vid)
+    if not v:
+        raise error(404, "not_found")
+    ev: list[dict[str, Any]] = []
+
+    def add(k: str, at: datetime | None, action: str, actor: int | None = None, **data: Any) -> None:
+        if at and (not kind or kind == k):
+            ev.append({"kind": k, "at": at, "action": action, "actor_id": actor, "data": data})
+
+    for r in (await db.scalars(select(HireRequest).where(HireRequest.vacancy_id == vid))).all():
+        add("request", r.created_at, "request_created", r.created_by, request_id=r.id, reason=(r.reason or "")[:200])
+        add("request", r.decided_at, f"request_{r.status}", r.decided_by, request_id=r.id)
+    for a in (await db.scalars(select(Announcement).where(Announcement.vacancy_id == vid))).all():
+        add("announcement", a.created_at, "announcement_created", a.created_by, announcement_id=a.id, title=a.title)
+        add("announcement", a.approved_at, "announcement_approved", a.approved_by, announcement_id=a.id)
+    logs = (await db.scalars(select(AuditLog).where(AuditLog.entity == "vacancy", AuditLog.entity_id == str(vid)).order_by(AuditLog.id))).all()
+    for lg in logs:
+        add("vacancy", lg.created_at, lg.action.removeprefix("recruit."), lg.actor_id, **(lg.data or {}))
+    if not any(lg.action == "recruit.vacancy_create" for lg in logs):
+        add("vacancy", v.created_at, "vacancy_create", v.created_by, title=v.title)
+    for c in (await db.scalars(select(VacancyChannel).where(VacancyChannel.vacancy_id == vid))).all():
+        add("channel", c.posted_at, "channel_posted", c.posted_by, channel=c.channel, url=c.url, cost=c.cost)
+        add("channel", c.closed_at, "channel_closed", None, channel=c.channel)
+    for lk in (await db.scalars(select(SourceLink).where(SourceLink.vacancy_id == vid))).all():
+        add("link", lk.created_at, "link_created", lk.owner_user_id, channel=lk.channel, label=lk.label, clicks=lk.clicks)
+    apps = (await db.execute(select(Application, Candidate).join(Candidate, Candidate.id == Application.candidate_id).where(Application.vacancy_id == vid))).all()
+    for a, c in apps:
+        add("application", a.applied_at, "applied", None, application_id=a.id, candidate=c.full_name)
+    stage_ev = (await db.execute(
+        select(ApplicationEvent, Candidate.full_name).join(Application, Application.id == ApplicationEvent.application_id)
+        .join(Candidate, Candidate.id == Application.candidate_id).where(Application.vacancy_id == vid)
+    )).all()  # fmt: skip
+    for e, name in stage_ev:
+        add("stage", e.created_at, e.action, e.actor_id, application_id=e.application_id, candidate=name, from_stage=e.from_stage, to_stage=e.to_stage, note=(e.note or "")[:200])
+    for rc in (await db.scalars(select(RecruitCall).where(RecruitCall.vacancy_id == vid))).all():
+        add("call", rc.called_at, "call", rc.recruiter_id, outcome=rc.outcome, phone=rc.phone)
+
+    ev.sort(key=lambda x: x["at"], reverse=True)
+    uids = {x["actor_id"] for x in ev if x["actor_id"]}
+    names = {u.id: u.full_name for u in (await db.scalars(select(User).where(User.id.in_(uids)))).all()} if uids else {}
+    counts: dict[str, int] = {}
+    for x in ev:
+        counts[x["kind"]] = counts.get(x["kind"], 0) + 1
+        x["actor"] = names.get(x.pop("actor_id") or 0)
+    return {"items": ev[:1000], "total": len(ev), "counts": counts}
