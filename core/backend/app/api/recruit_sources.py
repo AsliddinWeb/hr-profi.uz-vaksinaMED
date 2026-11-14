@@ -53,6 +53,7 @@ class RequirementIn(BaseModel):
     ad_template: str | None = Field(default=None, max_length=4000)
     profile: CardIn | None = None
     note: str | None = Field(default=None, max_length=300)
+    cost: int | None = Field(default=None, ge=0, le=10**12)
 
 
 def _req_out(r: PositionRequirement, position: str | None) -> dict[str, Any]:
@@ -140,7 +141,7 @@ async def promo(vid: int, db: AsyncSession = Depends(get_session), _: AuthContex
     return {
         "vacancy": {"id": v.id, "title": v.title, "status": v.status, "branch": svc.branch_label(branch) if branch else None},
         "ad": svc.ad_text(v, branch, req, links[0]["url"] if links else svc.apply_url("…")),
-        "channels": [{"id": c.id, "channel": c.channel, "url": c.url, "note": c.note, "posted_by": names.get(c.posted_by or 0), "posted_at": c.posted_at, "closed_at": c.closed_at} for c in chans],
+        "channels": [{"id": c.id, "channel": c.channel, "url": c.url, "note": c.note, "cost": c.cost, "posted_by": names.get(c.posted_by or 0), "posted_at": c.posted_at, "closed_at": c.closed_at} for c in chans],
         "links": links,
     }  # fmt: skip
 
@@ -156,7 +157,7 @@ async def add_channel(vid: int, body: ChannelIn, request: Request, db: AsyncSess
     await _vacancy(db, vid)
     if body.url and not body.url.lower().startswith(("http://", "https://")):
         raise error(400, "url_invalid")
-    c = VacancyChannel(vacancy_id=vid, channel=body.channel, url=(body.url or "").strip() or None, note=(body.note or "").strip() or None, posted_by=auth.user.id)
+    c = VacancyChannel(vacancy_id=vid, channel=body.channel, url=(body.url or "").strip() or None, note=(body.note or "").strip() or None, cost=body.cost, posted_by=auth.user.id)
     db.add(c)
     await audit(db, request, "recruit.channel_add", actor=auth.user, entity="vacancy", entity_id=vid, data={"channel": body.channel})
     await db.commit()

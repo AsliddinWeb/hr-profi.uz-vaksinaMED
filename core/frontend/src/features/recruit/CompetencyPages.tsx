@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
-import { ArrowLeft, ArrowRight, Check, Eye, FileCheck2 as FileCheckIcon, ListChecks as ListChecksIcon, Paperclip, Pencil, Plus, Search, ShieldCheck as ShieldCheckIcon, Sparkles, Trash2, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BarChart3, Check, Eye, FileCheck2 as FileCheckIcon, ListChecks as ListChecksIcon, Paperclip, Pencil, Plus, Search, ShieldCheck as ShieldCheckIcon, Sparkles, Trash2, X } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -1254,6 +1254,12 @@ export function RecruitDashboardPage() {
         subtitle={t('comp.ov.subtitle')}
         actions={
           <div className="flex flex-wrap items-center gap-2">
+          <Link to="/recruit/analytics">
+            <Button variant="outline">
+              <BarChart3 className="size-4" />
+              {t('ana.title')}
+            </Button>
+          </Link>
           {panelTabs.map((x) => (
             <Button key={x.key} variant={panel === x.key ? 'primary' : 'outline'} onClick={() => setPanel(x.key)}>
               <x.icon className="size-4" />

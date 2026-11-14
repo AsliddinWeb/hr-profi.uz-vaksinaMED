@@ -1,5 +1,6 @@
 import { AnnouncementDetailPage, AnnouncementsPage } from "./features/recruit/AnnouncementPages";
 import { MyDocumentsPage } from "./features/org/PositionDocs";
+import { RecruitAnalyticsPage } from "./features/recruit/AnalyticsPage";
 import { ApprovalsPage as RecruitApprovalsPage, CompetenciesPage, PositionCompetenciesPage, FunnelReportPage, RecruitDashboardPage, ProfilesPage as PositionProfilesPage, ProfileWizardPage } from "./features/recruit/CompetencyPages";
 import { createBrowserRouter } from "react-router-dom";
 
@@ -2138,6 +2139,14 @@ export function createRouter() {
                   element: (
                     <RequirePerm any={["recruit.read", "recruit.manage"]}>
                       <RecruiterTodayPage />
+                    </RequirePerm>
+                  ),
+                },
+                {
+                  path: "recruit/analytics",
+                  element: (
+                    <RequirePerm any={["recruit.read", "recruit.manage", "recruit.approve"]}>
+                      <RecruitAnalyticsPage />
                     </RequirePerm>
                   ),
                 },

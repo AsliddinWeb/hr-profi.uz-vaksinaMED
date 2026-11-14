@@ -9,6 +9,7 @@ import { Badge } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
 import { Card } from '../../../components/ui/Card'
 import { Field, Input, Select } from '../../../components/ui/Input'
+import { MoneyInput } from '../../../components/ui/MoneyInput'
 import { Skeleton } from '../../../components/ui/Skeleton'
 import { useToast } from '../../../components/ui/toastContext'
 import { api, ApiError, send } from '../../../lib/api'
@@ -28,10 +29,11 @@ export function PromoPage() {
   const q = useQuery({ queryKey: ['recruit', 'promo', id], queryFn: () => api<Promo>(`/api/v1/recruit/vacancies/${id}/promo`), retry: false })
   const [chan, setChan] = useState<string>('hh_uz')
   const [url, setUrl] = useState('')
+  const [cost, setCost] = useState('')
   const [lchan, setLchan] = useState<string>('telegram')
   const [label, setLabel] = useState('')
   const refresh = () => void qc.invalidateQueries({ queryKey: ['recruit', 'promo', id] })
-  const addChannel = useMutation({ mutationFn: () => send('POST', `/api/v1/recruit/vacancies/${id}/channels`, { channel: chan, url: url || null }), onSuccess: () => (setUrl(''), refresh()) })
+  const addChannel = useMutation({ mutationFn: () => send('POST', `/api/v1/recruit/vacancies/${id}/channels`, { channel: chan, url: url || null, cost: cost ? Number(cost) : null }), onSuccess: () => (setUrl(''), setCost(''), refresh()) })
   const closeChannel = useMutation({ mutationFn: (cid: number) => send('POST', `/api/v1/recruit/vacancies/${id}/channels/${cid}/close`), onSuccess: refresh })
   const delChannel = useMutation({ mutationFn: (cid: number) => send('DELETE', `/api/v1/recruit/vacancies/${id}/channels/${cid}`), onSuccess: refresh })
   const addLink = useMutation({ mutationFn: () => send('POST', `/api/v1/recruit/vacancies/${id}/links`, { channel: lchan, label: label || null }), onSuccess: () => (setLabel(''), refresh()) })
@@ -113,6 +115,7 @@ export function PromoPage() {
               )}
             </Field>
             <Field label={t('recruitSources.url')}>{(fid) => <Input id={fid} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" className="min-w-64" />}</Field>
+            <Field label={t('recruitSources.cost')}>{(fid) => <MoneyInput id={fid} value={cost} onChange={setCost} placeholder="0" />}</Field>
             <Button disabled={addChannel.isPending} onClick={() => addChannel.mutate()}>
               {t('recruitSources.addChannel')}
             </Button>
