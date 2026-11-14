@@ -90,7 +90,7 @@
       "attendance": "Davomat",
       "requests": "So'rovlar",
       "tasks": "Topshiriq va eslatmalar",
-      "pharmacy": "Apteka tarmog'i",
+      "pharmacy": "Filiallar tarmog'i",
       "needs": "Ehtiyojlar",
       "checklists": "Filial tekshiruvlari",
       "recruit": "Ishga qabul",
@@ -2465,7 +2465,7 @@
     }
   },
   "pharmacy": {
-    "title": "Apteka tarmog'i",
+    "title": "Filiallar tarmog'i",
     "subtitle": "Filiallar jamoasi, bugungi holat va yetishmayotgan xodimlar",
     "map": "Xarita",
     "mapSubtitle": "Rang filial holatini ko'rsatadi; belgini bossangiz filial kartasi ochiladi",

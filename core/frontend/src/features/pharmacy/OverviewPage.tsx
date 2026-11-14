@@ -13,6 +13,11 @@ import { Pagination } from '../../components/ui/Pagination'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { api } from '../../lib/api'
 import { useCan } from '../auth/useAuth'
+import { SidePanel } from '../../components/SidePanel'
+import { MapPage } from './MapPage'
+import { NeedsPage } from './NeedsPage'
+import { NormsBulkPage } from './NormsBulkPage'
+import { QualityPage } from './QualityPage'
 import { SeverityBadge } from './SeverityBadge'
 import { branchTitle, ROLES, type Overview } from './api'
 
@@ -35,6 +40,14 @@ export function OverviewPage() {
   const d = data.data
   const k = d?.kpis
   const reset = (fn: () => void) => (fn(), setPage(1))
+  // Xarita, Xodim kerak, Ma'lumot sifati, Ommaviy me'yor — boshqa sahifaga o'tmasdan shu yerdagi o'ng panelda
+  const [panel, setPanel] = useState<'map' | 'needs' | 'quality' | 'norms' | null>(null)
+  const panelTabs = [
+    { key: 'map' as const, label: t('pharmacy.map'), icon: MapIcon, node: <MapPage /> },
+    { key: 'needs' as const, label: t('pharmacy.needs.title'), icon: ClipboardList, node: <NeedsPage /> },
+    ...(can('pharmacy.manage') || can('pharmacy.read') ? [{ key: 'quality' as const, label: t('pharmacy.quality.title'), icon: ShieldCheck, node: <QualityPage /> }] : []),
+    ...(can('pharmacy.manage') ? [{ key: 'norms' as const, label: t('pharmacy.norms.title'), icon: SlidersHorizontal, node: <NormsBulkPage /> }] : []),
+  ]
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-5">
@@ -43,37 +56,16 @@ export function OverviewPage() {
         subtitle={t('pharmacy.subtitle')}
         actions={
           <>
-            <Link to="/pharmacy/map">
-              <Button variant="outline">
-                <MapIcon className="size-4" />
-                {t('pharmacy.map')}
+            {panelTabs.map((x) => (
+              <Button key={x.key} variant={panel === x.key ? 'primary' : 'outline'} onClick={() => setPanel(x.key)}>
+                <x.icon className="size-4" />
+                {x.label}
               </Button>
-            </Link>
-            <Link to="/pharmacy/needs">
-              <Button variant="outline">
-                <ClipboardList className="size-4" />
-                {t('pharmacy.needs.title')}
-              </Button>
-            </Link>
-            {(can('pharmacy.manage') || can('pharmacy.read')) && (
-              <Link to="/pharmacy/quality">
-                <Button variant="outline">
-                  <ShieldCheck className="size-4" />
-                  {t('pharmacy.quality.title')}
-                </Button>
-              </Link>
-            )}
-            {can('pharmacy.manage') && (
-              <Link to="/pharmacy/norms">
-                <Button variant="outline">
-                  <SlidersHorizontal className="size-4" />
-                  {t('pharmacy.norms.title')}
-                </Button>
-              </Link>
-            )}
+            ))}
           </>
         }
       />
+      <SidePanel open={panel} tabs={panelTabs} onSelect={setPanel} onClose={() => setPanel(null)} />
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
         <Kpi tint="lilac" label={t('pharmacy.kpi.branches')} value={k?.branches} />
         <Kpi tint="rose" label={t('pharmacy.severity.uncovered')} value={k?.uncovered} hint={t('pharmacy.kpi.uncoveredHint')} />

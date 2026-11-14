@@ -118,7 +118,7 @@ const baseNav: NavItem[] = [
   { id: 'needs-new', group: 'needs', label: { uz: "Yangi so'rov", ru: 'Новая заявка' }, to: '/needs/new', icon: PackagePlus, anyPermission: ['needs.own', 'needs.work', 'needs.dispatch', 'needs.manage'], module: 'needs' },
   { id: 'needs-analytics', group: 'needs', label: { uz: 'Ehtiyoj tahlili', ru: 'Аналитика потребностей' }, to: '/needs/analytics', icon: BarChart2, anyPermission: ['needs.own', 'needs.work', 'needs.dispatch', 'needs.manage'], module: 'needs' },
   { id: 'needs-categories', group: 'needs', label: { uz: 'Ehtiyoj kategoriyalari', ru: 'Категории потребностей' }, to: '/needs/categories', icon: Tags, anyPermission: ['needs.own', 'needs.work', 'needs.dispatch', 'needs.manage'], module: 'needs' },
-  { id: 'pharmacy', group: 'pharmacy', label: { uz: "Tarmoq holati", ru: 'Состояние сети' }, to: '/pharmacy', icon: HeartPulse, anyPermission: ['pharmacy.read', 'pharmacy.own', 'pharmacy.manage'], module: 'pharmacy' },
+  { id: 'pharmacy', group: 'pharmacy', label: { uz: "Filiallar tarmog'i", ru: 'Сеть филиалов' }, to: '/pharmacy', icon: HeartPulse, anyPermission: ['pharmacy.read', 'pharmacy.own', 'pharmacy.manage'], module: 'pharmacy' },
   { id: 'pharmacy-map', group: 'pharmacy', label: { uz: 'Tarmoq xaritasi', ru: 'Карта сети' }, to: '/pharmacy/map', icon: MapPinned, anyPermission: ['pharmacy.read', 'pharmacy.own', 'pharmacy.manage'], module: 'pharmacy' },
   { id: 'pharmacy-needs', group: 'pharmacy', label: { uz: 'Xodim kerak', ru: 'Нужен сотрудник' }, to: '/pharmacy/needs', icon: UserPlus, anyPermission: ['pharmacy.read', 'pharmacy.own', 'pharmacy.manage'], module: 'pharmacy' },
   { id: 'pharmacy-quality', group: 'pharmacy', label: { uz: "Ma'lumot sifati", ru: 'Качество данных' }, to: '/pharmacy/quality', icon: QualityShield, anyPermission: ['pharmacy.read', 'pharmacy.manage'], module: 'pharmacy' },
@@ -140,6 +140,8 @@ export const NAV_CLUSTERS: { ids: string[]; tabs?: false }[] = [
   { ids: ['org', 'departments', 'positions', 'position-duties', 'org-structures', 'branches'], tabs: false },
   // Rekruting: Kompetensiyalar bazasi, Lavozim profillari, Tasdiqlash markazi — dashboardning o'ng panelida
   { ids: ['recruit-dashboard', 'competencies', 'position-profiles', 'recruit-approvals', 'recruit-requirements'], tabs: false },
+  // Filiallar tarmog'i: Xarita, Xodim kerak, Ma'lumot sifati — tarmoq sahifasining o'ng panelida
+  { ids: ['pharmacy', 'pharmacy-map', 'pharmacy-needs', 'pharmacy-quality'], tabs: false },
   { ids: ['reception-panel', 'reception', 'reception-new', 'reception-report', 'coffee', 'my-answers', 'answers-inbox'] },
 ]
 export const clusterOf = new Map(NAV_CLUSTERS.flatMap((c) => c.ids.map((id) => [id, c] as const)))
