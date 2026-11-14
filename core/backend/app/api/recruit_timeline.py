@@ -27,6 +27,8 @@ from app.models.recruit import (
 )
 from app.services import recruit as rsvc
 from app.services.audit import audit
+from app.services.notifications import deliver
+from app.services.recruit_integrations import no_show_notes
 from app.timeutil import now
 
 router = APIRouter(prefix="/v1/recruit", tags=["recruit"])
@@ -51,7 +53,12 @@ async def mark_attendance(aid: int, body: AttendanceIn, request: Request, db: As
     action = "attended" if body.attended else "no_show"
     rsvc.log(db, a, auth.user.id, action, note=(body.note or "").strip() or None)
     await audit(db, request, f"recruit.interview_{action}", actor=auth.user, entity="application", entity_id=a.id)
+    notes = []
+    if not body.attended:
+        c = await db.get(Candidate, a.candidate_id)
+        notes = await no_show_notes(db, a, c.full_name if c else f"#{a.candidate_id}", auth.user.id)
     await db.commit()
+    await deliver(request.app, notes)
     return {"id": a.id, "interview_attended": a.interview_attended, "attendance_at": a.attendance_at}
 
 

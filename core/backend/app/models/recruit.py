@@ -389,3 +389,17 @@ class Announcement(Base):
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class IntegrationLog(Base):
+    """Tashqi integratsiyalar jurnali (Telegram bot/kanal va boshqalar): har bir yuborish natijasi — muvaffaqiyat yoki xato."""
+
+    __tablename__ = "integration_logs"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    provider: Mapped[str] = mapped_column(String(20), index=True)  # telegram_bot | telegram_channel | ...
+    action: Mapped[str] = mapped_column(String(40))
+    ok: Mapped[bool] = mapped_column(Boolean, default=True)
+    ref: Mapped[str | None] = mapped_column(String(64))
+    message: Mapped[str | None] = mapped_column(String(300))

@@ -462,17 +462,24 @@ async def deliver_statement_telegram(ctx: dict, request_id: int) -> str:
 
 async def deliver_candidate_telegram(ctx: dict, chat_id: int, text: str) -> str:
     """Nomzodga (botga yozgan) Telegram xabari: suhbatga taklif, job offer."""
+    from app.services.recruit_integrations import log_integration
+
     client: TelegramClient | None = ctx.get("telegram")
+    provider = "telegram_channel" if chat_id < 0 else "telegram_bot"  # manfiy id — kanal/guruh
     if client is None:
+        await log_integration(provider, "send", False, "bot_disabled", str(chat_id))
         return "disabled"
     try:
         await client.send_message(chat_id, esc(text))
     except TelegramError as exc:
         if exc.chat_unreachable:
+            await log_integration(provider, "send", False, "chat_unreachable", str(chat_id))
             return "unreachable"
+        await log_integration(provider, "send", False, str(exc)[:300] or "telegram_error", str(chat_id))
         if exc.retry_after:
             raise Retry(defer=exc.retry_after) from exc
         raise Retry(defer=ctx.get("job_try", 1) * 15) from exc
+    await log_integration(provider, "send", True, None, str(chat_id))
     return "sent"
 
 
@@ -567,6 +574,13 @@ async def recruit_scan_job(ctx: dict) -> str:
     async with SessionLocal() as session:
         notes = await recruit_core.sla_scan(session, moment)
         reminders = await recruit_core.reminder_scan(session, moment)
+        # kunlik eslatma (09:00 dan keyin, kuniga bir marta): qotib qolgan nomzodlar, javobsiz offerlar, bugungi qayta qo'ng'iroqlar
+        from app.services.recruit_integrations import followup_scan
+        from app.timeutil import tz as _tz
+
+        local = moment.astimezone(_tz())
+        if local.hour >= 9 and await ctx["redis"].set(f"recruit:followup:{local.date()}", "1", nx=True, ex=2 * 86400):
+            notes += await followup_scan(session, moment)
         await session.commit()
     app = SimpleNamespace(state=SimpleNamespace(redis=ctx["redis"], queue=_QueueAdapter(ctx["redis"])))
     await deliver(app, notes)  # type: ignore[arg-type]

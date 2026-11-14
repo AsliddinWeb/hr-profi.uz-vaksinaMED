@@ -15,6 +15,7 @@ import { formatDate } from '../../lib/format'
 import { fmtMoney } from '../../lib/money'
 import { useCan } from '../auth/useAuth'
 import type { BranchPage } from '../branches/api'
+import { IntegrationsPanel } from './IntegrationsPanel'
 
 const STAGES = ['applied', 'contacted', 'screening_passed', 'interview_invited', 'interview_attended', 'interview_passed', 'background', 'offer', 'offer_accepted', 'hired'] as const
 type Row = Record<string, number | string | null>
@@ -432,6 +433,7 @@ export function RecruitAnalyticsPage({ vacancyId, since }: { vacancyId?: number;
           </Section>
         </>
       )}
+      {!vacancyId && can('recruit.manage') && <IntegrationsPanel />}
       {drill && <DrillPanel drill={drill} params={params} onClose={() => setDrill(null)} />}
     </div>
   )

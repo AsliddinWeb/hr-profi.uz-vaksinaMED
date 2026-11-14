@@ -7545,5 +7545,28 @@
       "hired": "Ishga qabul qilindi",
       "call": "Qo'ng'iroq"
     }
+  },
+  "integ": {
+    "title": "Integratsiyalar",
+    "hint": "Ulanish holati, oxirgi muvaffaqiyatli va xato yuborishlar, umumiy jurnal.",
+    "period": "Davr",
+    "off": "Ulanmagan",
+    "ok": "Ishlayapti",
+    "error": "Xato",
+    "partial": "Qisman xato",
+    "flowing": "Arizalar kelyapti",
+    "silent": "Ariza yo'q",
+    "applications": "Arizalar: {{n}}",
+    "counts": "Muvaffaqiyatli: {{ok}} · xato: {{err}}",
+    "lastOk": "Oxirgi muvaffaqiyat: {{at}}",
+    "lastErr": "Oxirgi xato: {{at}}",
+    "log": "Jurnal",
+    "onlyErrors": "Faqat xatolar",
+    "p": {
+      "telegram_bot": "Telegram bot (nomzodlarga)",
+      "telegram_channel": "Telegram kanal (e'lonlar)",
+      "ai": "AI (Gemini / Claude)",
+      "site": "Sayt anketasi"
+    }
   }
 }

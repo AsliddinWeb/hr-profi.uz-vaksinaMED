@@ -92,3 +92,42 @@ async def test_attendance_and_candidate_timeline(new_client):
     assert (await hr.post(f"/api/v1/recruit/applications/{aid}/attendance", json={"attended": True})).json()["interview_attended"] is True
     d = (await hr.get("/api/v1/recruit/analytics")).json()
     assert d["kpi"]["interview_attended"] == 1 and d["kpi"]["no_show"] == 0
+
+
+async def test_no_show_notice_followup_and_integrations(new_client):
+    from sqlalchemy import select
+
+    from app.models.notifications import Notification
+    from app.services.recruit_integrations import followup_scan, log_integration
+
+    rec = await make_user("recint", "hr_menejer")
+    await make_user("hrint", "hr_direktor")
+    hr = new_client()
+    assert (await login(hr, "hrint")).status_code == 200
+    t = now() - timedelta(days=5)
+    async with SessionLocal() as s:
+        v = Vacancy(title="Kassir", status="open", openings=1, recruiter_id=rec, opened_at=t)
+        c1, c2 = Candidate(full_name="Kelmagan Nomzod"), Candidate(full_name="Qotgan Nomzod")
+        s.add_all([v, c1, c2])
+        await s.flush()
+        a1 = Application(vacancy_id=v.id, candidate_id=c1.id, stage="interview", interview_at=t, applied_at=t, stage_changed_at=t)
+        a2 = Application(vacancy_id=v.id, candidate_id=c2.id, stage="new", applied_at=t, stage_changed_at=t)
+        s.add_all([a1, a2])
+        await s.flush()
+        aid = a1.id
+        await s.commit()
+    assert (await hr.post(f"/api/v1/recruit/applications/{aid}/attendance", json={"attended": False})).status_code == 200
+    async with SessionLocal() as s:
+        kinds = (await s.scalars(select(Notification.kind).where(Notification.user_id == rec))).all()
+        assert "recruit.no_show" in kinds
+        notes = await followup_scan(s, now())
+        await s.commit()
+        assert len(notes) == 1
+        kinds = (await s.scalars(select(Notification.kind).where(Notification.user_id == rec))).all()
+        assert "recruit.followup" in kinds
+    await log_integration("telegram_bot", "send", False, "chat_unreachable", "123")
+    await log_integration("telegram_bot", "send", True, None, "123")
+    d = (await hr.get("/api/v1/recruit/analytics/integrations")).json()
+    bot = next(x for x in d["items"] if x["key"] == "telegram_bot")
+    assert bot["ok"] == 1 and bot["errors"] == 1 and bot["last_error_text"] == "chat_unreachable"
+    assert d["logs"][0]["provider"] == "telegram_bot"

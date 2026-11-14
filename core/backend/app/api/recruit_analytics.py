@@ -16,14 +16,17 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.db import get_session
 from app.deps import AuthContext, error, get_auth
+from app.models.ai import AiRequest
 from app.models.auth import User
 from app.models.org import Position
 from app.models.recruit import (
     Application,
     BackgroundCheck,
     Candidate,
+    IntegrationLog,
     InterviewInvite,
     RecruitCall,
     SourceLink,
@@ -31,6 +34,7 @@ from app.models.recruit import (
     VacancyChannel,
 )
 from app.rbac import matches
+from app.services import ai
 from app.services.recruit_core import REJECT_CODES
 from app.timeutil import localize, now, tz
 
@@ -312,3 +316,38 @@ async def drill(metric: str = Query(pattern="^(" + "|".join(METRICS) + ")$"), ho
         out.append({"id": a.id, "candidate_id": x["c"].id, "name": x["c"].full_name, "phone": x["c"].phone, "vacancy_id": x["v"].id, "vacancy": x["v"].title, "stage": a.stage, "source": x["src"], "applied_at": a.applied_at, "hired_at": a.hired_at, "reject_code": a.reject_code})
     out.sort(key=lambda r: r["applied_at"], reverse=True)
     return {"items": out[:500], "total": len(out)}
+
+
+@router.get("/integrations")
+async def integrations(days: int = Query(default=7, ge=1, le=90), db: AsyncSession = Depends(get_session), _: AuthContext = Depends(_reader)):
+    """Integratsiyalar holati (TZ): ulanganmi, oxirgi muvaffaqiyat/xato, davr ichidagi soni; va umumiy jurnal."""
+    s = get_settings()
+    since = now() - timedelta(days=days)
+    logs = list((await db.scalars(select(IntegrationLog).where(IntegrationLog.created_at >= since).order_by(IntegrationLog.id.desc()))).all())
+    ai_rows = list((await db.scalars(select(AiRequest).where(AiRequest.created_at >= since).order_by(AiRequest.id.desc()))).all())
+    apps = (await db.execute(select(SourceLink.channel, Application.applied_at).join(SourceLink, SourceLink.id == Application.source_link_id).where(Application.applied_at >= since))).all()
+
+    def stat(rows: list[tuple[bool, datetime, str | None]]) -> dict[str, Any]:
+        oks = [r for r in rows if r[0]]
+        errs = [r for r in rows if not r[0]]
+        return {"ok": len(oks), "errors": len(errs), "last_ok": oks[0][1] if oks else None, "last_error": errs[0][1] if errs else None, "last_error_text": errs[0][2] if errs else None}
+
+    def tg(p: str) -> dict[str, Any]:
+        return stat([(lg.ok, lg.created_at, lg.message) for lg in logs if lg.provider == p])
+
+    inbound: dict[str, list[datetime]] = defaultdict(list)
+    for ch, at in apps:
+        inbound[ch].append(at)
+    ai_name = ai.provider()
+    items = [
+        {"key": "telegram_bot", "kind": "api", "configured": bool(s.telegram_bot_token), **tg("telegram_bot")},
+        {"key": "telegram_channel", "kind": "api", "configured": bool(s.telegram_bot_token and s.telegram_vacancy_chat_id.strip()), **tg("telegram_channel")},
+        {"key": "ai", "kind": "api", "configured": ai_name is not None, "provider": ai_name, **stat([(r.ok, r.created_at, r.error) for r in ai_rows])},
+    ]
+    for ch in ("site", "telegram", "hh_uz", "olx", "instagram", "target", "referral"):
+        at = sorted(inbound.get(ch, []), reverse=True)
+        items.append({"key": ch, "kind": "link", "configured": True, "ok": len(at), "errors": 0, "last_ok": at[0] if at else None, "last_error": None, "last_error_text": None})
+    feed = [{"at": lg.created_at, "provider": lg.provider, "action": lg.action, "ok": lg.ok, "message": lg.message} for lg in logs[:150]]
+    feed += [{"at": r.created_at, "provider": "ai", "action": r.feature, "ok": r.ok, "message": r.error} for r in ai_rows[:150]]
+    feed.sort(key=lambda x: x["at"], reverse=True)
+    return {"days": days, "items": items, "logs": feed[:200]}
