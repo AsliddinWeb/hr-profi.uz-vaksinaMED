@@ -20,6 +20,7 @@ import { IntegrationsPanel } from './IntegrationsPanel'
 const STAGES = ['applied', 'contacted', 'screening_passed', 'interview_invited', 'interview_attended', 'interview_passed', 'background', 'offer', 'offer_accepted', 'hired'] as const
 type Row = Record<string, number | string | null>
 type Analytics = {
+  scope?: 'all' | 'own'
   kpi: Record<string, number>
   formulas: Record<string, number | null>
   funnel: { key: string; count: number; pct: number | null; step_pct: number | null }[]
@@ -135,9 +136,14 @@ export function RecruitAnalyticsPage({ vacancyId, since }: { vacancyId?: number;
       {vacancyId ? (
         <div className="flex justify-end">
           <div className="flex flex-wrap gap-2 print:hidden">
+            <a href={`/api/v1/recruit/analytics/export.xlsx?${params}&lang=${i18n.language === 'ru' ? 'ru' : 'uz'}`} download>
+              <Button variant="outline" disabled={!d}>
+                <Download className="size-4" />
+                Excel
+              </Button>
+            </a>
             <Button variant="outline" onClick={exportAll} disabled={!d}>
-              <Download className="size-4" />
-              {t('ana.excel')}
+              CSV
             </Button>
             <Button variant="outline" onClick={() => window.print()}>
               <Printer className="size-4" />
@@ -151,9 +157,14 @@ export function RecruitAnalyticsPage({ vacancyId, since }: { vacancyId?: number;
           subtitle={t('ana.subtitle')}
           actions={
           <div className="flex flex-wrap gap-2 print:hidden">
+            <a href={`/api/v1/recruit/analytics/export.xlsx?${params}&lang=${i18n.language === 'ru' ? 'ru' : 'uz'}`} download>
+              <Button variant="outline" disabled={!d}>
+                <Download className="size-4" />
+                Excel
+              </Button>
+            </a>
             <Button variant="outline" onClick={exportAll} disabled={!d}>
-              <Download className="size-4" />
-              {t('ana.excel')}
+              CSV
             </Button>
             <Button variant="outline" onClick={() => window.print()}>
               <Printer className="size-4" />
@@ -212,6 +223,7 @@ export function RecruitAnalyticsPage({ vacancyId, since }: { vacancyId?: number;
         </Select>
       </Card>
 
+      {d?.scope === 'own' && <div className="rounded-lg bg-surface-2 px-3 py-2 text-xs text-muted">{t('ana.ownScope')}</div>}
       {!d ? (
         <Skeleton className="h-96" />
       ) : (

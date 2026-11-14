@@ -35,6 +35,8 @@ from app.models.recruit import (
 )
 from app.rbac import matches
 from app.services import ai
+from app.services import recruit as rsvc
+from app.services.company import get_setting
 from app.services.recruit_core import REJECT_CODES
 from app.timeutil import localize, now, tz
 
@@ -49,6 +51,17 @@ def _reader(auth: AuthContext = Depends(get_auth)) -> AuthContext:
     if not any(matches(auth.permissions, p) for p in ("recruit.read", "recruit.manage", "recruit.approve")):
         raise error(403, "forbidden")
     return auth
+
+
+async def _scope(db: AsyncSession, auth: AuthContext, f: "Filters") -> str:
+    """Rollar bo'yicha ko'rinish (TZ): HR direktor, rahbariyat va auditor — hammasi; rekruter (faqat recruit.manage) — sozlama
+    yoqilgan bo'lsa faqat o'z vakansiya/nomzodlari. Rekruterning boshqa rekruter filtri e'tiborsiz qoldiriladi."""
+    if rsvc.has(auth, "recruit.approve") or rsvc.has(auth, "org.manage") or not rsvc.has(auth, "recruit.manage"):
+        return "all"
+    if not await get_setting(db, "recruit.analytics_own"):
+        return "all"
+    f.recruiter_id = auth.user.id
+    return "own"
 
 
 def _pct(a: int, b: int) -> float | None:
@@ -174,7 +187,8 @@ async def _collect(db: AsyncSession, f: Filters) -> dict[str, Any]:
 
 
 @router.get("")
-async def analytics(f: Filters = Depends(), db: AsyncSession = Depends(get_session), _: AuthContext = Depends(_reader)):
+async def analytics(f: Filters = Depends(), db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(_reader)):
+    scope = await _scope(db, auth, f)
     d = await _collect(db, f)
     apps, calls = d["apps"], d["calls"]
     cnt = Counter(k for x in apps for k in x["m"])
@@ -284,6 +298,7 @@ async def analytics(f: Filters = Depends(), db: AsyncSession = Depends(get_sessi
     call_outcomes = Counter(c.outcome for c in calls)
     return {
         "period": {"start": f.start, "end": f.end},
+        "scope": scope,
         "kpi": kpi,
         "formulas": formulas,
         "funnel": funnel,
@@ -301,8 +316,9 @@ async def analytics(f: Filters = Depends(), db: AsyncSession = Depends(get_sessi
 
 
 @router.get("/list")
-async def drill(metric: str = Query(pattern="^(" + "|".join(METRICS) + ")$"), hour: int | None = Query(default=None, ge=0, le=23), reason: str | None = None, f: Filters = Depends(), db: AsyncSession = Depends(get_session), _: AuthContext = Depends(_reader)):
+async def drill(metric: str = Query(pattern="^(" + "|".join(METRICS) + ")$"), hour: int | None = Query(default=None, ge=0, le=23), reason: str | None = None, f: Filters = Depends(), db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(_reader)):
     """Drill-down: KPI/voronka/manba/soat/sabab ustiga bosilganda — shu ko'rsatkichdagi arizalar ro'yxati."""
+    await _scope(db, auth, f)
     d = await _collect(db, f)
     out = []
     for x in d["apps"]:
@@ -351,3 +367,82 @@ async def integrations(days: int = Query(default=7, ge=1, le=90), db: AsyncSessi
     feed += [{"at": r.created_at, "provider": "ai", "action": r.feature, "ok": r.ok, "message": r.error} for r in ai_rows[:150]]
     feed.sort(key=lambda x: x["at"], reverse=True)
     return {"days": days, "items": items, "logs": feed[:200]}
+
+
+XL = {
+    "uz": {
+        "kpi": "KPI", "formulas": "Formulalar", "funnel": "Voronka", "sources": "Manbalar", "hours": "Soatlar", "reasons": "Rad sabablari", "recruiters": "Rekruterlar", "apps": "Arizalar",
+        "metric": "Ko'rsatkich", "value": "Qiymat", "stage": "Bosqich", "count": "Soni", "step": "Oldingi bosqichdan %", "source": "Manba", "clicks": "Bosishlar",
+        "applications": "Arizalar", "contacted": "Bog'lanildi", "interviews": "Intervyu", "offers": "Offer", "hired": "Ishga olindi", "conversion": "Konversiya %",
+        "cost": "Xarajat", "cph": "1 xodim narxi", "hour": "Soat", "reason": "Sabab", "rank": "O'rin", "recruiter": "Rekruter", "calls": "Qo'ng'iroqlar",
+        "attended": "Intervyuga keldi", "rejected": "Rad etildi", "tth": "Time to Hire (kun)", "candidate": "Nomzod", "phone": "Telefon", "vacancy": "Vakansiya",
+        "applied": "Ariza sanasi", "period": "Davr", "scope_own": "Faqat o'z ko'rsatkichlari",
+    },
+    "ru": {
+        "kpi": "KPI", "formulas": "Формулы", "funnel": "Воронка", "sources": "Источники", "hours": "Часы", "reasons": "Причины отказов", "recruiters": "Рекрутеры", "apps": "Отклики",
+        "metric": "Показатель", "value": "Значение", "stage": "Этап", "count": "Кол-во", "step": "% от пред. этапа", "source": "Источник", "clicks": "Переходы",
+        "applications": "Отклики", "contacted": "Связались", "interviews": "Интервью", "offers": "Оффер", "hired": "Наняты", "conversion": "Конверсия %",
+        "cost": "Расходы", "cph": "Стоимость найма", "hour": "Час", "reason": "Причина", "rank": "Место", "recruiter": "Рекрутер", "calls": "Звонки",
+        "attended": "Пришли на интервью", "rejected": "Отказ", "tth": "Time to Hire (дн.)", "candidate": "Кандидат", "phone": "Телефон", "vacancy": "Вакансия",
+        "applied": "Дата отклика", "period": "Период", "scope_own": "Только свои показатели",
+    },
+}
+XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+@router.get("/export.xlsx")
+async def export_xlsx(lang: str = Query(default="uz", pattern="^(uz|ru)$"), f: Filters = Depends(), db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(_reader)):
+    """Tahlilni Excel faylga: KPI, formulalar, voronka, manbalar, soatlar, rad sabablari, rekruterlar va arizalar ro'yxati."""
+    import io
+
+    from fastapi.responses import Response
+    from openpyxl import Workbook
+    from openpyxl.styles import Font
+
+    from app.services.xlsx_safe import harden
+
+    d = await analytics(f, db, auth)
+    rows = (await _collect(db, f))["apps"]
+    lb = XL[lang]
+    wb = Workbook()
+
+    def sheet(title: str, head: list[str], data: list[list[Any]], first: bool = False) -> None:
+        ws = wb.active if first else wb.create_sheet()
+        ws.title = title[:31]
+        ws.append(head)
+        for c in ws[1]:
+            c.font = Font(bold=True)
+        for r in data:
+            ws.append(r)
+        for i, h in enumerate(head):
+            ws.column_dimensions[ws.cell(1, i + 1).column_letter].width = max(12, min(40, len(str(h)) + 4))
+        ws.freeze_panes = "A2"
+
+    kpi = [[lb["period"], f"{f.start} — {f.end}"]] + ([[lb["scope_own"], "✓"]] if d["scope"] == "own" else []) + [[k, v] for k, v in d["kpi"].items()]
+    sheet(lb["kpi"], [lb["metric"], lb["value"]], kpi, first=True)
+    sheet(lb["formulas"], [lb["metric"], lb["value"]], [[k, v] for k, v in d["formulas"].items()])
+    sheet(lb["funnel"], [lb["stage"], lb["count"], "%", lb["step"]], [[s["key"], s["count"], s["pct"], s["step_pct"]] for s in d["funnel"]])
+    sheet(
+        lb["sources"],
+        [lb["source"], lb["clicks"], lb["applications"], lb["contacted"], lb["interviews"], lb["offers"], lb["hired"], lb["conversion"], lb["cost"], lb["cph"]],
+        [[s["source"], s["clicks"], s["applications"], s["contacted"], s["interview_invited"], s["offer"], s["hired"], s["conversion"], s["cost"], s["cost_per_hire"]] for s in d["sources"]],
+    )
+    sheet(lb["hours"], [lb["hour"], lb["applications"]], [[f"{h:02d}:00", v] for h, v in enumerate(d["hours"])])
+    sheet(lb["reasons"], [lb["reason"], lb["count"], "%"], [[r["code"], r["count"], r["pct"]] for r in d["reasons"]])
+    sheet(
+        lb["recruiters"],
+        [lb["rank"], lb["recruiter"], lb["applications"], lb["calls"], lb["contacted"], lb["interviews"], lb["attended"], lb["offers"], lb["hired"], lb["rejected"], lb["conversion"], lb["tth"]],
+        [[r["rank"], r["name"], r["applications"], r["calls"], r["contacted"], r["interview_invited"], r["interview_attended"], r["offer"], r["hired"], r["rejected"], r["conversion"], r["time_to_hire"]] for r in d["recruiters"]],
+    )
+    apps = sorted(rows, key=lambda x: x["a"].applied_at, reverse=True)
+    sheet(
+        lb["apps"],
+        [lb["candidate"], lb["phone"], lb["vacancy"], lb["stage"], lb["source"], lb["applied"], lb["hired"]],
+        [[x["c"].full_name, x["c"].phone, x["v"].title, x["a"].stage, x["src"], x["a"].applied_at.astimezone(tz()).strftime("%Y-%m-%d %H:%M"),
+          x["a"].hired_at.astimezone(tz()).strftime("%Y-%m-%d") if x["a"].hired_at else ""] for x in apps[:5000]],
+    )
+    harden(wb)
+    buf = io.BytesIO()
+    wb.save(buf)
+    name = f"rekruting-tahlili-{f.start}_{f.end}.xlsx"
+    return Response(buf.getvalue(), media_type=XLSX, headers={"Content-Disposition": f'attachment; filename="{name}"'})

@@ -131,3 +131,37 @@ async def test_no_show_notice_followup_and_integrations(new_client):
     bot = next(x for x in d["items"] if x["key"] == "telegram_bot")
     assert bot["ok"] == 1 and bot["errors"] == 1 and bot["last_error_text"] == "chat_unreachable"
     assert d["logs"][0]["provider"] == "telegram_bot"
+
+
+async def test_analytics_scope_and_xlsx(new_client):
+    import io
+
+    from openpyxl import load_workbook
+
+    rec = await make_user("recown", "hr_menejer")
+    other = await make_user("recother", "hr_menejer")
+    t = now() - timedelta(hours=1)
+    async with SessionLocal() as s:
+        v1 = Vacancy(title="Mening vakansiyam", status="open", openings=1, recruiter_id=rec, opened_at=t)
+        v2 = Vacancy(title="Boshqa vakansiya", status="open", openings=1, recruiter_id=other, opened_at=t)
+        c1, c2 = Candidate(full_name="Bir"), Candidate(full_name="Ikki")
+        s.add_all([v1, v2, c1, c2])
+        await s.flush()
+        s.add_all([
+            Application(vacancy_id=v1.id, candidate_id=c1.id, stage="new", applied_at=t, stage_changed_at=t),
+            Application(vacancy_id=v2.id, candidate_id=c2.id, stage="new", applied_at=t, stage_changed_at=t),
+        ])
+        await s.commit()
+    me = new_client()
+    assert (await login(me, "recown")).status_code == 200
+    d = (await me.get("/api/v1/recruit/analytics", params={"recruiter_id": other})).json()
+    assert d["scope"] == "own" and d["kpi"]["applications"] == 1
+    await make_user("hrall", "hr_direktor")
+    hd = new_client()
+    assert (await login(hd, "hrall")).status_code == 200
+    d = (await hd.get("/api/v1/recruit/analytics")).json()
+    assert d["scope"] == "all" and d["kpi"]["applications"] == 2
+    r = await hd.get("/api/v1/recruit/analytics/export.xlsx", params={"lang": "ru"})
+    assert r.status_code == 200 and "spreadsheetml" in r.headers["content-type"]
+    wb = load_workbook(io.BytesIO(r.content))
+    assert "Отклики" in wb.sheetnames and wb["Отклики"].max_row == 3

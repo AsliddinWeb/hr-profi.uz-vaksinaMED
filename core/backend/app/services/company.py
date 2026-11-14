@@ -15,6 +15,7 @@ SETTINGS: dict[str, tuple[int, int, int]] = {
     "revisions.soon_days": (14, 1, 90),
     "recruit.require_profile": (1, 0, 1),
     "recruit.ad_review": (1, 0, 1),
+    "recruit.analytics_own": (1, 0, 1),  # rekruter (HR menejer) tahlilda faqat o'z ko'rsatkichlarini ko'radi
 }
 
 

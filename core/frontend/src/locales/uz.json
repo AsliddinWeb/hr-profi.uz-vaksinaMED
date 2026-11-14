@@ -6861,7 +6861,8 @@
     "key": {
       "checklists_month_limit": "Cheklist: filialga oyiga tashrif limiti",
       "revisions_cycle_days": "Reviziya sikli (kun)",
-      "revisions_soon_days": "Reviziya «tez orada» (kun)"
+      "revisions_soon_days": "Reviziya «tez orada» (kun)",
+      "recruit_analytics_own": "Rekruter tahlilda faqat o'z ko'rsatkichlarini ko'radi (1 — ha, 0 — hammasini)"
     }
   },
   "desk": {
@@ -7452,7 +7453,8 @@
       "unsuitable": "Mos emas",
       "no_answer": "Javob bermadi",
       "callback": "Qayta qo'ng'iroq"
-    }
+    },
+    "ownScope": "Siz faqat o'zingizga biriktirilgan vakansiya va nomzodlar bo'yicha ko'rsatkichlarni ko'ryapsiz."
   },
   "vhist": {
     "tabAnalytics": "Tahlil",
