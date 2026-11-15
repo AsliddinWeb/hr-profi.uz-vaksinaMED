@@ -53,7 +53,6 @@ class RequirementIn(BaseModel):
     ad_template: str | None = Field(default=None, max_length=4000)
     profile: CardIn | None = None
     note: str | None = Field(default=None, max_length=300)
-    cost: int | None = Field(default=None, ge=0, le=10**12)
 
 
 def _req_out(r: PositionRequirement, position: str | None) -> dict[str, Any]:
@@ -150,6 +149,7 @@ class ChannelIn(BaseModel):
     channel: str = Field(pattern=svc.CHANNEL_RE)
     url: str | None = Field(default=None, max_length=300)
     note: str | None = Field(default=None, max_length=300)
+    cost: int | None = Field(default=None, ge=0, le=10**12)
 
 
 @router.post("/vacancies/{vid}/channels", status_code=201)

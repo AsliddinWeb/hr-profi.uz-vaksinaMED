@@ -2,7 +2,7 @@ name: Deploy
 
 # main ga push bo'lib, CI to'liq yashil bo'lgandan keyin serverni yangilaydi (yoki Actions sahifasidan qo'lda).
 # Kerakli secrets (Settings -> Secrets and variables -> Actions): DEPLOY_KEY (SSH yopiq kalit).
-# Ixtiyoriy variables: DEPLOY_HOST, DEPLOY_USER, DEPLOY_PATH, DEPLOY_URL. DEPLOY_KEY bo'lmasa job o'tkazib yuboriladi.
+# Ixtiyoriy variables: DEPLOY_HOST, DEPLOY_USER, DEPLOY_PATH, DEPLOY_URL, DEPLOY_KNOWN_HOSTS (docs/AUTODEPLOY.md). DEPLOY_KEY bo'lmasa job o'tkazib yuboriladi.
 on:
   workflow_run:
     workflows: [CI]
@@ -33,6 +33,7 @@ jobs:
         id: ssh
         env:
           DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
         run: |
           if [ -z "$DEPLOY_KEY" ]; then
             echo "::notice::DEPLOY_KEY secret qo'shilmagan: deploy o'tkazib yuborildi (docs/DEPLOY.md)"
@@ -41,7 +42,12 @@ jobs:
           install -m 700 -d ~/.ssh
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
           # Server host kaliti qotirilgan (SHA256:LFddAZRzEGAJK3TXkrNS1k/tHgJ9nk/tRwDsI2Dq4Fg): soxta serverga ulanib bo'lmaydi
-          echo "134.209.3.36 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHu7v7U7GYjjT8kPpBE6olGqcqKreoKXLUe4mbdKF/HJ" > ~/.ssh/known_hosts
+          # Boshqa server: DEPLOY_KNOWN_HOSTS o'zgaruvchisiga `ssh-keyscan -t ed25519 <server>` natijasini qo'ying
+          if [ -n "$KNOWN_HOSTS" ]; then
+            printf '%s' "$KNOWN_HOSTS" > ~/.ssh/known_hosts; echo >> ~/.ssh/known_hosts
+          else
+            echo "134.209.3.36 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHu7v7U7GYjjT8kPpBE6olGqcqKreoKXLUe4mbdKF/HJ" > ~/.ssh/known_hosts
+          fi
 
       - name: Serverni yangilash
         if: steps.ssh.outputs.skip != '1'
