@@ -227,6 +227,7 @@ _BRANCHOPS_EXTRA = {
     "hr_direktor": ("revision.*", "ratings.*", "devices.*"),
     "direktor": ("revision.read", "ratings.read", "devices.read"),
     "hr_auditor": ("revision.read", "ratings.read"),
+    "hr_menejer": ("ratings.own",),  # koordinator/mudir rolini bera olishi uchun (o'zidan yuqori huquq berilmaydi)
     "koordinator": ("ratings.own",),
     "mudir": ("ratings.own",),
 }
