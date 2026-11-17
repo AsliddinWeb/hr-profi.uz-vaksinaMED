@@ -1671,6 +1671,14 @@ export function createRouter() {
                     </RequirePerm>
                   ),
                 },
+                {
+                  path: "cameras/station/:token",
+                  element: (
+                    <RequirePerm any={["cameras.read", "cameras.manage"]}>
+                      <CameraStationPage />
+                    </RequirePerm>
+                  ),
+                },
                 { path: "devices", element: <DevicesPage /> },
                 { path: "checklists/status", element: <ChecklistStatusPage /> },
                 { path: "settings/company", element: <CompanySettingsPage /> },

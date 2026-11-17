@@ -1,7 +1,8 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import clsx from 'clsx'
-import { ArrowLeft, Camera as CameraIcon, Check, CheckCircle2, Copy, ExternalLink, Laptop, Loader2, RefreshCw, Smartphone, TriangleAlert, X } from 'lucide-react'
+import { ArrowLeft, Camera as CameraIcon, Check, CheckCircle2, Copy, Laptop, Loader2, RefreshCw, Smartphone, TriangleAlert, X } from 'lucide-react'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '../../components/ui/Button'
 import { Field, Input, Select } from '../../components/ui/Input'
@@ -214,6 +215,7 @@ function IpResult({ cam, onChange, onClose }: { cam: Created; onChange: (c: Crea
 function StationConnect({ cam, onClose }: { cam: Created; onClose: () => void }) {
   const { t } = useTranslation()
   const toast = useToast()
+  const navigate = useNavigate()
   const origin = window.location.origin
   const link = `${origin}${cam.station_url ?? ''}`
   const localOnly = /\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(origin)
@@ -261,14 +263,13 @@ function StationConnect({ cam, onClose }: { cam: Created; onClose: () => void })
             <Button variant="outline" onClick={copy} aria-label={t('cam.copy')}>
               <Copy className="size-4" />
             </Button>
-            {cam.kind === 'webcam' && (
-              <a href={url} target="_blank" rel="noopener">
-                <Button variant="outline" aria-label={t('wiz.openHere')}>
-                  <ExternalLink className="size-4" />
-                </Button>
-              </a>
-            )}
           </div>
+          {cam.kind === 'webcam' && (
+            <Button onClick={() => (onClose(), navigate(`/cameras/station/${cam.station_url?.split('/').pop()}`))}>
+              <CameraIcon className="size-4" />
+              {t('wiz.openHere')}
+            </Button>
+          )}
         </div>
       </div>
       {connected ? (

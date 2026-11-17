@@ -7663,7 +7663,8 @@
     "onlyOffline": "Oflayn kamerasi borlar",
     "onlyNone": "Kamerasi yo'q filiallar",
     "branchesCount": "Filiallar: {{n}}, kamerasizlari: {{none}}",
-    "noCameras": "Kamera yo'q"
+    "noCameras": "Kamera yo'q",
+    "connectHere": "Shu qurilmada ulash"
   },
   "cst": {
     "subtitle": "Kamera stansiyasi",
@@ -7739,7 +7740,7 @@
     "recheck": "Qayta tekshirish",
     "done": "Tayyor",
     "later": "Keyinroq ulayman",
-    "openHere": "Shu kompyuterda ochish",
+    "openHere": "Shu kompyuterda hozir ulash",
     "scanQr": "Telefon kamerasini QR kodga qarating",
     "connected": "Ulandi ✓ Birinchi kadr keldi",
     "waiting": {
@@ -7750,7 +7751,7 @@
     "phoneStep2": "Ochilgan sahifada katta «Ulash» tugmasini bosing.",
     "phoneStep3": "Telefon «Kameraga ruxsat berasizmi?» deb so'raydi — «Ruxsat berish»ni bosing.",
     "phoneStep4": "Telefonni zaryadga ulang va ekranni o'chirmang (sahifa ochiq tursin).",
-    "webcamStep1": "Havolani o'sha kompyuterda Chrome yoki Edge brauzerida oching (nusxalang yoki ↗ tugmasi).",
+    "webcamStep1": "«Shu kompyuterda hozir ulash» tugmasini bosing (yoki havolani boshqa kompyuterda oching).",
     "webcamStep2": "Ochilgan sahifada «Ulash» tugmasini bosing.",
     "webcamStep3": "Brauzer kameraga ruxsat so'raydi — «Ruxsat berish»ni bosing.",
     "webcamStep4": "Brauzer oynasini yopmang va kompyuterning uyqu rejimini o'chiring.",

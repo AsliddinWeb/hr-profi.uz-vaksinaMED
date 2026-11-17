@@ -3,7 +3,7 @@ import clsx from 'clsx'
 import { Camera as CameraIcon, Copy, Download, Laptop, Pencil, Play, Plus, RefreshCw, Smartphone, Square, Trash2, Upload, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
@@ -453,6 +453,7 @@ function LiveView({ id }: { id: number }) {
 
 function CameraDrawer({ c, manage, onClose, onEdit, onCheck, onCopy, onDelete, link, checking }: { c: Cam; manage: boolean; onClose: () => void; onEdit: () => void; onCheck: () => void; onCopy: () => void; onDelete: () => void; link: string; checking: boolean }) {
   const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
   const events = useQuery({ queryKey: ['cameras', 'events', c.id], queryFn: () => api<{ at: string; status: string; message: string | null }[]>(`/api/v1/cameras/${c.id}/events`) })
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
@@ -509,6 +510,10 @@ function CameraDrawer({ c, manage, onClose, onEdit, onCheck, onCopy, onDelete, l
           <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
             <div className="text-sm font-medium">{t('cam.stationTitle')}</div>
             <p className="text-xs text-muted">{t(`cam.stationHint.${c.kind}`)}</p>
+            <Button onClick={() => navigate(`/cameras/station/${c.station_url!.split('/').pop()}`)}>
+              <CameraIcon className="size-4" />
+              {t('cam.connectHere')}
+            </Button>
             {c.kind === 'phone' && <StationQr id={c.id} />}
             <div className="flex min-w-0 gap-2">
               <Input readOnly value={link} className="min-w-0 flex-1 font-mono text-xs" aria-label={t('cam.stationTitle')} />
