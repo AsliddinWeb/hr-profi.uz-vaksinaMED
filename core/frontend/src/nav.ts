@@ -1,4 +1,4 @@
-import { Coffee, Megaphone, Video, Eye, FileWarning, MonitorPlay, PlayCircle, Activity, DatabaseZap, FileBarChart, Sparkles, PhoneCall, DoorOpen, LifeBuoy, BookUser, MonitorSmartphone, Radar, Smartphone, Warehouse as WarehouseIcon, Truck, Navigation, QrCode as QrIcon, MessageSquareQuote, Salad, UtensilsCrossed, Banknote, ReceiptText, GraduationCap, BookOpen, Briefcase, Users2, FileCheck2, LineChart, MapPinCheck, ClipboardList, PackagePlus, Tags, HeartPulse, MapPinned, UserPlus, ShieldCheck as QualityShield, AlarmClock, BarChart2, KanbanSquare, ListChecks, ListTodo, Gavel, Receipt, Scale, FileSignature, FileStack, ShieldQuestion, CalendarRange, Inbox, MessageSquareText, LayoutDashboard, BarChart3, ScanFace, ShieldAlert, ClipboardCheck, QrCode, Table2, UserCheck, Bell, CalendarDays, CalendarOff, Building2, Clock, Contact, Layers, Network, Repeat, ScrollText, ShieldCheck, Store, Users } from 'lucide-react'
+import { Cctv, Coffee, Megaphone, Video, Eye, FileWarning, MonitorPlay, PlayCircle, Activity, DatabaseZap, FileBarChart, Sparkles, PhoneCall, DoorOpen, LifeBuoy, BookUser, MonitorSmartphone, Radar, Smartphone, Warehouse as WarehouseIcon, Truck, Navigation, QrCode as QrIcon, MessageSquareQuote, Salad, UtensilsCrossed, Banknote, ReceiptText, GraduationCap, BookOpen, Briefcase, Users2, FileCheck2, LineChart, MapPinCheck, ClipboardList, PackagePlus, Tags, HeartPulse, MapPinned, UserPlus, ShieldCheck as QualityShield, AlarmClock, BarChart2, KanbanSquare, ListChecks, ListTodo, Gavel, Receipt, Scale, FileSignature, FileStack, ShieldQuestion, CalendarRange, Inbox, MessageSquareText, LayoutDashboard, BarChart3, ScanFace, ShieldAlert, ClipboardCheck, QrCode, Table2, UserCheck, Bell, CalendarDays, CalendarOff, Building2, Clock, Contact, Layers, Network, Repeat, ScrollText, ShieldCheck, Store, Users } from 'lucide-react'
 
 import type { NavItem } from './extensions/registry'
 
@@ -12,6 +12,7 @@ const baseNav: NavItem[] = [
   { id: 'devices', group: 'system', label: { uz: 'Qurilmalar', ru: 'Устройства' }, to: '/devices', icon: MonitorSmartphone, anyPermission: ['devices.read', 'devices.manage'] },
   { id: 'payroll-sheet', group: 'payroll', label: { uz: 'Oylik hisob', ru: 'Расчёт зарплаты' }, to: '/payroll/sheet', icon: Table2, permission: 'payroll.read', module: 'payroll' },
   { id: 'revisions', group: 'revision', label: { uz: 'Reviziya', ru: 'Ревизия' }, to: '/revisions', icon: ClipboardCheck, anyPermission: ['revision.own', 'revision.read', 'revision.manage'], module: 'pharmacy' },
+  { id: 'cameras', group: 'pharmacy', label: { uz: 'Kameralar', ru: 'Камеры' }, to: '/cameras', icon: Cctv, anyPermission: ['cameras.read', 'cameras.manage'] },
   { id: 'ratings', group: 'pharmacy', label: { uz: 'Mijozlar baholashi', ru: 'Оценки клиентов' }, to: '/ratings', icon: MessageSquareQuote, anyPermission: ['ratings.own', 'ratings.read', 'ratings.manage'], module: 'pharmacy' },
   { id: 'home', group: 'main', label: { uz: 'Bosh sahifa', ru: 'Главная' }, to: '/', icon: LayoutDashboard },
   { id: 'help', group: 'main', label: { uz: 'Jarayonlar qo\'llanmasi', ru: 'Справочник процессов' }, to: '/help', icon: BookOpen },
@@ -164,7 +165,7 @@ export function collapseNav<T extends { id: string }>(items: T[]): T[] {
 
 export const navById = new Map(baseNav.map((i) => [i.id, i]))
 /** Keyin qo'shilgan bandlar (baseNav boshida): o'z guruhining oxiriga qo'yiladi, qolgan menyu asl tartibida. */
-const ADDED = new Set(['checklist-status', 'company-settings', 'devices', 'payroll-sheet', 'revisions', 'ratings'])
+const ADDED = new Set(['checklist-status', 'company-settings', 'devices', 'payroll-sheet', 'revisions', 'ratings', 'cameras'])
 
 /** Menyuda birinchi turadigan guruhlar: Bosh sahifa, HR, Resepshin; qolganlari keyin. */
 const FIRST = ['main', 'people', 'hr', 'revision', 'reception']

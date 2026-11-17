@@ -5,6 +5,7 @@ from app.models.attendance_issues import AttendanceExplanation, AttendanceIssue
 from app.models.auth import AuditLog, Role, RolePermission, User, UserSession
 from app.models.branch_ops import BranchRatingQr, CustomerRating, RevisionTask
 from app.models.calls import Call, CallParticipant
+from app.models.cameras import Camera, CameraEvent
 from app.models.canteen import CanteenDish, CanteenMenu, CanteenRating, CanteenSettings
 from app.models.checklists import ChecklistFile, ChecklistTemplate, ChecklistVisit
 from app.models.company import CompanySetting, EmployeeSegment
@@ -78,6 +79,8 @@ from app.models.warehouse import Warehouse
 
 __all__ = [
     "Announcement",
+    "Camera",
+    "CameraEvent",
     "CompanySetting",
     "Competency",
     "PositionProfile",

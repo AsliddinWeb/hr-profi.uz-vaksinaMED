@@ -167,3 +167,5 @@ register_permission("staffdocs.sign", "Buyruqni elektron imzolash (HR direktor)"
 register_permission("recruit.interview", "Suhbat kartochkasida nomzodni kompetensiya bo'yicha baholash", "Оценка кандидата по компетенциям на собеседовании")
 register_permission("recruit.background", "Nomzod fon tekshiruvini o'tkazish (xavfsizlik xizmati)", "Проведение фоновой проверки кандидата (служба безопасности)")
 
+register_permission("cameras.read", "Kameralar holatini ko'rish", "Просмотр состояния камер")
+register_permission("cameras.manage", "Kameralarni ulash va boshqarish", "Подключение и управление камерами")

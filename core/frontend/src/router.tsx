@@ -295,6 +295,8 @@ import { SchedulePage } from "./features/schedule/SchedulePage";
 import { ShiftFormPage } from "./features/schedule/ShiftFormPage";
 import { ShiftsPage } from "./features/schedule/ShiftsPage";
 import { ApplyPage as PublicApplyPage } from "./features/public/ApplyPage";
+import { CamerasPage } from "./features/cameras/CamerasPage";
+import { CameraStationPage } from "./features/cameras/StationPage";
 import { RecruiterPage } from "./features/recruit/RecruiterPage";
 import { ComparePage as RecruitComparePage } from "./features/recruit/ComparePage";
 import { RecruitHubPage } from "./features/recruit/HubPage";
@@ -371,6 +373,7 @@ export function createRouter() {
         { path: "/verify/reference/:code", element: <ReferenceVerifyPage /> },
         { path: "/verify/:code", element: <VerifyPage /> },
         { path: "/apply/:code", element: <PublicApplyPage /> },
+        { path: "/camera-station/:token", element: <CameraStationPage /> },
         {
           element: <RequireAuth />,
           children: [
@@ -1660,6 +1663,14 @@ export function createRouter() {
                 { path: "conferences", element: <ConferencesPage /> },
                 { path: "revisions", element: <RevisionsPage /> },
                 { path: "ratings", element: <RatingsPage /> },
+                {
+                  path: "cameras",
+                  element: (
+                    <RequirePerm any={["cameras.read", "cameras.manage"]}>
+                      <CamerasPage />
+                    </RequirePerm>
+                  ),
+                },
                 { path: "devices", element: <DevicesPage /> },
                 { path: "checklists/status", element: <ChecklistStatusPage /> },
                 { path: "settings/company", element: <CompanySettingsPage /> },
