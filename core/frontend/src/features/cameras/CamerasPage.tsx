@@ -385,6 +385,13 @@ export function CamerasPage() {
   )
 }
 
+/** Brauzer satridan qisqa nom: «Edge 157 · Windows», «Chrome 130 · Android». */
+function deviceName(ua: string) {
+  const br = /Edg\/(\d+)/.exec(ua) ? `Edge ${/Edg\/(\d+)/.exec(ua)![1]}` : /OPR\/(\d+)/.exec(ua) ? `Opera ${/OPR\/(\d+)/.exec(ua)![1]}` : /YaBrowser\/(\d+)/.exec(ua) ? `Yandex ${/YaBrowser\/(\d+)/.exec(ua)![1]}` : /Firefox\/(\d+)/.exec(ua) ? `Firefox ${/Firefox\/(\d+)/.exec(ua)![1]}` : /Chrome\/(\d+)/.exec(ua) ? `Chrome ${/Chrome\/(\d+)/.exec(ua)![1]}` : /Safari\//.test(ua) ? 'Safari' : ''
+  const os = /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iPhone/iPad' : /Windows/.test(ua) ? 'Windows' : /Mac OS X/.test(ua) ? 'macOS' : /Linux/.test(ua) ? 'Linux' : ''
+  return [br, os].filter(Boolean).join(' · ') || ua
+}
+
 /** Kompyuter/telefon kamerasini ko'rish: oddiy holatda oxirgi kadr; «Jonli» yoqilsa stansiya kadrni ~1,5 soniyada yuboradi. */
 function LiveView({ id }: { id: number }) {
   const { t } = useTranslation()
@@ -471,7 +478,7 @@ function CameraDrawer({ c, manage, onClose, onEdit, onCheck, onCopy, onDelete, l
           {c.device_info && (
             <div className="col-span-2">
               <dt className="text-xs text-muted">{t('cam.device')}</dt>
-              <dd className="text-xs">{c.device_info}</dd>
+              <dd className="text-sm" title={c.device_info}>{deviceName(c.device_info)}</dd>
             </div>
           )}
           <div>
