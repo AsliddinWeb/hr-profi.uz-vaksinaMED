@@ -243,7 +243,7 @@ function StationConnect({ cam, onClose }: { cam: Created; onClose: () => void })
       <div className={clsx('grid gap-4', cam.kind === 'phone' && 'sm:grid-cols-[220px_1fr]')}>
         {cam.kind === 'phone' && (
           <div className="flex flex-col items-center gap-2">
-            {qr.data ? <div className="w-[220px] rounded-lg bg-white p-2" dangerouslySetInnerHTML={{ __html: qr.data.svg }} /> : <div className="size-[220px] animate-pulse rounded-lg bg-surface-2" />}
+            {qr.data ? <div className="w-[220px] rounded-lg bg-white p-2 [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qr.data.svg }} /> : <div className="size-[220px] animate-pulse rounded-lg bg-surface-2" />}
             <span className="text-center text-xs text-muted">{t('wiz.scanQr')}</span>
           </div>
         )}

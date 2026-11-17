@@ -394,7 +394,7 @@ function StationQr({ id }: { id: number }) {
   const qr = useQuery({ queryKey: ['cameras', 'qr', id], queryFn: () => api<{ url: string; svg: string }>(`/api/v1/cameras/${id}/station-qr?origin=${encodeURIComponent(origin)}`) })
   return (
     <div className="flex flex-col items-center gap-2">
-      {qr.data ? <div className="w-[200px] rounded-lg bg-white p-2" dangerouslySetInnerHTML={{ __html: qr.data.svg }} /> : <div className="size-[200px] animate-pulse rounded-lg bg-surface-2" />}
+      {qr.data ? <div className="w-[200px] rounded-lg bg-white p-2 [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qr.data.svg }} /> : <div className="size-[200px] animate-pulse rounded-lg bg-surface-2" />}
       <span className="text-center text-xs text-muted">{t('wiz.scanQr')}</span>
       {localOnly && <span className="text-center text-xs text-warning">{t('wiz.localWarn')}</span>}
     </div>
