@@ -37,8 +37,12 @@ L = {
 }
 
 
+FONT_FALLBACKS = ("/usr/share/fonts/truetype/dejavu", "/usr/share/fonts/dejavu", "/usr/share/fonts/TTF")
+
+
 def _fonts() -> tuple[str, str]:
-    d = Path(get_settings().font_dir)
+    # Docker imidjida font_dir; CI/lokal muhitda tizimdagi DejaVu shrifti (fonts-dejavu-core)
+    d = next((x for x in (Path(get_settings().font_dir), *map(Path, FONT_FALLBACKS)) if (x / "DejaVuSans.ttf").is_file()), Path(get_settings().font_dir))
     if "DejaVu" not in pdfmetrics.getRegisteredFontNames():
         pdfmetrics.registerFont(TTFont("DejaVu", str(d / "DejaVuSans.ttf")))
         pdfmetrics.registerFont(TTFont("DejaVu-Bold", str(d / "DejaVuSans-Bold.ttf")))

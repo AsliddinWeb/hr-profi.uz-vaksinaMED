@@ -36,6 +36,7 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: core/backend/requirements*.txt
+      - run: sudo apt-get install -y -q fonts-dejavu-core  # PDF hisobotlar shrifti (Docker'da /opt/models/fonts)
       - run: pip install -r requirements-dev.txt
       - run: ruff check app tests
       - run: pytest -q
