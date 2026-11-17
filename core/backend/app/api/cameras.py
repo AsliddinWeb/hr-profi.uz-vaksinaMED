@@ -322,13 +322,11 @@ async def station_beat(token: str, body: BeatIn, request: Request, db: AsyncSess
     n = await redis.incr(key)
     if n == 1:
         await redis.expire(key, 60)
-    if n > 6:
+    if n > 60:  # jonli rejimda ~1,5 soniyada bir kadr; oddiy rejimda daqiqada bir
         raise error(429, "too_many_attempts", retry_after=max(await redis.ttl(key), 1))
     c = await _station(db, token)
     moment = now()
-    changed = svc.apply_result(db, c, True, None, moment)
-    if body.device:
-        c.device_info = body.device[:200]
+    live = bool(await redis.exists(f"cam:live:{c.id}"))
     if body.snapshot:
         try:
             raw = base64.b64decode(body.snapshot.split(",", 1)[-1], validate=True)
@@ -337,10 +335,29 @@ async def station_beat(token: str, body: BeatIn, request: Request, db: AsyncSess
         if len(raw) > MAX_SNAP or not raw.startswith(b"\xff\xd8"):
             raise error(400, "bad_snapshot")
         await redis.set(f"cam:snap:{c.id}", base64.b64encode(raw), ex=SNAP_TTL)
+    # jonli rejimda har kadrda bazaga yozilmaydi: holat 30 soniyada bir yangilanadi
+    if c.status == "online" and c.last_online_at and moment - c.last_online_at < timedelta(seconds=30):
+        return {"ok": True, "status": c.status, "live": live}
+    changed = svc.apply_result(db, c, True, None, moment)
+    if body.device:
+        c.device_info = body.device[:200]
     notes = await svc.notes_for(db, {"online": [c]}) if changed == "online" else []
     await db.commit()
     await deliver(request.app, notes)
-    return {"ok": True, "status": c.status}
+    return {"ok": True, "status": c.status, "live": live}
+
+
+LIVE_TTL = 20  # ko'ruvchi panel har 10 soniyada yangilab turadi; yopilsa 20 soniyada o'zi to'xtaydi
+
+
+@router.post("/{cid}/live")
+async def watch_live(cid: int, request: Request, db: AsyncSession = Depends(get_session), _: AuthContext = Depends(can_read)):
+    """Panelda kimdir jonli ko'ryapti: stansiya tez rejimga o'tadi (kadr ~1,5 soniyada)."""
+    c = await _get(db, cid)
+    if c.kind == "ip":
+        raise error(400, "not_station")
+    await request.app.state.redis.set(f"cam:live:{c.id}", "1", ex=LIVE_TTL)
+    return {"ok": True, "ttl": LIVE_TTL}
 
 
 @public_router.post("/{token}/stop")
@@ -353,3 +370,57 @@ async def station_stop(token: str, request: Request, db: AsyncSession = Depends(
     await request.app.state.redis.delete(f"cam:snap:{c.id}")
     await db.commit()
     return {"ok": True}
+
+
+@router.get("/by-branch")
+async def by_branch(
+    q: str | None = None,
+    only: str | None = Query(default=None, pattern="^(offline|none)$"),
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=200),
+    db: AsyncSession = Depends(get_session),
+    _: AuthContext = Depends(can_read),
+):
+    """Har bir filialda nechta kamera bor: jami / onlayn / oflayn, turlar bo'yicha; kamerasi yo'q filiallar ham."""
+    branches = list((await db.scalars(select(Branch).where(Branch.is_active.is_(True)))).all())
+    if q:
+        ql = q.strip().lower()
+        branches = [b for b in branches if ql in b.name.lower() or (b.number is not None and ql == str(b.number))]
+    agg: dict[int, dict[str, int]] = defaultdict(lambda: {"total": 0, "online": 0, "offline": 0, "unknown": 0, "ip": 0, "webcam": 0, "phone": 0})
+    for c in (await db.scalars(select(Camera).where(Camera.is_active.is_(True), Camera.branch_id.is_not(None)))).all():
+        a = agg[c.branch_id or 0]
+        a["total"] += 1
+        a[c.status] = a.get(c.status, 0) + 1
+        a[c.kind] += 1
+    rows = [{"id": b.id, "name": b.name, "number": b.number, **agg.get(b.id, {"total": 0, "online": 0, "offline": 0, "unknown": 0, "ip": 0, "webcam": 0, "phone": 0})} for b in branches]
+    if only == "offline":
+        rows = [r for r in rows if r["offline"]]
+    elif only == "none":
+        rows = [r for r in rows if not r["total"]]
+    rows.sort(key=lambda r: (-r["offline"], r["total"] > 0, r["number"] if r["number"] is not None else 10**9, r["name"]))
+    return {"items": rows[(page - 1) * size : page * size], "total": len(rows), "without_cameras": sum(1 for r in rows if not r["total"])}
+
+
+@router.get("/{cid}/station-qr")
+async def station_qr(cid: int, origin: str = Query(default="", max_length=200), db: AsyncSession = Depends(get_session), _: AuthContext = Depends(can_manage)):
+    """Telefonni ulash uchun QR kod (SVG): telefon kamerasi bilan skanerlansa stansiya sahifasi ochiladi."""
+    import asyncio
+
+    import segno
+
+    from app.config import get_settings
+
+    c = await _get(db, cid)
+    if not c.station_token:
+        raise error(400, "not_station")
+    base = (get_settings().public_url or "").rstrip("/") or (origin.rstrip("/") if origin.startswith(("http://", "https://")) else "")
+    if not base:
+        raise error(400, "origin_required")
+    url = f"{base}/camera-station/{c.station_token}"
+
+    def render() -> str:
+        buf = io.BytesIO()
+        segno.make(url, error="m").save(buf, kind="svg", scale=8, border=2, xmldecl=False, svgns=True, nl=False)
+        return buf.getvalue().decode()
+
+    return {"url": url, "svg": await asyncio.to_thread(render)}

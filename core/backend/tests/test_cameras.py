@@ -69,3 +69,46 @@ async def test_ip_camera_status_import_and_station(new_client):
     f = new_client()
     assert (await login(f, "camfarm")).status_code == 200
     assert (await f.get("/api/v1/cameras/summary")).status_code == 403
+
+
+async def test_station_live_mode(new_client):
+    await make_user("camlive", "hr_direktor")
+    c = new_client()
+    assert (await login(c, "camlive")).status_code == 200
+    st = (await c.post("/api/v1/cameras", json={"name": "Telefon", "kind": "phone"})).json()
+    token = st["station_url"].rsplit("/", 1)[1]
+    pub = new_client()
+    assert (await pub.post(f"/api/v1/public/camera/{token}/beat", json={})).json()["live"] is False
+    assert (await c.post(f"/api/v1/cameras/{st['id']}/live")).status_code == 200
+    snap = base64.b64encode(JPEG).decode()
+    r = (await pub.post(f"/api/v1/public/camera/{token}/beat", json={"snapshot": snap})).json()
+    assert r["live"] is True and r["status"] == "online"
+    assert (await c.get(f"/api/v1/cameras/{st['id']}/snapshot")).status_code == 200
+    ip = (await c.post("/api/v1/cameras", json={"name": "IP", "host": "10.0.0.9"})).json()
+    assert (await c.post(f"/api/v1/cameras/{ip['id']}/live")).status_code == 400
+
+
+async def test_cameras_by_branch(new_client):
+    await make_user("cambr", "hr_direktor")
+    c = new_client()
+    assert (await login(c, "cambr")).status_code == 200
+    async with SessionLocal() as s:
+        b1, b2 = Branch(name="Bir", number=1), Branch(name="Ikki", number=2)
+        s.add_all([b1, b2])
+        await s.commit()
+        id1 = b1.id
+    for n in ("Kirish", "Kassa"):
+        assert (await c.post("/api/v1/cameras", json={"name": n, "branch_id": id1, "host": "10.1.1.1", "port": 554})).status_code == 201
+    d = (await c.get("/api/v1/cameras/by-branch")).json()
+    one = next(r for r in d["items"] if r["name"] == "Bir")
+    assert one["total"] == 2 and one["ip"] == 2 and d["without_cameras"] == 1
+    assert (await c.get("/api/v1/cameras/by-branch", params={"only": "none"})).json()["items"][0]["name"] == "Ikki"
+
+
+async def test_station_qr(new_client):
+    await make_user("camqr", "hr_direktor")
+    c = new_client()
+    assert (await login(c, "camqr")).status_code == 200
+    st = (await c.post("/api/v1/cameras", json={"name": "Telefon", "kind": "phone"})).json()
+    r = (await c.get(f"/api/v1/cameras/{st['id']}/station-qr", params={"origin": "https://vaksinahr.uz"})).json()
+    assert r["url"].endswith(st["station_url"]) and r["svg"].startswith("<svg")

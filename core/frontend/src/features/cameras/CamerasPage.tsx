@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
-import { Camera as CameraIcon, Copy, Download, Laptop, Pencil, Plus, RefreshCw, Smartphone, Trash2, Upload, X } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { Camera as CameraIcon, Copy, Download, Laptop, Pencil, Play, Plus, RefreshCw, Smartphone, Square, Trash2, Upload, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../../components/layout/PageHeader'
@@ -12,6 +12,7 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { Field, Input, Select } from '../../components/ui/Input'
 import { Pagination } from '../../components/ui/Pagination'
 import { Skeleton } from '../../components/ui/Skeleton'
+import { Tabs } from '../../components/ui/Tabs'
 import { useConfirm } from '../../components/ui/confirmContext'
 import { useToast } from '../../components/ui/toastContext'
 import { api, send, upload } from '../../lib/api'
@@ -19,6 +20,8 @@ import { formatDateTime } from '../../lib/format'
 import { errorText } from '../auth/errorText'
 import { useCan } from '../auth/useAuth'
 import type { BranchPage } from '../branches/api'
+import { BranchCameras } from './BranchCameras'
+import { ConnectWizard } from './ConnectWizard'
 
 type Kind = 'ip' | 'webcam' | 'phone'
 type Cam = {
@@ -56,7 +59,6 @@ type Summary = {
 }
 type Form = { id?: number; name: string; kind: Kind; branch_id: string; location: string; brand: string; model: string; host: string; port: string; is_active: boolean; note: string }
 
-const EMPTY: Form = { name: '', kind: 'ip', branch_id: '', location: '', brand: '', model: '', host: '', port: '554', is_active: true, note: '' }
 const TONE = { online: 'success', offline: 'danger', unknown: 'neutral', disabled: 'neutral' } as const
 const KIND_ICON = { ip: CameraIcon, webcam: Laptop, phone: Smartphone }
 
@@ -75,6 +77,8 @@ export function CamerasPage() {
   const [page, setPage] = useState(1)
   const [form, setForm] = useState<Form | null>(null)
   const [view, setView] = useState<Cam | null>(null)
+  const [tab, setTab] = useState<'list' | 'branches'>('list')
+  const [wizard, setWizard] = useState(false)
   const file = useRef<HTMLInputElement>(null)
   const status = sp.get('status') ?? ''
   const setStatus = (s: string) => (setPage(1), setSp(s ? { status: s } : {}))
@@ -147,7 +151,7 @@ export function CamerasPage() {
                 {t('cam.import')}
               </Button>
               <input ref={file} type="file" accept=".xlsx" hidden onChange={(e) => (e.target.files?.[0] && imp.mutate(e.target.files[0]), (e.target.value = ''))} />
-              <Button onClick={() => setForm({ ...EMPTY })}>
+              <Button onClick={() => setWizard(true)}>
                 <Plus className="size-4" />
                 {t('cam.add')}
               </Button>
@@ -222,6 +226,11 @@ export function CamerasPage() {
         </div>
       )}
 
+      <Tabs items={[{ key: 'list' as const, label: t('cam.tabList') }, { key: 'branches' as const, label: t('cam.tabBranches') }]} value={tab} onChange={setTab} />
+      {tab === 'branches' ? (
+        <BranchCameras onOpen={(id) => (setBranch(String(id)), setStatus(''), setTab('list'))} />
+      ) : (
+        <>
       <Card className="grid grid-cols-1 gap-2 p-3 sm:grid-cols-4">
         <Input value={q} onChange={(e) => (setQ(e.target.value), setPage(1))} placeholder={t('cam.search')} aria-label={t('cam.search')} />
         <Select value={kind} onChange={(e) => (setKind(e.target.value), setPage(1))} aria-label={t('cam.kind')}>
@@ -299,6 +308,10 @@ export function CamerasPage() {
         </Card>
       )}
 
+        </>
+      )}
+
+      {wizard && <ConnectWizard onClose={() => setWizard(false)} onDone={refresh} />}
       {form && (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={() => setForm(null)}>
           <div className="flex h-full w-full max-w-lg flex-col gap-3 overflow-y-auto bg-surface p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
@@ -372,10 +385,53 @@ export function CamerasPage() {
   )
 }
 
+/** Kompyuter/telefon kamerasini ko'rish: oddiy holatda oxirgi kadr; «Jonli» yoqilsa stansiya kadrni ~1,5 soniyada yuboradi. */
+function LiveView({ id }: { id: number }) {
+  const { t } = useTranslation()
+  const [live, setLive] = useState(false)
+  const [seed] = useState(() => Date.now())
+  const [tick, setTick] = useState(0)
+  const [ok, setOk] = useState(true)
+  useEffect(() => {
+    if (!live) return
+    const ping = () => void send('POST', `/api/v1/cameras/${id}/live`).catch(() => undefined)
+    ping()
+    const a = window.setInterval(ping, 10_000)
+    const b = window.setInterval(() => setTick((x) => x + 1), 1500)
+    return () => {
+      window.clearInterval(a)
+      window.clearInterval(b)
+    }
+  }, [live, id])
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="relative overflow-hidden rounded-lg bg-black">
+        {ok ? (
+          <img src={`/api/v1/cameras/${id}/snapshot?t=${seed}-${tick}`} alt={t('cam.snapshot')} className="aspect-video w-full object-contain" onLoad={() => setOk(true)} onError={() => setOk(false)} />
+        ) : (
+          <div className="flex aspect-video items-center justify-center p-6 text-center text-xs text-white/70">{live ? t('cam.waitingFrames') : t('cam.noSnapshot')}</div>
+        )}
+        {live && (
+          <span className="absolute left-2 top-2 inline-flex items-center gap-1.5 rounded-full bg-danger px-2 py-0.5 text-[11px] font-semibold text-white">
+            <span className="size-1.5 animate-pulse rounded-full bg-white" />
+            LIVE
+          </span>
+        )}
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-muted">{live ? t('cam.liveHint') : t('cam.lastFrame')}</span>
+        <Button variant={live ? 'danger' : 'primary'} onClick={() => (setLive(!live), setOk(true))}>
+          {live ? <Square className="size-4" /> : <Play className="size-4" />}
+          {live ? t('cam.liveStop') : t('cam.liveStart')}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 function CameraDrawer({ c, manage, onClose, onEdit, onCheck, onCopy, onDelete, link, checking }: { c: Cam; manage: boolean; onClose: () => void; onEdit: () => void; onCheck: () => void; onCopy: () => void; onDelete: () => void; link: string; checking: boolean }) {
   const { t, i18n } = useTranslation()
   const events = useQuery({ queryKey: ['cameras', 'events', c.id], queryFn: () => api<{ at: string; status: string; message: string | null }[]>(`/api/v1/cameras/${c.id}/events`) })
-  const [snapOk, setSnapOk] = useState(true)
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
       <div className="flex h-full w-full max-w-lg flex-col gap-4 overflow-y-auto bg-surface p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
@@ -396,12 +452,7 @@ function CameraDrawer({ c, manage, onClose, onEdit, onCheck, onCopy, onDelete, l
           <Badge tone={TONE[c.status]}>{t(`cam.st.${c.status}`)}</Badge>
           {c.last_error && c.status === 'offline' && <span className="text-xs text-danger">{t(`cam.err.${c.last_error}`, { defaultValue: c.last_error })}</span>}
         </div>
-        {c.kind !== 'ip' &&
-          (snapOk ? (
-            <img src={`/api/v1/cameras/${c.id}/snapshot?t=${c.last_online_at ?? ''}`} alt={t('cam.snapshot')} className="w-full rounded-lg bg-surface-2" onError={() => setSnapOk(false)} />
-          ) : (
-            <div className="rounded-lg bg-surface-2 p-6 text-center text-xs text-muted">{t('cam.noSnapshot')}</div>
-          ))}
+        {c.kind !== 'ip' ? <LiveView id={c.id} /> : <div className="rounded-lg bg-surface-2 p-4 text-xs text-muted">{t('cam.ipLiveHint')}</div>}
         <dl className="grid grid-cols-2 gap-3 text-sm">
           {c.kind === 'ip' && (
             <div>

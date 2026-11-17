@@ -7650,7 +7650,20 @@
     },
     "checkNow": "Hozir tekshirish",
     "history": "Holat tarixi",
-    "deleteQ": "«{{name}}» kamerasini o'chirasizmi?"
+    "deleteQ": "«{{name}}» kamerasini o'chirasizmi?",
+    "liveStart": "Jonli ko'rish",
+    "liveStop": "To'xtatish",
+    "liveHint": "Jonli: kadr ~1,5 soniyada yangilanadi",
+    "lastFrame": "Oxirgi kadr (qurilma daqiqada bir yuboradi)",
+    "waitingFrames": "Qurilmadan kadr kutilmoqda… (stansiya ochiq bo'lishi kerak)",
+    "ipLiveHint": "IP kamerani jonli ko'rish uchun serverda video shlyuz (RTSP → brauzer) ulanishi kerak. Hozircha holati (onlayn/oflayn) nazorat qilinadi.",
+    "tabList": "Kameralar ro'yxati",
+    "tabBranches": "Filiallar bo'yicha",
+    "branchSearch": "Filial nomi yoki raqami",
+    "onlyOffline": "Oflayn kamerasi borlar",
+    "onlyNone": "Kamerasi yo'q filiallar",
+    "branchesCount": "Filiallar: {{n}}, kamerasizlari: {{none}}",
+    "noCameras": "Kamera yo'q"
   },
   "cst": {
     "subtitle": "Kamera stansiyasi",
@@ -7663,6 +7676,78 @@
     "invalid": "Havola noto'g'ri yoki kamera o'chirilgan",
     "sending": "Har daqiqada holat va kichik kadr yuborilmoqda. Oxirgisi: {{at}}",
     "notice": "«Ulash» bosilganda kamera yoqiladi va panelga har daqiqada holat hamda kichik kadr yuboriladi. Kadrlar saqlanmaydi (faqat oxirgisi, 15 daqiqa).",
-    "keepOpen": "Nazorat davom etishi uchun sahifani yopmang."
+    "keepOpen": "Nazorat davom etishi uchun sahifani yopmang.",
+    "watched": "Panelda hozir jonli ko'rilmoqda"
+  },
+  "wiz": {
+    "chooseTitle": "Qaysi qurilmani ulaymiz?",
+    "chooseHint": "Ulanadigan qurilma turini tanlang — keyingi qadamlar shunga moslab ko'rsatiladi.",
+    "stepOf": "{{n}}-qadam / {{total}}",
+    "back": "Orqaga",
+    "title": {
+      "phone": "Telefonni ulash",
+      "webcam": "Kompyuter kamerasini ulash",
+      "ip": "IP kamerani ulash"
+    },
+    "choose": {
+      "phone": "Filial yoki xodim telefoni — QR kodni skanerlash kifoya",
+      "webcam": "Kassa yoki ofis kompyuterining kamerasi",
+      "ip": "Filialdagi kuzatuv kamerasi yoki NVR/DVR"
+    },
+    "nameLabel": "Nomi (panelda shunday ko'rinadi)",
+    "namePh": {
+      "phone": "Masalan: 7-filial telefoni",
+      "webcam": "Masalan: Kassa kompyuteri",
+      "ip": "Masalan: Kirish eshigi"
+    },
+    "noBranch": "Filialga bog'lanmagan",
+    "otherBrand": "Boshqa",
+    "hostLabel": "Kameraning tashqi IP manzili yoki domeni",
+    "ipWhereTitle": "IP manzil va portni qayerdan olaman?",
+    "ipWhere1": "Filial internet provayderidan «statik (oq) IP» oling yoki DDNS domen sozlang (masalan Hik-Connect / Dahua DDNS).",
+    "ipWhere2": "Filial routerida kamera (yoki NVR) uchun 554-portni tashqariga oching (port forwarding).",
+    "ipWhere3": "Shu tashqi IP va portni bu yerga yozing. 192.168.x.x kabi ichki manzil serverdan ko'rinmaydi.",
+    "saveCheck": "Saqlash va tekshirish",
+    "next": "Davom etish",
+    "ipOk": "Kamera ulandi ✓",
+    "ipOkHint": "{{addr}} javob berdi. Endi u har 5 daqiqada avtomatik tekshiriladi.",
+    "ipFail": "Kamera javob bermadi",
+    "reason": {
+      "timeout": "Server kameraga yeta olmadi (javob kelmadi).",
+      "refused": "Manzil topildi, lekin port yopiq.",
+      "other": "Ulanishda xato."
+    },
+    "fixTitle": "Nima qilish kerak:",
+    "fix": {
+      "timeout1": "IP manzil filialning tashqi (oq) IP manzili ekanini tekshiring, ichki 192.168.x.x emas.",
+      "timeout2": "Routerda port forwarding sozlanganini va kamera yoqilganini tekshiring.",
+      "timeout3": "Yoki filial tarmog'ini server bilan VPN orqali ulang — IT xodimga murojaat qiling.",
+      "refused1": "Portni tekshiring: RTSP odatda 554, veb-interfeys 80.",
+      "refused2": "Kamera sozlamasida RTSP yoqilganini tekshiring.",
+      "refused3": "NVR orqali ulansa, NVR portini yozing.",
+      "other1": "IP manzil to'g'ri yozilganini tekshiring.",
+      "other2": "Kamera elektr va internetga ulanganini tekshiring.",
+      "other3": "Muammo davom etsa, IT xodimga murojaat qiling."
+    },
+    "ipSaved": "Kamera saqlandi. Muammo hal bo'lgach «Qayta tekshirish»ni bosing yoki server 5 daqiqada o'zi tekshiradi.",
+    "recheck": "Qayta tekshirish",
+    "done": "Tayyor",
+    "later": "Keyinroq ulayman",
+    "openHere": "Shu kompyuterda ochish",
+    "scanQr": "Telefon kamerasini QR kodga qarating",
+    "connected": "Ulandi ✓ Birinchi kadr keldi",
+    "waiting": {
+      "phone": "Telefon ulanishini kutyapmiz… (QR kodni skanerlang va «Ulash»ni bosing)",
+      "webcam": "Kompyuter ulanishini kutyapmiz… (havolani oching va «Ulash»ni bosing)"
+    },
+    "phoneStep1": "Telefon kamerasini ochib, chapdagi QR kodga qarating (yoki havolani telefonga yuboring).",
+    "phoneStep2": "Ochilgan sahifada katta «Ulash» tugmasini bosing.",
+    "phoneStep3": "Telefon «Kameraga ruxsat berasizmi?» deb so'raydi — «Ruxsat berish»ni bosing.",
+    "phoneStep4": "Telefonni zaryadga ulang va ekranni o'chirmang (sahifa ochiq tursin).",
+    "webcamStep1": "Havolani o'sha kompyuterda Chrome yoki Edge brauzerida oching (nusxalang yoki ↗ tugmasi).",
+    "webcamStep2": "Ochilgan sahifada «Ulash» tugmasini bosing.",
+    "webcamStep3": "Brauzer kameraga ruxsat so'raydi — «Ruxsat berish»ni bosing.",
+    "webcamStep4": "Brauzer oynasini yopmang va kompyuterning uyqu rejimini o'chiring.",
+    "localWarn": "Hozir platforma lokal kompyuterda (localhost) ochilgan: telefon bu havolani ocha olmaydi. Haqiqiy ulash serverdagi manzil (vaksinahr.uz) orqali ishlaydi."
   }
 }
