@@ -386,6 +386,21 @@ export function CamerasPage() {
 }
 
 /** Brauzer satridan qisqa nom: «Edge 157 · Windows», «Chrome 130 · Android». */
+/** Telefonni ulash uchun QR kod (telefon kamerasi bilan skanerlanadi). */
+function StationQr({ id }: { id: number }) {
+  const { t } = useTranslation()
+  const origin = window.location.origin
+  const localOnly = /\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(origin)
+  const qr = useQuery({ queryKey: ['cameras', 'qr', id], queryFn: () => api<{ url: string; svg: string }>(`/api/v1/cameras/${id}/station-qr?origin=${encodeURIComponent(origin)}`) })
+  return (
+    <div className="flex flex-col items-center gap-2">
+      {qr.data ? <div className="w-[200px] rounded-lg bg-white p-2" dangerouslySetInnerHTML={{ __html: qr.data.svg }} /> : <div className="size-[200px] animate-pulse rounded-lg bg-surface-2" />}
+      <span className="text-center text-xs text-muted">{t('wiz.scanQr')}</span>
+      {localOnly && <span className="text-center text-xs text-warning">{t('wiz.localWarn')}</span>}
+    </div>
+  )
+}
+
 function deviceName(ua: string) {
   const br = /Edg\/(\d+)/.exec(ua) ? `Edge ${/Edg\/(\d+)/.exec(ua)![1]}` : /OPR\/(\d+)/.exec(ua) ? `Opera ${/OPR\/(\d+)/.exec(ua)![1]}` : /YaBrowser\/(\d+)/.exec(ua) ? `Yandex ${/YaBrowser\/(\d+)/.exec(ua)![1]}` : /Firefox\/(\d+)/.exec(ua) ? `Firefox ${/Firefox\/(\d+)/.exec(ua)![1]}` : /Chrome\/(\d+)/.exec(ua) ? `Chrome ${/Chrome\/(\d+)/.exec(ua)![1]}` : /Safari\//.test(ua) ? 'Safari' : ''
   const os = /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iPhone/iPad' : /Windows/.test(ua) ? 'Windows' : /Mac OS X/.test(ua) ? 'macOS' : /Linux/.test(ua) ? 'Linux' : ''
@@ -494,8 +509,9 @@ function CameraDrawer({ c, manage, onClose, onEdit, onCheck, onCopy, onDelete, l
           <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
             <div className="text-sm font-medium">{t('cam.stationTitle')}</div>
             <p className="text-xs text-muted">{t(`cam.stationHint.${c.kind}`)}</p>
-            <div className="flex gap-2">
-              <Input readOnly value={link} className="font-mono text-xs" aria-label={t('cam.stationTitle')} />
+            {c.kind === 'phone' && <StationQr id={c.id} />}
+            <div className="flex min-w-0 gap-2">
+              <Input readOnly value={link} className="min-w-0 flex-1 font-mono text-xs" aria-label={t('cam.stationTitle')} />
               <Button variant="outline" onClick={onCopy} aria-label={t('cam.copy')}>
                 <Copy className="size-4" />
               </Button>

@@ -7677,7 +7677,13 @@
     "sending": "Har daqiqada holat va kichik kadr yuborilmoqda. Oxirgisi: {{at}}",
     "notice": "«Ulash» bosilganda kamera yoqiladi va panelga har daqiqada holat hamda kichik kadr yuboriladi. Kadrlar saqlanmaydi (faqat oxirgisi, 15 daqiqa).",
     "keepOpen": "Nazorat davom etishi uchun sahifani yopmang.",
-    "watched": "Panelda hozir jonli ko'rilmoqda"
+    "watched": "Panelda hozir jonli ko'rilmoqda",
+    "autoStarted": "Kamera avtomatik yoqildi (ruxsat avval berilgan). To'xtatsangiz, keyingi safar o'zi yoqilmaydi.",
+    "homeTitle": "Telefonda avtomatik ishlashi uchun (Android)",
+    "home1": "Birinchi marta «Ulash»ni bosing va kameraga ruxsat bering — keyingi safarlar kamera o'zi yoqiladi.",
+    "home2": "Chrome'da o'ng yuqoridagi ⋮ → «Bosh ekranga qo'shish» (Добавить на главный экран) → «Qo'shish». Bosh ekranda belgi paydo bo'ladi.",
+    "home3": "Keyin shu belgini bossangiz kifoya — sahifa ochiladi va kamera o'zi yonadi, ekran o'chmaydi.",
+    "home4": "Telefonni zaryadga ulang. Sozlamalar → Batareya bo'limida Chrome uchun «Cheklovsiz» (без ограничений) ni tanlang."
   },
   "wiz": {
     "chooseTitle": "Qaysi qurilmani ulaymiz?",

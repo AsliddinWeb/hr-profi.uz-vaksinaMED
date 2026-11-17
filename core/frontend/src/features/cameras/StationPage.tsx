@@ -11,6 +11,24 @@ type Info = { name: string; kind: 'webcam' | 'phone'; branch: string | null; loc
 
 const LIVE_MS = 1500
 
+const store = {
+  get: (k: string) => {
+    try {
+      return localStorage.getItem(k)
+    } catch {
+      return null
+    }
+  },
+  set: (k: string, v: string) => {
+    try {
+      localStorage.setItem(k, v)
+    } catch {
+      /* xususiy rejim: saqlanmaydi */
+    }
+  },
+}
+type WakeLock = { release: () => Promise<void> }
+
 /** /camera-station/:token — kompyuter yoki telefon kamerasini panelga ulash. Foydalanuvchi o'zi yoqadi, ekranda doim ko'rinib turadi.
  * Oddiy rejim: daqiqada bir holat + kichik kadr. Panelda kimdir jonli ko'rsa — kadr ~1,5 soniyada. */
 export function CameraStationPage() {
@@ -23,7 +41,10 @@ export function CameraStationPage() {
   const interval = useRef(60)
   const [on, setOn] = useState(false)
   const [live, setLive] = useState(false)
-  const [facing, setFacing] = useState<'user' | 'environment'>('environment')
+  const [facing, setFacing] = useState<'user' | 'environment'>(() => (store.get(`cam-station:${token}:facing`) === 'user' ? 'user' : 'environment'))
+  const wantOn = useRef(false) // foydalanuvchi yoqqan (to'xtatmagan): uzilsa qayta ulanadi
+  const wake = useRef<WakeLock | null>(null)
+  const [auto, setAuto] = useState(false)
   const [last, setLast] = useState<Date | null>(null)
   const [error, setError] = useState('')
   useEffect(() => {
@@ -62,6 +83,12 @@ export function CameraStationPage() {
 
   const stop = useCallback(
     async (notify = true) => {
+      if (notify) {
+        wantOn.current = false
+        store.set(`cam-station:${token}:auto`, '0')
+      }
+      void wake.current?.release().catch(() => undefined)
+      wake.current = null
       if (timer.current) window.clearTimeout(timer.current)
       timer.current = null
       stream.current?.getTracks().forEach((tr) => tr.stop())
@@ -85,11 +112,64 @@ export function CameraStationPage() {
         await video.current.play()
       }
       setOn(true)
+      wantOn.current = true
+      store.set(`cam-station:${token}:auto`, '1')
+      store.set(`cam-station:${token}:facing`, mode)
+      // kamera uzilsa (qo'ng'iroq, boshqa ilova) — qayta ulanish
+      s.getVideoTracks()[0]?.addEventListener('ended', () => {
+        if (wantOn.current) window.setTimeout(() => void startRef.current(), 2000)
+      })
+      void keepAwake()
       timer.current = window.setTimeout(() => tickRef.current(false), 1500)
     } catch {
       setError(t('cst.permission'))
     }
   }
+
+  // ekran o'chmasin (Android Chrome, HTTPS)
+  const keepAwake = async () => {
+    try {
+      const nav = navigator as Navigator & { wakeLock?: { request: (t: 'screen') => Promise<WakeLock> } }
+      if (nav.wakeLock && !wake.current) wake.current = await nav.wakeLock.request('screen')
+    } catch {
+      /* qo'llab-quvvatlanmaydi */
+    }
+  }
+
+  const startRef = useRef<(mode?: 'user' | 'environment') => Promise<void>>(async () => undefined)
+  useEffect(() => {
+    startRef.current = (mode) => start(mode)
+  })
+
+  // avtomatik yoqish: ruxsat avval berilgan va foydalanuvchi o'zi to'xtatmagan bo'lsa — sahifa ochilishi bilan
+  useEffect(() => {
+    if (!info.data || stream.current) return
+    if (store.get(`cam-station:${token}:auto`) === '0') return
+    const perms = (navigator as Navigator & { permissions?: { query: (d: { name: string }) => Promise<{ state: string }> } }).permissions
+    if (!perms) return
+    perms
+      .query({ name: 'camera' })
+      .then((r) => {
+        if (r.state === 'granted') {
+          setAuto(true)
+          void startRef.current()
+        }
+      })
+      .catch(() => undefined)
+  }, [info.data, token])
+
+  // sahifaga qaytilganda: kamera to'xtagan bo'lsa qayta yoqish, ekran qulfini tiklash
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState !== 'visible' || !wantOn.current) return
+      wake.current = null
+      const live = stream.current?.getVideoTracks()[0]?.readyState === 'live'
+      if (!live) void startRef.current()
+      else void keepAwake()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  })
 
   useEffect(() => () => void stop(false), [stop])
   useEffect(() => {
@@ -166,6 +246,16 @@ export function CameraStationPage() {
 
       <p className="text-xs text-muted">{on ? t('cst.sending', { at: last ? last.toLocaleTimeString() : '…' }) : t('cst.notice')}</p>
       <p className="text-xs text-muted">{t('cst.keepOpen')}</p>
+      {auto && on && <p className="text-xs text-success">{t('cst.autoStarted')}</p>}
+      <details className="rounded-lg border border-border p-3 text-sm">
+        <summary className="cursor-pointer font-medium">{t('cst.homeTitle')}</summary>
+        <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted">
+          <li>{t('cst.home1')}</li>
+          <li>{t('cst.home2')}</li>
+          <li>{t('cst.home3')}</li>
+          <li>{t('cst.home4')}</li>
+        </ol>
+      </details>
     </div>
   )
 }
