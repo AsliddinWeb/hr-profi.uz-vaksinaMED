@@ -100,6 +100,7 @@ SYSTEM_ROLES: tuple[RoleDef, ...] = (
             "tasks.*",
             "reminders.*",
             "pharmacy.*",
+            "goals.manage",
         ),
     ),
     RoleDef(

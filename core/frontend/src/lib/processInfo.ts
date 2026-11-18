@@ -26,6 +26,9 @@ export const PROCESS_INFO: Record<string, ProcessInfo> = {
   '/org/positions': { what: i("Lavozimlar ro'yxati: bo'lim lavozimlari va umumiy lavozimlar. Lavozim kompetensiya, prebording darslari va zayafkalarga bog'lanadi.", 'Должности отделов и общие должности. Должность связана с компетенциями, пребордингом и заявками.') },
   '/branches': { what: i("Filiallar (dorixonalar): manzil, xarita, geozona, mudir va koordinator. Davomat GPS/QR shu yerdagi geozonaga bog'liq.", 'Филиалы: адрес, карта, геозона, заведующий и координатор. GPS/QR-отметки зависят от геозоны.') },
   '/org/rotations': { what: i("Xodimni boshqa filial yoki lavozimga o'tkazish so'rovi va tasdig'i.", 'Запрос и согласование перевода сотрудника в другой филиал или на должность.') },
+  '/strategy': { what: i("Kompaniya strategiyasi: oliy maqsad, strategiya, missiya, SMART maqsad, qadriyat va shior (video va slaydlar bilan).", 'Стратегия компании: высшая цель, стратегия, миссия, SMART-цели, ценности и девиз (с видео и слайдами).') },
+  '/hr/rules': { what: i("Kompaniya nizomi, jarayonlar nizomi va ichki tartib-qoidalar: hujjat, slayd va video ko'rinishida.", 'Устав компании, положения о процессах и правила внутреннего распорядка: документы, слайды и видео.') },
+  '/hr/duties': { what: i("Lavozim majburiyatlari: umumiy hujjat, har bir lavozimning vazifalari va chek-listlari.", 'Обязанности должностей: общий документ, задачи и чек-листы каждой должности.') },
   '/hr/library': { what: i("Kompaniya hujjatlari kutubxonasi: nizom, reglament, yo'riqnomalar. \"Tanishdim\" belgisi talab qilinishi mumkin.", 'Библиотека документов компании: положения, регламенты, инструкции, с отметкой «ознакомлен».') },
   '/hr/documents': {
     what: i("Xodim arizalari (ta'til, ishdan ketish, o'tkazish) va ular asosida buyruqlar: imzo, QR orqali tekshirish.", 'Заявления сотрудников и приказы на их основе: подпись, проверка по QR.'),

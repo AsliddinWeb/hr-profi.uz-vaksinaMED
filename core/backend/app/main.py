@@ -43,6 +43,7 @@ from app.api import (
     employee_io,
     employees,
     face,
+    goals,
     growth,
     health,
     helpdesk,
@@ -202,7 +203,7 @@ def create_app() -> FastAPI:
 
     # Statik yo'llar (/bulk, /export, /import/*, /duplicates) `/{employee_id}` dan OLDIN
     for module in (
-        health, metrics, meta, auth, users, roles, audit, notifications, telegram, home, org, org_insights, branches,
+        health, metrics, meta, auth, users, roles, audit, notifications, telegram, home, goals, org, org_insights, branches,
         employee_io, employee_bulk, employees, employee_files,
         schedule_config, schedule, attendance, attendance_issues, attestation, growth, integrations, complaints, coord_report, face, answers, letters, penalties, tasks, reminders, pharmacy, needs, checklist_status, checklists, announcements, vacancy_kit, recruit_analytics, recruit_timeline, cameras, competency, position_docs, recruit_core, recruit_eval, recruit, recruit_pipeline, recruit_requests, recruit_sources, employee_dossier, retention, rotations, duty, hrdocs, staffdocs, references, revisions, ratings, devices, segments, internship, preboarding, onboarding, plan, payroll, canteen, logistics, warehouse, mobile, coffee, reception, helpdesk, calls, ai, ai_interview, conference, reports, migration,
     ):  # fmt: skip

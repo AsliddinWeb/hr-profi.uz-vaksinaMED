@@ -14,6 +14,7 @@ from app.models.devices import DeviceSettings, UserDevice
 from app.models.duty import DutyChecklist, DutyRun
 from app.models.employees import Employee, EmployeeDocument, EmployeeEvent
 from app.models.face import FaceAttempt, FaceConsent, FaceTemplate
+from app.models.goals import Goal, GoalChange, GoalPlan
 from app.models.growth import Attestation, CareerLevel, HrSetting, Promotion
 from app.models.helpdesk import Ticket, TicketCategory, TicketEvent, TicketFile
 from app.models.hrdocs import HrDocument, HrDocumentAck, HrDocumentVersion, StaffDocument
@@ -227,4 +228,7 @@ __all__ = [
     "Conference",
     "ConferenceAttendee",
     "ReadAloudAttempt",
+    "Goal",
+    "GoalChange",
+    "GoalPlan",
 ]

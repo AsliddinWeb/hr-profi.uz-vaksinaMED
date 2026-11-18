@@ -128,3 +128,17 @@ async def test_file_upload_and_download(new_client, app):
     await hrd.post(f"{H}/{did}/publish", json={})
     dl = await far.get(f"{H}/{did}/file")
     assert dl.status_code == 200 and dl.content == pdf and "nizom.pdf" in dl.headers["content-disposition"]
+
+
+async def test_media_links_saved_and_kept_on_partial_update(new_client):
+    hrd, _ = await as_user(new_client, "hrd", "hr_direktor")
+    media = [{"kind": "video", "url": "https://www.youtube.com/watch?v=abc123", "title": "Missiya"}, {"kind": "slides", "url": "https://docs.google.com/presentation/d/XYZ/edit"}]
+    r = await hrd.post(H, json=doc(media=media))
+    assert r.status_code == 201, r.text
+    did = r.json()["id"]
+    assert [m["kind"] for m in r.json()["media"]] == ["video", "slides"]
+    assert len((await hrd.put(f"{H}/{did}", json=doc(title="Yangi nom"))).json()["media"]) == 2
+    assert (await hrd.put(f"{H}/{did}", json=doc(media=[]))).json()["media"] == []
+    bad = await hrd.put(f"{H}/{did}", json=doc(media=[{"kind": "video", "url": "javascript:alert(1)"}]))
+    assert bad.status_code == 422
+    assert (await hrd.put(f"{H}/{did}", json=doc(media=[{"kind": "video", "url": "http://example.com/a.mp4"}]))).status_code == 422
