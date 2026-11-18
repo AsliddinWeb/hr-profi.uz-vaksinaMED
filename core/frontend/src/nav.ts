@@ -1,4 +1,4 @@
-import { Cctv, Coffee, Megaphone, Video, Eye, FileWarning, MonitorPlay, PlayCircle, Activity, DatabaseZap, FileBarChart, Sparkles, PhoneCall, DoorOpen, LifeBuoy, BookUser, MonitorSmartphone, Radar, Smartphone, Warehouse as WarehouseIcon, Truck, Navigation, QrCode as QrIcon, MessageSquareQuote, Salad, UtensilsCrossed, Banknote, ReceiptText, GraduationCap, BookOpen, Briefcase, Users2, FileCheck2, LineChart, MapPinCheck, ClipboardList, PackagePlus, Tags, HeartPulse, MapPinned, UserPlus, ShieldCheck as QualityShield, AlarmClock, BarChart2, KanbanSquare, ListChecks, ListTodo, Gavel, Receipt, Scale, FileSignature, FileStack, ShieldQuestion, CalendarRange, Inbox, MessageSquareText, LayoutDashboard, BarChart3, ScanFace, ShieldAlert, ClipboardCheck, QrCode, Table2, UserCheck, Bell, CalendarDays, CalendarOff, Building2, Clock, Contact, Layers, Network, Repeat, ScrollText, ShieldCheck, Store, Users } from 'lucide-react'
+import { Cctv, Coffee, Megaphone, Video, Eye, FileWarning, MonitorPlay, PlayCircle, Activity, DatabaseZap, FileBarChart, Sparkles, PhoneCall, DoorOpen, LifeBuoy, BookUser, MonitorSmartphone, Radar, Smartphone, Warehouse as WarehouseIcon, Truck, Navigation, QrCode as QrIcon, MessageSquareQuote, Salad, UtensilsCrossed, Banknote, ReceiptText, GraduationCap, BookOpen, Briefcase, Users2, FileCheck2, LineChart, MapPinCheck, ClipboardList, PackagePlus, Tags, HeartPulse, MapPinned, UserPlus, ShieldCheck as QualityShield, AlarmClock, BarChart2, KanbanSquare, ListChecks, ListTodo, Gavel, Receipt, Scale, FileSignature, FileStack, ShieldQuestion, CalendarRange, Inbox, MessageSquareText, LayoutDashboard, BarChart3, ScanFace, ShieldAlert, ClipboardCheck, QrCode, Table2, UserCheck, Bell, CalendarDays, CalendarOff, Building2, Clock, Contact, Layers, Network, Repeat, ScrollText, ShieldCheck, Store, Target, Users } from 'lucide-react'
 
 import type { NavItem } from './extensions/registry'
 
@@ -14,16 +14,20 @@ const baseNav: NavItem[] = [
   { id: 'revisions', group: 'revision', label: { uz: 'Reviziya', ru: 'Ревизия' }, to: '/revisions', icon: ClipboardCheck, anyPermission: ['revision.own', 'revision.read', 'revision.manage'], module: 'pharmacy' },
   { id: 'cameras', group: 'pharmacy', label: { uz: 'Kameralar', ru: 'Камеры' }, to: '/cameras', icon: Cctv, anyPermission: ['cameras.read', 'cameras.manage'] },
   { id: 'ratings', group: 'pharmacy', label: { uz: 'Mijozlar baholashi', ru: 'Оценки клиентов' }, to: '/ratings', icon: MessageSquareQuote, anyPermission: ['ratings.own', 'ratings.read', 'ratings.manage'], module: 'pharmacy' },
-  { id: 'home', group: 'main', label: { uz: 'Bosh sahifa', ru: 'Главная' }, to: '/', icon: LayoutDashboard },
+  { id: 'home', group: 'main', label: { uz: 'Bosh dashboard', ru: 'Главный дашборд' }, to: '/', icon: LayoutDashboard },
   { id: 'help', group: 'main', label: { uz: 'Jarayonlar qo\'llanmasi', ru: 'Справочник процессов' }, to: '/help', icon: BookOpen },
   { id: 'my-documents', group: 'people', label: { uz: 'Mening hujjatlarim', ru: 'Мои документы' }, to: '/my-documents', icon: FileSignature },
   { id: 'employees', group: 'people', label: { uz: 'Xodimlar', ru: 'Сотрудники' }, to: '/employees', icon: Contact, permission: 'employees.read', module: 'employees' },
+  { id: 'strategy', group: 'hr', label: { uz: 'Strategiya va maqsadlar', ru: 'Стратегия и цели' }, to: '/strategy', icon: Target, anyPermission: ['hrdocs.read', 'hrdocs.manage'], module: 'employees' },
   { id: 'org', group: 'hr', sub: 'structure', label: { uz: 'Tashkiliy tuzilma', ru: 'Оргструктура' }, to: '/org', icon: Network, permission: 'org.read', module: 'org' },
+  { id: 'org-goals', group: 'hr', sub: 'structure', label: { uz: 'SMART maqsadlar', ru: 'SMART-цели' }, to: '/org/goals', icon: Target, anyPermission: ['org.read', 'goals.manage'], module: 'org' },
   { id: 'departments', group: 'hr', sub: 'structure', label: { uz: "Bo'limlar va lavozimlar", ru: 'Отделы и должности' }, to: '/org/departments', icon: Building2, permission: 'org.read', module: 'org' },
   { id: 'positions', group: 'hr', sub: 'structure', label: { uz: 'Lavozimlar', ru: 'Должности' }, to: '/org/positions', icon: Briefcase, permission: 'org.read', module: 'org' },
   { id: 'position-duties', group: 'hr', sub: 'structure', label: { uz: 'Lavozim vazifalari', ru: 'Обязанности должностей' }, to: '/org/duties', icon: ClipboardList, permission: 'org.read', module: 'org' },
   { id: 'org-structures', group: 'hr', sub: 'structure', label: { uz: 'Shajara turlari', ru: 'Варианты оргструктуры' }, to: '/org/structures', icon: Network, permission: 'org.manage', module: 'org' },
   { id: 'branches', group: 'hr', sub: 'structure', label: { uz: 'Filiallar', ru: 'Филиалы' }, to: '/branches', icon: Store, permission: 'branches.read', module: 'pharmacy' },
+  { id: 'hr-rules', group: 'hr', label: { uz: 'Nizom va qoidalar', ru: 'Устав и правила' }, to: '/hr/rules', icon: Scale, anyPermission: ['hrdocs.read', 'hrdocs.manage'], module: 'employees' },
+  { id: 'hr-duties', group: 'hr', label: { uz: 'Lavozim majburiyatlari', ru: 'Обязанности должностей' }, to: '/hr/duties', icon: ClipboardList, anyPermission: ['hrdocs.read', 'hrdocs.manage'], module: 'employees' },
   { id: 'hr-library', group: 'hr', sub: 'kadrdocs', label: { uz: 'Hujjatlar kutubxonasi', ru: 'Библиотека документов' }, to: '/hr/library', icon: BookOpen, permission: 'hrdocs.read', module: 'employees' },
   { id: 'hr-documents', group: 'hr', sub: 'kadrdocs', label: { uz: 'Ariza va buyruqlar', ru: 'Заявления и приказы' }, to: '/hr/documents', icon: FileStack, anyPermission: ['staffdocs.apply', 'staffdocs.read', 'staffdocs.manage'], module: 'employees' },
   { id: 'hr-references', group: 'hr', sub: 'kadrdocs', label: { uz: "Ma'lumotnomalar", ru: 'Справки' }, to: '/hr/references', icon: FileCheck2, permission: 'staffdocs.manage', module: 'employees' },
@@ -137,6 +141,7 @@ const baseNav: NavItem[] = [
  * qolganlari sahifa tepasida tab bo'lib chiqadi (ClusterTabs). tabs: false — sahifaning o'z tablari bor.
  */
 export const NAV_CLUSTERS: { ids: string[]; tabs?: false }[] = [
+  { ids: ['strategy', 'org-goals'], tabs: false },
   // Tuzilma: yon menyuda faqat Tashkiliy tuzilma, qolganlari uning o'ng panelida (ruxsati bo'lmasa — birinchi ruxsatli band ko'rinadi)
   { ids: ['org', 'departments', 'positions', 'position-duties', 'org-structures', 'branches'], tabs: false },
   // Rekruting: Kompetensiyalar bazasi, Lavozim profillari, Tasdiqlash markazi — dashboardning o'ng panelida
@@ -168,7 +173,7 @@ export const navById = new Map(baseNav.map((i) => [i.id, i]))
 const ADDED = new Set(['checklist-status', 'company-settings', 'devices', 'payroll-sheet', 'revisions', 'ratings', 'cameras'])
 
 /** Menyuda birinchi turadigan guruhlar: Bosh sahifa, HR, Resepshin; qolganlari keyin. */
-const FIRST = ['main', 'people', 'hr', 'revision', 'reception']
+const FIRST = ['main', 'hr', 'people', 'revision', 'reception']
 
 /** Menyu asl holicha: guruhlar va bandlar baseNav tartibida, bir xil kichik bo'lim (sub) bandlari yonma-yon. */
 function original(items: NavItem[]): NavItem[] {

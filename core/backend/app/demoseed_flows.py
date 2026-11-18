@@ -183,13 +183,16 @@ async def flows(sd) -> None:  # noqa: C901
         "values": ("Qadriyatlar", "1. Mijoz salomatligi — birinchi o'rinda.\n2. Halollik va mas'uliyat.\n3. Jamoaviy ish va o'zaro hurmat.\n4. Doimiy o'rganish va rivojlanish.", True),
         "slogan": ("Shior", "«Salomatlik — bizning g'amxo'rligimiz».", False),
         "internal_rules": ("Ichki tartib qoidalari", "1. Ish vaqti: 09:00–18:00 (dorixonalarda smena grafigi bo'yicha).\n2. Kechikish va ruxsatsiz kelmaslik jarima qoidalariga muvofiq ko'riladi.\n3. Ish joyida forma va nishon majburiy.\n4. Mijozlar ma'lumoti maxfiy saqlanadi.", True),
+        "strategies": ("Kompaniya strategiyalari", "1. Filiallar tarmog'ini kengaytirish: yiliga 20 ta yangi filial.\n2. Xodimlarni o'qitish va ushlab qolish dasturi.\n3. Har bir bo'lim uchun yillik SMART maqsad va oylik nazorat.", False),
+        "smart": ("SMART maqsadlar", "Kompaniya maqsadlari bo'limlar kesimida «Bo'limlar bo'yicha SMART maqsadlar» sahifasida yuritiladi: yilda bir marta belgilanadi, faqat istisno holatida o'zgartiriladi.", False),
+        "charter": ("Kompaniya nizomi", "1. Kompaniya faoliyati maqsadi va yo'nalishlari.\n2. Boshqaruv tuzilmasi va vakolatlar taqsimoti.\n3. Xodimlarning huquq va majburiyatlari.\n4. Hujjatlar bilan ishlash tartibi.", True),
         "job_duties": ("Lavozim majburiyatlari", "Har bir lavozim bo'yicha majburiyatlar lavozim yo'riqnomasida keltirilgan. Xodim ish boshlashdan oldin o'z yo'riqnomasi bilan tanishadi.", True),
     }
     for key, (title, body, ack) in texts.items():
         d = by_key.get(key)
         if not d:
             continue
-        await sd.call(hrd, "PUT", f"/api/v1/hrdocs/{d['id']}", json={"category": d["category"], "title": d["title"], "summary": title, "body": body, "requires_ack": ack, "roles": [], "sort_order": d["id"]}, label="hujjat matni")
+        await sd.call(hrd, "PUT", f"/api/v1/hrdocs/{d['id']}", json={"category": d["category"], "title": d["title"], "summary": title, "body": body, "requires_ack": ack, "roles": [], "sort_order": d["id"], **({"media": [{"kind": "video", "url": "https://www.w3schools.com/html/mov_bbb.mp4", "title": "Namuna video (almashtiriladi)"}]} if key == "mission" else {})}, label="hujjat matni")
         await sd.call(hrd, "POST", f"/api/v1/hrdocs/{d['id']}/publish", json={"note": "Birinchi versiya"}, label="hujjatni e'lon qilish")
     if by_key.get("values"):
         await sd.call(f1, "POST", f"/api/v1/hrdocs/{by_key['values']['id']}/ack", label="tanishdim")

@@ -14,6 +14,7 @@ import { send } from '../../lib/api'
 import { errorText } from '../auth/errorText'
 import { useCan } from '../auth/useAuth'
 import { BranchesPage } from '../branches/BranchesPage'
+import { DeptGoalsCard } from '../goals/GoalsPages'
 import { DepartmentsPage } from './DepartmentsPage'
 import { OrgStructuresPage } from './OrgStructuresPage'
 import { PositionDocsSection } from './PositionDocs'
@@ -164,6 +165,7 @@ function NodePanel({ selected, onDone }: { selected: Selected; onDone: () => voi
           )}
         </div>
       </Card>
+      {isDept && <DeptGoalsCard deptId={id} />}
       {manage && (
         <>
           <Card className="flex flex-col gap-3 p-5">

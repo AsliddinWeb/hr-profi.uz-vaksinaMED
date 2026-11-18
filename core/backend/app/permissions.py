@@ -20,6 +20,8 @@ register_permission(
 )
 register_permission("org.read", "Tashkiliy tuzilmani ko'rish", "Просмотр оргструктуры")
 register_permission("org.manage", "Bo'lim va lavozimlarni boshqarish", "Управление отделами и должностями")
+register_permission("goals.manage", "Bo'lim SMART maqsadlarini tuzish", "Составление SMART-целей отделов")
+register_permission("goals.approve", "SMART maqsadlarni tasdiqlash va istisnolar", "Утверждение SMART-целей и исключений")
 register_permission("branches.read", "Filiallarni ko'rish", "Просмотр филиалов")
 register_permission("branches.manage", "Filiallarni boshqarish", "Управление филиалами")
 register_permission("employees.read", "Xodimlarni ko'rish", "Просмотр сотрудников")

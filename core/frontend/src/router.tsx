@@ -1,5 +1,6 @@
 import { AnnouncementDetailPage, AnnouncementsPage } from "./features/recruit/AnnouncementPages";
 import { MyDocumentsPage } from "./features/org/PositionDocs";
+import { DepartmentGoalsPage, GoalFormPage, GoalsOverview } from "./features/goals/GoalsPages";
 import { RecruitAnalyticsPage } from "./features/recruit/AnalyticsPage";
 import { ApprovalsPage as RecruitApprovalsPage, CompetenciesPage, PositionCompetenciesPage, FunnelReportPage, RecruitDashboardPage, ProfilesPage as PositionProfilesPage, ProfileWizardPage } from "./features/recruit/CompetencyPages";
 import { createBrowserRouter } from "react-router-dom";
@@ -263,6 +264,7 @@ import {
 import { StaffVerifyPage } from "./features/hrdocs/StaffVerifyPage";
 import { ReferencesPage } from "./features/hrdocs/ReferencesPage";
 import { ReferenceVerifyPage } from "./features/hrdocs/ReferenceVerifyPage";
+import { CompanyDutiesPage, CompanyRulesPage, StrategyPage } from "./features/company/CompanyPages";
 import {
   DutyControlPage,
   DutyFormPage,
@@ -3028,6 +3030,17 @@ export function createRouter() {
                   ),
                 },
                 {
+                  path: "org/goals",
+                  element: (
+                    <RequirePerm any={["org.read", "goals.manage"]}>
+                      <GoalsOverview />
+                    </RequirePerm>
+                  ),
+                },
+                { path: "org/goals/:deptId", element: <DepartmentGoalsPage /> },
+                { path: "org/goals/:deptId/new", element: <GoalFormPage /> },
+                { path: "org/goals/:deptId/items/:goalId/edit", element: <GoalFormPage /> },
+                {
                   path: "org/duties",
                   element: (
                     <RequirePerm perm="org.read">
@@ -3102,6 +3115,30 @@ export function createRouter() {
                       ]}
                     >
                       <RotationDetailPage />
+                    </RequirePerm>
+                  ),
+                },
+                {
+                  path: "strategy",
+                  element: (
+                    <RequirePerm perm="hrdocs.read">
+                      <StrategyPage />
+                    </RequirePerm>
+                  ),
+                },
+                {
+                  path: "hr/rules",
+                  element: (
+                    <RequirePerm perm="hrdocs.read">
+                      <CompanyRulesPage />
+                    </RequirePerm>
+                  ),
+                },
+                {
+                  path: "hr/duties",
+                  element: (
+                    <RequirePerm perm="hrdocs.read">
+                      <CompanyDutiesPage />
                     </RequirePerm>
                   ),
                 },

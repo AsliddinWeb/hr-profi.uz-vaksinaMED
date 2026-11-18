@@ -486,7 +486,16 @@
     "unsupported_file": "Bu fayl turi qo'llab-quvvatlanmaydi (PDF, Word .docx, Excel .xlsx, TXT)",
     "already_signed": "Bu hujjat allaqachon imzolangan",
     "bad_signature": "Imzo noto'g'ri",
-    "channels_required": "Kamida bitta joyni tanlang"
+    "channels_required": "Kamida bitta joyni tanlang",
+    "plan_locked": "Maqsadlar tasdiqlangan: o'zgarish faqat istisno so'rovi orqali",
+    "deadline_year": "Muddat shu yil ichida bo'lishi kerak",
+    "no_goals": "Avval kamida bitta maqsad qo'shing",
+    "plan_not_draft": "Reja qoralama holatida emas",
+    "plan_not_pending": "Reja tasdiq kutilayotgan holatda emas",
+    "plan_not_approved": "Reja hali tasdiqlanmagan",
+    "change_pending": "Bu maqsad bo'yicha so'rov allaqachon ko'rib chiqilmoqda",
+    "goal_missing": "Maqsad topilmadi",
+    "owner_not_found": "Mas'ul xodim topilmadi"
   },
   "auth": {
     "heroTitle": "Kadrlar va filiallar — bitta tizimda",
@@ -807,7 +816,8 @@
       "addHint": "Yangi bo'lim boshliq lavozimlari bilan avtomatik yaratiladi; sxema, ro'yxatlar va filiallar darhol yangilanadi.",
       "deleteDeptHint": "Bo'lim o'chadi; filial, lavozim va xodimlar saqlanib, bo'limdan uziladi.",
       "deletePosHint": "Lavozimda xodim bo'lsa o'chirib bo'lmaydi — avval xodimni boshqa lavozimga o'tkazing.",
-      "duties": "Lavozim vazifalari"
+      "duties": "Lavozim vazifalari",
+      "goals": "SMART maqsadlar"
     }
   },
   "branches": {
@@ -5159,7 +5169,18 @@
     "attachment": "Biriktirilgan fayl",
     "attachmentHint": "PDF, DOCX, XLSX yoki rasm (15 MB gacha).",
     "uploadFile": "Fayl yuklash",
-    "replaceFile": "Faylni almashtirish"
+    "replaceFile": "Faylni almashtirish",
+    "media": "Video va slaydlar",
+    "mediaHint": "Havola qo'shing (YouTube, Google Slides, PDF yoki mp4). Hujjat ochilganda yon panelda ko'rinadi.",
+    "mediaKind": {
+      "video": "Video",
+      "slides": "Slayd",
+      "link": "Havola"
+    },
+    "mediaUrl": "Havola (https://…)",
+    "mediaTitle": "Sarlavha",
+    "mediaAdd": "Qo'shish",
+    "mediaRemove": "O'chirish"
   },
   "references": {
     "title": "Ish joyi ma'lumotnomalari",
@@ -7756,5 +7777,136 @@
     "webcamStep3": "Brauzer kameraga ruxsat so'raydi — «Ruxsat berish»ni bosing.",
     "webcamStep4": "Brauzer oynasini yopmang va kompyuterning uyqu rejimini o'chiring.",
     "localWarn": "Hozir platforma lokal kompyuterda (localhost) ochilgan: telefon bu havolani ocha olmaydi. Haqiqiy ulash serverdagi manzil (vaksinahr.uz) orqali ishlaydi."
+  },
+  "goals": {
+    "title": "SMART maqsadlar",
+    "overviewSubtitle": "{{year}}-yil: {{approved}} / {{total}} bo'lim maqsadlari tasdiqlangan",
+    "deptSubtitle": "{{year}}-yil SMART maqsadlari",
+    "cardTitle": "Maqsadlar {{year}}",
+    "cardSummary": "{{n}} ta maqsad",
+    "open": "Maqsadlarni ochish",
+    "statusLabel": "Holat",
+    "count": "Maqsadlar",
+    "progress": "Bajarilishi",
+    "pendingChanges": "Kutilayotgan so'rovlar",
+    "status": {
+      "none": "Tuzilmagan",
+      "draft": "Qoralama",
+      "pending": "Tasdiq kutilmoqda",
+      "approved": "Tasdiqlangan"
+    },
+    "add": "Maqsad qo'shish",
+    "edit": "Maqsadni tahrirlash",
+    "empty": "Hali maqsad qo'yilmagan",
+    "emptyHint": "Bo'limning yillik SMART maqsadlarini qo'shing va tasdiqqa yuboring. Tasdiqlangach yil davomida faqat istisno tariqasida o'zgaradi.",
+    "yqm": "Bo'lim YQM",
+    "lockedHint": "Yil uchun qulflangan: {{by}}, {{date}}. O'zgarish faqat istisno so'rovi orqali.",
+    "pendingHint": "{{by}} tasdiqqa yubordi",
+    "returnedNote": "Qaytarildi: {{note}}",
+    "submit": "Tasdiqqa yuborish",
+    "submitted": "Tasdiqqa yuborildi",
+    "approve": "Tasdiqlash",
+    "approved": "Tasdiqlandi",
+    "return": "Qaytarish",
+    "returned": "Qaytarildi",
+    "returnReason": "Qaytarish sababi",
+    "reject": "Rad etish",
+    "requestAdd": "Yangi maqsad (istisno)",
+    "requestChange": "O'zgartirish so'rash",
+    "requestRemove": "Olib tashlashni so'rash",
+    "changePending": "So'rov ko'rib chiqilmoqda",
+    "changeRequested": "So'rov yuborildi",
+    "sendRequest": "So'rovni yuborish",
+    "changesTitle": "Istisno so'rovlari va o'zgarishlar tarixi",
+    "reason": "Sabab",
+    "reasonHint": "Maqsadlar yilda bir marta tasdiqlanadi. O'zgarish nima uchun zarurligini yozing — bu tarixda saqlanadi.",
+    "decisionNote": "Izoh (ixtiyoriy)",
+    "decidedBy": "Qaror: {{by}}",
+    "changeApproved": "O'zgarish tasdiqlandi va qo'llandi",
+    "changeRejected": "O'zgarish rad etildi",
+    "currentValue": "Joriy qiymat",
+    "updateProgress": "Yangilash",
+    "action": {
+      "add": "Qo'shish",
+      "update": "O'zgartirish",
+      "remove": "Olib tashlash"
+    },
+    "changeStatus": {
+      "pending": "Kutilmoqda",
+      "approved": "Tasdiqlandi",
+      "rejected": "Rad etildi"
+    },
+    "s": {
+      "title": "S — Aniq",
+      "hint": "Nimaga erishmoqchimiz? Bir ma'noli, aniq natija."
+    },
+    "m": {
+      "title": "M — O'lchanadigan",
+      "hint": "Qaysi ko'rsatkich bilan o'lchaymiz: hozirgi qiymat va maqsad. Kamaytirish maqsadi ham bo'lishi mumkin (masalan 20% → 10%)."
+    },
+    "ar": {
+      "title": "A, R — Erishiladigan va dolzarb",
+      "hint": "Qaysi resurs bilan erishiladi va kompaniyaning qaysi maqsadiga xizmat qiladi."
+    },
+    "t": {
+      "title": "T — Muddatli",
+      "hint": "Muddat {{year}}-yil ichida bo'lishi kerak. Mas'ul xodim progressni yangilab boradi."
+    },
+    "f": {
+      "title": "Maqsad",
+      "specific": "Aniq natija",
+      "metric": "Ko'rsatkich",
+      "metricName": "Ko'rsatkich nomi",
+      "unit": "Birlik",
+      "baseline": "Hozirgi qiymat",
+      "target": "Maqsadli qiymat",
+      "achievable": "Erishiladigan (resurslar)",
+      "relevant": "Dolzarb (kompaniya maqsadiga bog'liqligi)",
+      "deadline": "Muddat",
+      "owner": "Mas'ul"
+    }
+  },
+  "company": {
+    "strategy": {
+      "title": "Strategiya va maqsadlar",
+      "subtitle": "Kompaniyaning yo'nalishi: oliy maqsad, strategiya, missiya, SMART maqsad, qadriyat va shior",
+      "items": {
+        "goal": "Oliy maqsad",
+        "strategies": "Strategiya",
+        "mission": "Missiya",
+        "smart": "SMART maqsad",
+        "values": "Qadriyat",
+        "slogan": "Shior"
+      },
+      "smartTitle": "Bo'limlar bo'yicha SMART maqsadlar",
+      "smartHint": "Yillik maqsadlar, bajarilish foizi va istisno so'rovlari"
+    },
+    "rules": {
+      "title": "Nizom va qoidalar",
+      "subtitle": "Kompaniya nizomi va ichki tartib-qoidalar: hujjat, slayd va video ko'rinishida",
+      "charter": "Kompaniya nizomi",
+      "internal": "Ichki tartib-qoidalar",
+      "charterHint": "Kompaniya nizomi va har bir bo'lim hamda jarayonning nizomi.",
+      "penaltyRules": "Jarima qoidalari",
+      "penaltyRulesHint": "Qaysi qoidabuzarlikka qancha jarima",
+      "penalties": "Jarimalar",
+      "penaltiesHint": "Berilgan jarimalar va ularning holati"
+    },
+    "duties": {
+      "title": "Lavozim majburiyatlari",
+      "subtitle": "Har bir lavozimning vazifalari, chek-listlari va yo'riqnomasi",
+      "byPosition": "Lavozimlar bo'yicha vazifalar",
+      "byPositionHint": "Har bir lavozimning vazifalari",
+      "checklists": "Lavozim chek-listlari",
+      "checklistsHint": "Kunlik va haftalik chek-listlar"
+    },
+    "panel": {
+      "pick": "Chap tomondan bo'limni tanlang",
+      "empty": "To'ldirilmagan",
+      "fill": "To'ldirish",
+      "open": "Ochish",
+      "emptyManage": "Hali hech narsa kiritilmagan. «To'ldirish» tugmasi orqali matn, video yoki slayd qo'shing.",
+      "emptyView": "Bu bo'lim tez orada to'ldiriladi."
+    }
   }
 }

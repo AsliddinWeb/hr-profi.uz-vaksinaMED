@@ -22,6 +22,12 @@ from app.timeutil import now
 router = APIRouter(prefix="/v1/hrdocs", tags=["hrdocs"])
 
 
+class MediaIn(BaseModel):
+    kind: str = Field(pattern="^(video|slides|link)$")
+    url: str = Field(min_length=8, max_length=500, pattern=r"^https://\S+$")
+    title: str | None = Field(default=None, max_length=120)
+
+
 class DocIn(BaseModel):
     category: str = Field(pattern=f"^({'|'.join(svc.CATEGORIES)})$")
     title: str = Field(min_length=2, max_length=200)
@@ -29,6 +35,7 @@ class DocIn(BaseModel):
     body: str | None = Field(default=None, max_length=200_000)
     requires_ack: bool = False
     roles: list[str] = Field(default_factory=list, max_length=30)
+    media: list[MediaIn] | None = Field(default=None, max_length=20)
     sort_order: int = Field(default=0, ge=0, le=100000)
 
 
@@ -102,7 +109,7 @@ async def pending_count(db: AsyncSession = Depends(get_session), auth: AuthConte
 @router.post("", status_code=201)
 async def create_doc(body: DocIn, request: Request, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
     _need_manage(auth)
-    doc = HrDocument(category=body.category, title=body.title.strip(), summary=body.summary, body=body.body, requires_ack=body.requires_ack, roles=await _valid_roles(db, body.roles), sort_order=body.sort_order, status="draft", version=0, updated_by=auth.user.id)
+    doc = HrDocument(category=body.category, title=body.title.strip(), summary=body.summary, body=body.body, requires_ack=body.requires_ack, roles=await _valid_roles(db, body.roles), media=[m.model_dump() for m in body.media or []], sort_order=body.sort_order, status="draft", version=0, updated_by=auth.user.id)
     db.add(doc)
     await db.flush()
     await audit(db, request, "hrdoc.create", actor=auth.user, entity="hr_document", entity_id=doc.id)
@@ -123,6 +130,8 @@ async def update_doc(did: int, body: DocIn, request: Request, db: AsyncSession =
     doc = await _doc(db, did, auth, lock=True)
     doc.category, doc.title, doc.summary, doc.body = body.category, body.title.strip(), body.summary, body.body
     doc.requires_ack, doc.roles, doc.sort_order, doc.updated_by = body.requires_ack, await _valid_roles(db, body.roles), body.sort_order, auth.user.id
+    if body.media is not None:
+        doc.media = [m.model_dump() for m in body.media]
     await audit(db, request, "hrdoc.update", actor=auth.user, entity="hr_document", entity_id=doc.id)
     await db.commit()
     return svc.out(doc, with_body=True)

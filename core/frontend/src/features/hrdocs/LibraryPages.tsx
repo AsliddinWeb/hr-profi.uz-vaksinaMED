@@ -18,7 +18,7 @@ import { formatDate, formatDateTime } from '../../lib/format'
 import { NotFound } from '../../pages/NotFound'
 import { errorText } from '../auth/errorText'
 import { useCan } from '../auth/useAuth'
-import { CATEGORIES, type Category, type HrDoc } from './api'
+import { CATEGORIES, type Category, type DocMedia, type HrDoc } from './api'
 
 const area = 'w-full rounded-control border border-border bg-surface px-3 py-2 text-sm'
 const LIST = '/hr/library'
@@ -245,10 +245,11 @@ function DocForm({ doc }: { doc: HrDoc | null }) {
   const [body, setBody] = useState(doc?.body ?? '')
   const [ack, setAck] = useState(doc?.requires_ack ?? false)
   const [picked, setPicked] = useState<string[]>(doc?.roles ?? [])
+  const [media, setMedia] = useState<DocMedia[]>(doc?.media ?? [])
   const [error, setError] = useState<string | null>(null)
   const save = useMutation({
     mutationFn: () => {
-      const payload = { category, title, summary: summary || null, body: body || null, requires_ack: ack, roles: picked, sort_order: 0 }
+      const payload = { category, title, summary: summary || null, body: body || null, requires_ack: ack, roles: picked, media: media.filter((m) => m.url.trim()).map((m) => ({ ...m, url: m.url.trim(), title: m.title?.trim() || null })), sort_order: 0 }
       return doc ? send<HrDoc>('PUT', `/api/v1/hrdocs/${doc.id}`, payload) : send<HrDoc>('POST', '/api/v1/hrdocs', payload)
     },
     onSuccess: (r) => {
@@ -305,6 +306,30 @@ function DocForm({ doc }: { doc: HrDoc | null }) {
           <Field label={t('hrdocs.titleLabel')}>{(fid) => <Input id={fid} value={title} onChange={(e) => setTitle(e.target.value)} required minLength={2} maxLength={200} autoFocus />}</Field>
           <Field label={t('hrdocs.summary')}>{(fid) => <Input id={fid} value={summary} onChange={(e) => setSummary(e.target.value)} maxLength={300} />}</Field>
           <Field label={t('hrdocs.body')}>{(fid) => <textarea id={fid} value={body} onChange={(e) => setBody(e.target.value)} rows={14} className={area} />}</Field>
+        </FormSection>
+        <FormSection title={t('hrdocs.media')} description={t('hrdocs.mediaHint')}>
+          {media.map((m, i) => (
+            <div key={i} className="grid gap-2 sm:grid-cols-[8rem_1fr_1fr_auto]">
+              <Select aria-label={t('hrdocs.mediaKind.video')} value={m.kind} onChange={(e) => setMedia(media.map((x, j) => (j === i ? { ...x, kind: e.target.value as DocMedia['kind'] } : x)))}>
+                {(['video', 'slides', 'link'] as const).map((k) => (
+                  <option key={k} value={k}>
+                    {t(`hrdocs.mediaKind.${k}`)}
+                  </option>
+                ))}
+              </Select>
+              <Input aria-label={t('hrdocs.mediaUrl')} placeholder={t('hrdocs.mediaUrl')} value={m.url} onChange={(e) => setMedia(media.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} maxLength={500} inputMode="url" />
+              <Input aria-label={t('hrdocs.mediaTitle')} placeholder={t('hrdocs.mediaTitle')} value={m.title ?? ''} onChange={(e) => setMedia(media.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} maxLength={120} />
+              <Button type="button" variant="ghost" className="text-danger" aria-label={t('hrdocs.mediaRemove')} onClick={() => setMedia(media.filter((_, j) => j !== i))}>
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+          ))}
+          <div>
+            <Button type="button" variant="outline" onClick={() => setMedia([...media, { kind: 'video', url: '', title: null }])}>
+              <Plus className="size-4" />
+              {t('hrdocs.mediaAdd')}
+            </Button>
+          </div>
         </FormSection>
         <FormSection title={t('hrdocs.access')} description={t('hrdocs.accessHint')}>
           <label className="flex items-center gap-2 text-sm">

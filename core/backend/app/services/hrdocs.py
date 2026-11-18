@@ -91,7 +91,7 @@ def needs_ack(doc: HrDocument, ack: HrDocumentAck | None) -> bool:
 def out(doc: HrDocument, ack: HrDocumentAck | None = None, *, with_body: bool = False) -> dict[str, Any]:
     d = {
         "id": doc.id, "key": doc.key, "category": doc.category, "title": doc.title, "summary": doc.summary, "status": doc.status, "version": doc.version,
-        "requires_ack": doc.requires_ack, "roles": doc.roles or [], "has_file": bool(doc.file_key), "file_name": doc.file_name, "file_size": doc.file_size,
+        "requires_ack": doc.requires_ack, "roles": doc.roles or [], "media": doc.media or [], "has_file": bool(doc.file_key), "file_name": doc.file_name, "file_size": doc.file_size,
         "has_body": bool(doc.body and doc.body.strip()), "published_at": doc.published_at,
         "ack": {"version": ack.version, "at": ack.acknowledged_at} if ack else None, "needs_ack": needs_ack(doc, ack),
     }  # fmt: skip

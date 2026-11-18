@@ -39,6 +39,7 @@ class HrDocument(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(10), default="draft")  # draft | published
     requires_ack: Mapped[bool] = mapped_column(Boolean, default=False)
     roles: Mapped[list] = mapped_column(JSONB, default=list)  # bo'sh = hamma; aks holda faqat shu rol kalitlari
+    media: Mapped[list] = mapped_column(JSONB, default=list, server_default="[]")
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))

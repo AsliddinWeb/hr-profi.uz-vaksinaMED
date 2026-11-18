@@ -1,6 +1,12 @@
 export const CATEGORIES = ['strategy', 'policy', 'process', 'system', 'culture'] as const
 export type Category = (typeof CATEGORIES)[number]
 
+export interface DocMedia {
+  kind: 'video' | 'slides' | 'link'
+  url: string
+  title: string | null
+}
+
 export interface HrDoc {
   id: number
   key: string | null
@@ -14,6 +20,7 @@ export interface HrDoc {
   has_file: boolean
   file_name: string | null
   file_size: number | null
+  media: DocMedia[]
   has_body: boolean
   body?: string
   published_at: string | null
