@@ -142,3 +142,14 @@ async def test_media_links_saved_and_kept_on_partial_update(new_client):
     bad = await hrd.put(f"{H}/{did}", json=doc(media=[{"kind": "video", "url": "javascript:alert(1)"}]))
     assert bad.status_code == 422
     assert (await hrd.put(f"{H}/{did}", json=doc(media=[{"kind": "video", "url": "http://example.com/a.mp4"}]))).status_code == 422
+
+
+async def test_media_accepts_local_images_only_on_same_origin(new_client):
+    hrd, _ = await as_user(new_client, "hrd", "hr_direktor")
+    media = [{"kind": "slides", "url": "/slides/oliy-maqsad-1.jpg"}, {"kind": "slides", "url": "/slides/oliy-maqsad-2.jpg", "title": "Ikkinchi"}]
+    r = await hrd.post(H, json=doc(media=media))
+    assert r.status_code == 201, r.text
+    assert [m["url"] for m in r.json()["media"]] == ["/slides/oliy-maqsad-1.jpg", "/slides/oliy-maqsad-2.jpg"]
+    did = r.json()["id"]
+    for bad in ("//evil.example/a.jpg", "slides/a.jpg", "/"):
+        assert (await hrd.put(f"{H}/{did}", json=doc(media=[{"kind": "slides", "url": bad}]))).status_code == 422

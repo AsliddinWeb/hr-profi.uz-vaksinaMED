@@ -24,7 +24,7 @@ router = APIRouter(prefix="/v1/hrdocs", tags=["hrdocs"])
 
 class MediaIn(BaseModel):
     kind: str = Field(pattern="^(video|slides|link)$")
-    url: str = Field(min_length=8, max_length=500, pattern=r"^https://\S+$")
+    url: str = Field(min_length=8, max_length=500, pattern=r"^(https://\S+|/[^/\s]\S*)$")
     title: str | None = Field(default=None, max_length=120)
 
 

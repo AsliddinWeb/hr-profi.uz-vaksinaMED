@@ -4,6 +4,12 @@ from datetime import date, datetime, timedelta
 
 from app.timeutil import tz
 
+SAMPLE_VIDEO = {"kind": "video", "url": "https://www.w3schools.com/html/mov_bbb.mp4", "title": "Namuna video (almashtiriladi)"}
+DEMO_MEDIA = {
+    "mission": [SAMPLE_VIDEO],
+    "goal": [{"kind": "slides", "url": f"/slides/oliy-maqsad-{n}.jpg", "title": f"Oliy maqsad: {n}-slayd"} for n in range(1, 6)] + [SAMPLE_VIDEO],
+}
+
 
 def _items(r):
     return r if isinstance(r, list) else (r or {}).get("items", [])
@@ -192,7 +198,7 @@ async def flows(sd) -> None:  # noqa: C901
         d = by_key.get(key)
         if not d:
             continue
-        await sd.call(hrd, "PUT", f"/api/v1/hrdocs/{d['id']}", json={"category": d["category"], "title": d["title"], "summary": title, "body": body, "requires_ack": ack, "roles": [], "sort_order": d["id"], **({"media": [{"kind": "video", "url": "https://www.w3schools.com/html/mov_bbb.mp4", "title": "Namuna video (almashtiriladi)"}]} if key == "mission" else {})}, label="hujjat matni")
+        await sd.call(hrd, "PUT", f"/api/v1/hrdocs/{d['id']}", json={"category": d["category"], "title": d["title"], "summary": title, "body": body, "requires_ack": ack, "roles": [], "sort_order": d["id"], **({"media": DEMO_MEDIA[key]} if key in DEMO_MEDIA else {})}, label="hujjat matni")
         await sd.call(hrd, "POST", f"/api/v1/hrdocs/{d['id']}/publish", json={"note": "Birinchi versiya"}, label="hujjatni e'lon qilish")
     if by_key.get("values"):
         await sd.call(f1, "POST", f"/api/v1/hrdocs/{by_key['values']['id']}/ack", label="tanishdim")
