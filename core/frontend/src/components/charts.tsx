@@ -6,6 +6,7 @@ import { useLocation } from 'react-router-dom'
 import { cn } from '../lib/cn'
 import { routeTheme } from '../lib/navTheme'
 import { Card } from './ui/Card'
+import { AnimatedText } from './ui/Motion'
 
 /* Namuna (Skymetrics) uslubidagi grafik komponentlari: yumshoq yashil chiziq, kulrang taqqoslash chizig'i,
    punktir to'r, hover'da vertikal yo'riqchi va kichik tooltip. Hammasi SVG, qo'shimcha kutubxonasiz. */
@@ -28,8 +29,9 @@ export function Delta({ value, goodWhen = 'up', suffix = '%', className }: { val
 export function KpiCard({ label, value, delta, hint, trend, icon: Icon, color }: { label: string; value: string; delta?: ReactNode; hint?: string; trend?: 'up' | 'down' | null; icon?: ComponentType<{ className?: string }>; color?: string }) {
   const { pathname } = useLocation()
   return (
-    <Card className="relative flex flex-col overflow-hidden p-4" style={{ ['--gc' as string]: color ?? routeTheme(pathname)?.color ?? 'var(--c-blue)' }}>
-      <span aria-hidden className="absolute inset-x-0 top-0 h-[3px]" style={{ background: 'var(--gc)' }} />
+    <Card className="lift relative flex flex-col overflow-hidden p-4" style={{ ['--gc' as string]: color ?? routeTheme(pathname)?.color ?? 'var(--c-blue)' }}>
+      <span aria-hidden className="absolute inset-x-0 top-0 h-[3px]" style={{ background: 'linear-gradient(90deg, var(--gc), color-mix(in oklab, var(--gc) 40%, transparent))' }} />
+      <span aria-hidden className="pointer-events-none absolute -right-10 -top-12 size-32 rounded-full bg-[color-mix(in_oklab,var(--gc)_10%,transparent)] blur-2xl" />
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
           {Icon && (
@@ -42,7 +44,7 @@ export function KpiCard({ label, value, delta, hint, trend, icon: Icon, color }:
         {delta}
       </div>
       <div className="mt-3 flex items-center gap-2 font-mono text-[26px] font-medium leading-none tracking-tight tabular-nums">
-        {value}
+        <AnimatedText text={value} />
         {trend && (
           <span className={cn('grid size-4 place-items-center rounded-full', trend === 'up' ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger')}>
             {trend === 'up' ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}

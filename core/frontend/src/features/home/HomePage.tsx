@@ -6,7 +6,10 @@ import { Link } from 'react-router-dom'
 
 import { TeamArt } from '../../components/illustrations'
 import { Button } from '../../components/ui/Button'
+import { motion } from 'motion/react'
+
 import { Card } from '../../components/ui/Card'
+import { AnimatedNumber, Stagger, StaggerItem } from '../../components/ui/Motion'
 import { getExtensionNavItems, type NavItem } from '../../extensions/registry'
 import { api } from '../../lib/api'
 import { colorVars, groupColor } from '../../lib/navTheme'
@@ -76,8 +79,9 @@ export function HomePage() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <section className="rise relative overflow-hidden rounded-[22px] bg-[linear-gradient(120deg,#0b5ed7_0%,#0a3f9c_60%,#3b2b9c_100%)] p-8 text-white shadow-card">
-        <div aria-hidden className="absolute -right-10 -top-20 size-80 rounded-full bg-white/10 blur-2xl" />
-        <div aria-hidden className="absolute -bottom-24 left-1/3 size-72 rounded-full bg-[#3ecf8e]/20 blur-3xl" />
+        <motion.div aria-hidden className="absolute -right-10 -top-20 size-80 rounded-full bg-white/10 blur-2xl" animate={{ x: [0, -24, 0], y: [0, 16, 0] }} transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }} />
+        <motion.div aria-hidden className="absolute -bottom-24 left-1/3 size-72 rounded-full bg-[#3ecf8e]/20 blur-3xl" animate={{ x: [0, 30, 0], y: [0, -12, 0] }} transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }} />
+        <div aria-hidden className="shimmer absolute inset-0 opacity-[0.07]" />
         <TeamArt className="absolute -right-4 top-1/2 hidden h-80 -translate-y-1/2 md:block" />
         <div className="relative max-w-lg">
           <div className="text-[13px] font-medium text-white/70">{longDate(new Date(), lang)}</div>
@@ -120,12 +124,14 @@ export function HomePage() {
             ) : (
               <div className="grid gap-2.5 sm:grid-cols-2">
                 {waiting.map(({ icon: Icon, label, n, to, color }) => (
-                  <Link key={label} to={to} style={colorVars(color)} className="group flex items-center gap-3 rounded-xl bg-[color-mix(in_oklab,var(--gc)_9%,transparent)] px-3.5 py-3 transition-colors hover:bg-[color-mix(in_oklab,var(--gc)_16%,transparent)]">
+                  <Link key={label} to={to} style={colorVars(color)} className="lift group flex items-center gap-3 rounded-xl bg-[color-mix(in_oklab,var(--gc)_9%,transparent)] px-3.5 py-3 transition-colors hover:bg-[color-mix(in_oklab,var(--gc)_16%,transparent)]">
                     <span className="grid size-10 place-items-center rounded-xl bg-(--gc) text-white">
                       <Icon className="size-5" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block font-mono text-xl font-semibold leading-none">{n}</span>
+                      <span className="block font-mono text-xl font-semibold leading-none">
+                        <AnimatedNumber value={n} />
+                      </span>
                       <span className="mt-1 block truncate text-xs text-muted">{label}</span>
                     </span>
                     <ArrowRight className="size-4 text-muted transition-transform group-hover:translate-x-0.5" />
@@ -175,9 +181,10 @@ export function HomePage() {
 
       <div className="flex flex-col gap-5">
         <h2 className="text-lg font-semibold tracking-tight">{t('home.modules')}</h2>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <Stagger className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" delay={0.04}>
           {sections.map(([group, items]) => (
-            <Card key={group} className="relative overflow-hidden p-4" style={colorVars(groupColor(group as NavItem['group']))}>
+            <StaggerItem key={group}>
+            <Card className="lift relative h-full overflow-hidden p-4" style={colorVars(groupColor(group as NavItem['group']))}>
               <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-(--gc)" />
               <div className="mb-2.5 pl-1.5 text-[11px] font-semibold uppercase tracking-wider text-(--gc)">{t(`nav.group.${group}`)}</div>
               <div className="flex flex-col">
@@ -196,8 +203,9 @@ export function HomePage() {
                 })}
               </div>
             </Card>
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       </div>
     </div>
   )
@@ -213,11 +221,13 @@ function longDate(d: Date, lang: 'uz' | 'ru'): string {
 
 function Round({ icon: Icon, color, value, label }: { icon: ComponentType<{ className?: string }>; color: string; value: number | undefined; label: string }) {
   return (
-    <div className="flex flex-col items-center gap-1.5 rounded-2xl bg-[color-mix(in_oklab,var(--gc)_9%,transparent)] px-3 py-4 text-center" style={colorVars(color)}>
-      <span className="grid size-10 place-items-center rounded-full bg-(--gc) text-white">
+    <div className="lift flex flex-col items-center gap-1.5 rounded-2xl bg-[color-mix(in_oklab,var(--gc)_9%,transparent)] px-3 py-4 text-center" style={colorVars(color)}>
+      <span className="grid size-10 place-items-center rounded-full bg-(--gc) text-white shadow-[0_6px_16px_-6px_var(--gc)]">
         <Icon className="size-5" />
       </span>
-      <span className="font-mono text-2xl font-semibold leading-none">{value ?? '—'}</span>
+      <span className="font-mono text-2xl font-semibold leading-none">
+        <AnimatedNumber value={value} />
+      </span>
       <span className="text-xs text-muted">{label}</span>
     </div>
   )

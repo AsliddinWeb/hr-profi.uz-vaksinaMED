@@ -1,9 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
+import { Sparkles, Target, Trophy, Wallet } from 'lucide-react'
+import { motion } from 'motion/react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { KpiCard } from '../../components/charts'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
+import { Stagger, StaggerItem } from '../../components/ui/Motion'
 import { Select } from '../../components/ui/Input'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { api } from '../../lib/api'
@@ -35,29 +39,36 @@ export function CrmReportPage() {
         <Skeleton className="h-96" />
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              [t('crm.report.new'), String(s.new)],
-              [t('crm.report.won'), `${s.won} · ${m(s.won_amount)}`],
-              [t('crm.report.winRate'), s.win_rate === null ? '—' : `${s.win_rate}%`],
-              [t('crm.report.weighted'), m(s.weighted_pipeline)],
-            ].map(([k, v]) => (
-              <Card key={k} className="p-4">
-                <div className="text-xs text-muted">{k}</div>
-                <div className="mt-1 text-xl font-semibold tabular-nums">{v}</div>
-              </Card>
+          <Stagger className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {(
+              [
+                [t('crm.report.new'), String(s.new), Sparkles, 'var(--c-blue)', undefined],
+                [t('crm.report.won'), String(s.won), Trophy, 'var(--c-green)', m(s.won_amount)],
+                [t('crm.report.winRate'), s.win_rate === null ? '—' : `${s.win_rate}%`, Target, 'var(--c-violet)', undefined],
+                [t('crm.report.weighted'), shortMoney(s.weighted_pipeline, i18n.language), Wallet, 'var(--c-orange)', 'UZS'],
+              ] as const
+            ).map(([k, v, icon, color, hint]) => (
+              <StaggerItem key={k}>
+                <KpiCard label={k} value={v} icon={icon} color={color} hint={hint} />
+              </StaggerItem>
             ))}
-          </div>
+          </Stagger>
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
             <Card className="flex flex-col gap-3 p-5">
               <h2 className="font-semibold">{t('crm.report.funnel')}</h2>
-              {s.funnel.map((f) => (
+              {s.funnel.map((f, i) => (
                 <div key={f.id} className="grid grid-cols-[8rem_minmax(0,1fr)_7rem] items-center gap-3 text-sm">
                   <span className="truncate">{f.name}</span>
-                  <div className="h-6 overflow-hidden rounded-md bg-surface-2">
-                    <div className={'flex h-full items-center rounded-md px-2 text-xs font-medium text-white ' + (f.is_won ? 'bg-success' : 'bg-primary')} style={{ width: `${Math.max(6, (f.count / max) * 100)}%` }}>
+                  <div className="h-7 overflow-hidden rounded-lg bg-surface-2">
+                    <motion.div
+                      className="flex h-full items-center rounded-lg px-2.5 text-xs font-semibold text-white"
+                      style={{ background: f.is_won ? 'linear-gradient(90deg, var(--success), var(--accent))' : 'linear-gradient(90deg, var(--primary), var(--c-violet))' }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.max(8, (f.count / max) * 100)}%` }}
+                      transition={{ duration: 0.9, delay: i * 0.08, ease: [0.22, 0.8, 0.24, 1] }}
+                    >
                       {f.count}
-                    </div>
+                    </motion.div>
                   </div>
                   <span className="text-right text-xs tabular-nums text-muted">{m(f.total)}</span>
                 </div>

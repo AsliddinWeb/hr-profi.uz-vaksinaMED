@@ -20,6 +20,7 @@
     "livekit-client": "^2.5.7",
     "lucide-react": "^1.61.0",
     "maplibre-gl": "^6.15.0",
+    "motion": "^12.43.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-i18next": "^17.1.0",

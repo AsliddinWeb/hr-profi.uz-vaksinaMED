@@ -19,6 +19,8 @@ services:
       CLIENT_NAME: ${CLIENT_NAME}
       # HMR websocket gateway porti orqali (GATEWAY_PORT o'zgartirilsa ham ishlasin)
       GATEWAY_PORT: ${GATEWAY_PORT:-6788}
+      # Windows papkasi WSL/VM ga ulangan bo'lsa (Kiri): .env da VITE_POLL=1 — fayl o'zgarishini so'rov bilan kuzatish
+      VITE_POLL: ${VITE_POLL:-}
     volumes:
       - ./core/frontend:/app/core/frontend
       - /app/core/frontend/node_modules
@@ -30,6 +32,7 @@ services:
       target: dev
     environment:
       ENV: development
+      WATCHFILES_FORCE_POLLING: ${VITE_POLL:-}
     volumes:
       - ./core/backend:/srv
       - ./clients/${CLIENT_NAME}:/clients/${CLIENT_NAME}:ro
@@ -40,6 +43,7 @@ services:
       target: dev
     environment:
       ENV: development
+      WATCHFILES_FORCE_POLLING: ${VITE_POLL:-}
     volumes:
       - ./core/backend:/srv
       - ./clients/${CLIENT_NAME}:/clients/${CLIENT_NAME}:ro
@@ -50,6 +54,7 @@ services:
       target: dev
     environment:
       ENV: development
+      WATCHFILES_FORCE_POLLING: ${VITE_POLL:-}
     volumes:
       - ./core/backend:/srv
       - ./clients/${CLIENT_NAME}:/clients/${CLIENT_NAME}:ro

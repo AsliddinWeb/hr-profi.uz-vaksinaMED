@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Search } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { motion } from 'motion/react'
+import { useRef, useState, type DragEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -136,21 +137,33 @@ export function CrmBoardPage() {
                   </span>
                   {col.overdue > 0 && <span className="font-medium text-danger">{t('crm.overdueN', { n: col.overdue })}</span>}
                 </div>
-                <div className="mt-2 h-1 overflow-hidden rounded-full bg-surface-3">
-                  <div className={cn('h-full rounded-full', col.is_won ? 'bg-success' : 'bg-primary')} style={{ width: `${col.probability}%` }} />
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-3">
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{ background: col.is_won ? 'linear-gradient(90deg, var(--success), var(--accent))' : 'linear-gradient(90deg, var(--primary), var(--c-violet))' }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${col.probability}%` }}
+                    transition={{ duration: 0.8, ease: [0.22, 0.8, 0.24, 1] }}
+                  />
                 </div>
               </header>
-              {col.deals.map((d) => (
-                <article
+              {col.deals.map((d, i) => (
+                <motion.article
                   key={d.id}
+                  layout
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: dragId === d.id ? 0.4 : 1, y: 0 }}
+                  transition={{ layout: { type: 'spring', stiffness: 420, damping: 34 }, delay: Math.min(i, 8) * 0.03 }}
                   draggable={data.can_create}
-                  onDragStart={(e) => (e.dataTransfer.setData('text/plain', String(d.id)), (e.dataTransfer.effectAllowed = 'move'), (dragRef.current = d.id), setDragId(d.id))}
-                  onDragEnd={() => ((dragRef.current = null), setDragId(null), setOverCol(null))}
-                  onDragOver={(e) => (e.preventDefault(), e.stopPropagation(), setOverCol(col.id))}
-                  onDrop={(e) => (e.preventDefault(), e.stopPropagation(), drop(col.id, d.id))}
+                  onDragStartCapture={(e: DragEvent) => (e.dataTransfer.setData('text/plain', String(d.id)), (e.dataTransfer.effectAllowed = 'move'), (dragRef.current = d.id), setDragId(d.id))}
+                  onDragEndCapture={() => ((dragRef.current = null), setDragId(null), setOverCol(null))}
+                  onDragOverCapture={(e: DragEvent) => (e.preventDefault(), e.stopPropagation(), setOverCol(col.id))}
+                  onDropCapture={(e: DragEvent) => (e.preventDefault(), e.stopPropagation(), drop(col.id, d.id))}
                   onClick={() => navigate(`/crm/deals/${d.id}`)}
-                  className={cn('cursor-pointer rounded-control border border-border bg-surface p-3 shadow-sm transition-shadow hover:shadow-md', dragId === d.id && 'opacity-40')}
+                  whileHover={{ y: -2, boxShadow: 'var(--shadow-hover)' }}
+                  className="relative cursor-pointer overflow-hidden rounded-control border border-border bg-surface p-3 shadow-card"
                 >
+                  <span aria-hidden className="absolute inset-y-0 left-0 w-[3px]" style={{ background: d.priority >= 3 ? 'var(--c-rose)' : d.priority === 2 ? 'var(--c-amber)' : d.priority === 1 ? 'var(--c-blue)' : 'var(--border)' }} />
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="line-clamp-2 text-[13px] font-medium">{d.title}</h3>
                     <Stars value={d.priority} />
@@ -175,7 +188,7 @@ export function CrmBoardPage() {
                     </span>
                     <ActivityChip a={d.next_activity} />
                   </div>
-                </article>
+                </motion.article>
               ))}
               {col.deals.length === 0 && <p className="px-1 py-6 text-center text-xs text-muted">{t('crm.emptyColumn')}</p>}
             </section>

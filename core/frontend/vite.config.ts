@@ -31,6 +31,8 @@ export default defineConfig({
     fs: { allow: [path.resolve(root, '../..')] },
     // gateway (6788) orqali HMR websocket
     hmr: { clientPort: Number(process.env.GATEWAY_PORT ?? 6788) },
+    // Windows papkasi WSL/VM ichiga ulangan bo'lsa (Kiri, Docker Desktop) fayl hodisalari yetib bormaydi: VITE_POLL=1 bilan so'rov rejimi
+    watch: process.env.VITE_POLL ? { usePolling: true, interval: 600 } : undefined,
   },
   test: { environment: 'node' },
 })

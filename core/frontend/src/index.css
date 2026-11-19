@@ -36,7 +36,11 @@ body,
 
 body {
   margin: 0;
-  background: var(--bg);
+  background:
+    radial-gradient(60rem 40rem at 100% -10%, var(--glow-1), transparent 70%),
+    radial-gradient(50rem 36rem at -10% 110%, var(--glow-2), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
   color: var(--text);
   font-family: var(--font-sans);
   font-size: 14px;
@@ -189,6 +193,32 @@ select option {
 }
 .rise {
   animation: rise 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* Bosiladigan kartalar: ko'tarilish va brend soyasi */
+.lift {
+  transition:
+    transform 0.22s cubic-bezier(0.22, 0.8, 0.24, 1),
+    box-shadow 0.22s cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+.lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover);
+}
+
+/* Yaltiroq urg'u chizig'i (KPI va bo'lim kartalari tepasida) */
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+.shimmer {
+  background-image: linear-gradient(90deg, transparent, color-mix(in oklab, white 55%, transparent), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2.8s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,18 +1,22 @@
+import { MotionConfig } from 'motion/react'
 import { useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 
 import { IncomingCalls } from '../../features/calls/IncomingCalls'
 import { AutoLetterModal } from '../../features/letters/AutoLetterModal'
 import { useRealtime } from '../../features/notifications/useRealtime'
 import { ClusterTabs } from '../SectionTabs'
+import { PageTransition } from '../ui/Motion'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 
 export function AppShell() {
   const [open, setOpen] = useState(false)
+  const { pathname } = useLocation()
   useRealtime()
   return (
-    <div className="flex min-h-full bg-bg">
+    <MotionConfig reducedMotion="user">
+    <div className="flex min-h-full">
       <a href="#main" className="sr-only z-50 rounded-control bg-surface px-3 py-2 text-sm shadow-pop focus:not-sr-only focus:fixed focus:left-3 focus:top-3">
         Skip to content
       </a>
@@ -23,9 +27,12 @@ export function AppShell() {
         <AutoLetterModal />
         <main id="main" className="flex-1 px-4 pb-12 pt-1 lg:px-8">
           <ClusterTabs />
-          <Outlet />
+          <PageTransition id={pathname}>
+            <Outlet />
+          </PageTransition>
         </main>
       </div>
     </div>
+    </MotionConfig>
   )
 }
