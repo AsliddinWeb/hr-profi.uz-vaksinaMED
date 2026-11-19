@@ -1,8 +1,9 @@
-export type Embed = { mode: 'iframe' | 'video' | 'link'; src: string }
+export type Embed = { mode: 'iframe' | 'video' | 'image' | 'link'; src: string }
 
 export function embedOf(url: string): Embed {
   try {
-    const u = new URL(url)
+    const u = new URL(url, 'https://x.invalid')
+    if (/\.(jpe?g|png|webp|gif|avif)$/i.test(u.pathname)) return { mode: 'image', src: url }
     const host = u.hostname.replace(/^www\./, '')
     if (host === 'youtube.com' || host === 'm.youtube.com') {
       const v = u.searchParams.get('v')
