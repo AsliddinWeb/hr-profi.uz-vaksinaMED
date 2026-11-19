@@ -9,6 +9,7 @@ CORE_MODULES: dict[str, bool] = {
     "discipline": True,  # Tushuntirish xatlari, jarimalar
     "tasks": True,
     "reminders": True,
+    "crm": True,  # Savdo voronkasi: bitimlar, faoliyatlar
     "employees": True,
     "recruitment": True,
     "internship": True,

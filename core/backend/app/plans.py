@@ -18,7 +18,7 @@ from app.modules import CORE_MODULES
 GRACE_DAYS = 14  # muddat tugagach shuncha kun faqat ogohlantirish, keyin yangi foydalanuvchi qo'shib bo'lmaydi
 
 _START = ("dashboard", "org", "employees", "attendance", "answers", "discipline", "tasks", "reminders", "checklists", "internship", "reports")
-_PRO = (*_START, "face_id", "calls", "logistics", "warehouse", "payroll", "mobile_tracking", "recruit", "recruitment", "needs", "pharmacy", "reception", "it_desk", "canteen")
+_PRO = (*_START, "crm", "face_id", "calls", "logistics", "warehouse", "payroll", "mobile_tracking", "recruit", "recruitment", "needs", "pharmacy", "reception", "it_desk", "canteen")
 _PREMIUM = (*_PRO, "ai", "migration")
 
 PLAN_MODULES: dict[str, tuple[str, ...]] = {"start": _START, "pro": _PRO, "premium": _PREMIUM}
@@ -64,7 +64,7 @@ FEATURES: tuple[Feature, ...] = (
 # /api/v1/<birinchi bo'lak> -> modul kaliti (backend darajasida o'chirilgan modulni yopish uchun)
 PREFIX_MODULE: dict[str, str] = {
     "attendance": "attendance", "attendance-issues": "attendance", "coord-report": "attendance", "face": "face_id", "answers": "answers", "letters": "discipline", "penalties": "discipline",
-    "tasks": "tasks", "reminders": "reminders", "employees": "employees", "org": "org", "branches": "org", "rotations": "org", "duty": "checklists", "hrdocs": "employees", "staffdocs": "employees", "recruit": "recruit", "internship": "internship", "preboarding": "internship", "conferences": "internship", "revisions": "pharmacy", "ratings": "pharmacy", "ai-interviews": "recruit", "kadr": "internship",
+    "tasks": "tasks", "reminders": "reminders", "crm": "crm", "employees": "employees", "org": "org", "branches": "org", "rotations": "org", "duty": "checklists", "hrdocs": "employees", "staffdocs": "employees", "recruit": "recruit", "internship": "internship", "preboarding": "internship", "conferences": "internship", "revisions": "pharmacy", "ratings": "pharmacy", "ai-interviews": "recruit", "kadr": "internship",
     "attestation": "internship", "growth": "internship", "retention": "internship", "offboarding": "internship", "control": "internship", "payroll": "payroll", "canteen": "canteen",
     "pharmacy": "pharmacy", "checklists": "checklists", "needs": "needs", "logistics": "logistics", "warehouse": "warehouse", "mobile": "mobile_tracking", "reception": "reception",
     "helpdesk": "it_desk", "calls": "calls", "ai": "ai", "migration": "migration", "reports": "reports", "integrations": "migration", "complaints": "employees",

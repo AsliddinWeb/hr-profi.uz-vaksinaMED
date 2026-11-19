@@ -15,6 +15,7 @@ const COLORS: Record<GroupKey, string> = {
   attendance: 'teal',
   requests: 'amber',
   tasks: 'indigo',
+  crm: 'orange',
   needs: 'orange',
   checklists: 'green',
   recruit: 'rose',

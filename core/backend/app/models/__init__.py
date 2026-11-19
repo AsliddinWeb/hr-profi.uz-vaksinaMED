@@ -10,6 +10,7 @@ from app.models.canteen import CanteenDish, CanteenMenu, CanteenRating, CanteenS
 from app.models.checklists import ChecklistFile, ChecklistTemplate, ChecklistVisit
 from app.models.company import CompanySetting, EmployeeSegment
 from app.models.competency import Competency, PositionProfile, ProfileCompetency
+from app.models.crm import CrmActivity, CrmDeal, CrmMessage, CrmStage
 from app.models.devices import DeviceSettings, UserDevice
 from app.models.duty import DutyChecklist, DutyRun
 from app.models.employees import Employee, EmployeeDocument, EmployeeEvent
@@ -228,6 +229,10 @@ __all__ = [
     "Conference",
     "ConferenceAttendee",
     "ReadAloudAttempt",
+    "CrmActivity",
+    "CrmDeal",
+    "CrmMessage",
+    "CrmStage",
     "Goal",
     "GoalChange",
     "GoalPlan",

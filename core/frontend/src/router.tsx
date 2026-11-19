@@ -1,6 +1,11 @@
 import { AnnouncementDetailPage, AnnouncementsPage } from "./features/recruit/AnnouncementPages";
 import { MyDocumentsPage } from "./features/org/PositionDocs";
 import { DepartmentGoalsPage, GoalFormPage, GoalsOverview } from "./features/goals/GoalsPages";
+import { CrmActivitiesPage } from "./features/crm/ActivitiesPage";
+import { CrmBoardPage } from "./features/crm/BoardPage";
+import { CrmDealPage, CrmNewDealPage } from "./features/crm/DealPage";
+import { CrmReportPage } from "./features/crm/ReportPage";
+import { CrmStagesPage } from "./features/crm/StagesPage";
 import { RecruitAnalyticsPage } from "./features/recruit/AnalyticsPage";
 import { ApprovalsPage as RecruitApprovalsPage, CompetenciesPage, PositionCompetenciesPage, FunnelReportPage, RecruitDashboardPage, ProfilesPage as PositionProfilesPage, ProfileWizardPage } from "./features/recruit/CompetencyPages";
 import { createBrowserRouter } from "react-router-dom";
@@ -1076,6 +1081,54 @@ export function createRouter() {
                       ]}
                     >
                       <PenaltyDetailPage />
+                    </RequirePerm>
+                  ),
+                },
+                {
+                  path: "crm",
+                  element: (
+                    <RequirePerm any={["crm.own", "crm.read", "crm.manage"]}>
+                      <CrmBoardPage />
+                    </RequirePerm>
+                  ),
+                },
+                {
+                  path: "crm/new",
+                  element: (
+                    <RequirePerm any={["crm.own", "crm.manage"]}>
+                      <CrmNewDealPage />
+                    </RequirePerm>
+                  ),
+                },
+                {
+                  path: "crm/deals/:id",
+                  element: (
+                    <RequirePerm any={["crm.own", "crm.read", "crm.manage"]}>
+                      <CrmDealPage />
+                    </RequirePerm>
+                  ),
+                },
+                {
+                  path: "crm/activities",
+                  element: (
+                    <RequirePerm any={["crm.own", "crm.read", "crm.manage"]}>
+                      <CrmActivitiesPage />
+                    </RequirePerm>
+                  ),
+                },
+                {
+                  path: "crm/report",
+                  element: (
+                    <RequirePerm any={["crm.own", "crm.read", "crm.manage"]}>
+                      <CrmReportPage />
+                    </RequirePerm>
+                  ),
+                },
+                {
+                  path: "crm/stages",
+                  element: (
+                    <RequirePerm perm="crm.manage">
+                      <CrmStagesPage />
                     </RequirePerm>
                   ),
                 },

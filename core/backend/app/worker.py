@@ -161,6 +161,22 @@ async def task_deadlines(ctx: dict) -> dict:
     return {"soon": soon, "overdue": late}
 
 
+async def crm_overdue_job(ctx: dict) -> int:
+    """CRM: muddati o'tgan faoliyatlar bo'yicha mas'ulga bir martadan xabar."""
+    from types import SimpleNamespace
+
+    from app.services.crm import check_overdue
+    from app.services.notifications import deliver
+    from app.timeutil import now
+
+    async with SessionLocal() as session:
+        n, notes = await check_overdue(session, now())
+        await session.commit()
+    app = SimpleNamespace(state=SimpleNamespace(redis=ctx["redis"], queue=_QueueAdapter(ctx["redis"])))
+    await deliver(app, notes)  # type: ignore[arg-type]
+    return n
+
+
 async def need_deadlines(ctx: dict) -> dict:
     """Ehtiyoj muddatlari: 24 soat qolganda va o'tganda bir martadan xabar (o'tgani auditga ham yoziladi)."""
     from types import SimpleNamespace
@@ -650,7 +666,7 @@ async def shutdown(ctx: dict) -> None:
 
 
 _registry = WorkerRegistry(
-    functions=[ping, deliver_telegram, cleanup_notifications, purge_face_templates, escalate_leave_requests, scan_penalties, release_penalty_blocks, task_deadlines, need_deadlines, fire_reminders, logistics_expiry, warehouse_watch, mobile_watch, desk_watch, calls_watch, report_scheduler, deliver_report_telegram, deliver_statement_telegram, coord_report_job, explanation_deadlines, auto_letter_reminders, purge_preboarding_recordings, archive_preboarding_telegram, deliver_candidate_telegram, attestation_job, retention_scan_job, rotation_job, duty_overdue_job, recruit_scan_job, control_digest_job, camera_watch_job],
+    functions=[ping, deliver_telegram, cleanup_notifications, purge_face_templates, escalate_leave_requests, scan_penalties, release_penalty_blocks, task_deadlines, crm_overdue_job, need_deadlines, fire_reminders, logistics_expiry, warehouse_watch, mobile_watch, desk_watch, calls_watch, report_scheduler, deliver_report_telegram, deliver_statement_telegram, coord_report_job, explanation_deadlines, auto_letter_reminders, purge_preboarding_recordings, archive_preboarding_telegram, deliver_candidate_telegram, attestation_job, retention_scan_job, rotation_job, duty_overdue_job, recruit_scan_job, control_digest_job, camera_watch_job],
     cron_jobs=[
         cron(heartbeat, second={0, 30}),
         cron(cleanup_notifications, hour={3}, minute={15}),
@@ -659,6 +675,7 @@ _registry = WorkerRegistry(
         cron(scan_penalties, hour={2}, minute={30}),
         cron(release_penalty_blocks, minute={5}),
         cron(task_deadlines, minute={0, 15, 30, 45}),
+        cron(crm_overdue_job, minute={8, 38}),
         cron(need_deadlines, minute={5, 20, 35, 50}),
         cron(fire_reminders),
         cron(mobile_watch, minute=set(range(1, 60, 2))),
