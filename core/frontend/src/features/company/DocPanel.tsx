@@ -10,7 +10,8 @@ import { Skeleton } from '../../components/ui/Skeleton'
 import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { useCan } from '../auth/useAuth'
-import type { HrDoc } from '../hrdocs/api'
+import type { DocMedia, HrDoc } from '../hrdocs/api'
+import { Carousel } from './Carousel'
 import { embedOf } from './embed'
 
 export interface DocEntry {
@@ -63,6 +64,10 @@ export function DocPanel({ id, label }: { id: number | null; label?: string }) {
   const d = q.data
   const manage = can('hrdocs.manage')
   const empty = !d.body?.trim() && !d.has_file && d.media.length === 0
+  const isImage = (m: DocMedia) => m.kind === 'slides' && embedOf(m.url).mode === 'image'
+  const images = d.media.filter(isImage).map((m) => ({ src: m.url, title: m.title }))
+  const rank = { slides: 0, video: 1, link: 2 }
+  const rest = d.media.filter((m) => !isImage(m)).sort((a, b) => rank[a.kind] - rank[b.kind])
   return (
     <Card className="flex flex-col gap-4 p-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -89,13 +94,16 @@ export function DocPanel({ id, label }: { id: number | null; label?: string }) {
           )}
         </div>
       </div>
-      {d.media.map((m, i) => {
+      {d.body?.trim() && <div className="whitespace-pre-wrap text-sm leading-relaxed">{d.body}</div>}
+      {images.length > 0 && <Carousel slides={images} />}
+      {rest.map((m, i) => {
         const e = embedOf(m.url)
         return (
           <figure key={`${m.url}-${i}`} className="flex flex-col gap-1.5">
             {m.title && <figcaption className="text-sm font-medium">{m.title}</figcaption>}
             {e.mode === 'iframe' && <iframe src={e.src} title={m.title ?? d.title} loading="lazy" allowFullScreen className="aspect-video w-full rounded-control border border-border bg-surface-2" />}
             {e.mode === 'video' && <video src={e.src} controls preload="metadata" className="aspect-video w-full rounded-control bg-black" />}
+            {e.mode === 'image' && <img src={e.src} alt={m.title ?? d.title} loading="lazy" className="w-full rounded-control border border-border" />}
             {e.mode === 'link' && (
               <a href={e.src} target="_blank" rel="noopener noreferrer" className="inline-flex w-fit items-center gap-2 rounded-control border border-border px-3 py-2 text-sm hover:bg-surface-2">
                 {m.kind === 'video' ? <Video className="size-4" /> : <Presentation className="size-4" />}
@@ -106,7 +114,6 @@ export function DocPanel({ id, label }: { id: number | null; label?: string }) {
           </figure>
         )
       })}
-      {d.body?.trim() && <div className="whitespace-pre-wrap text-sm leading-relaxed">{d.body}</div>}
       {empty && <p className="text-sm text-muted">{t(manage ? 'company.panel.emptyManage' : 'company.panel.emptyView')}</p>}
     </Card>
   )

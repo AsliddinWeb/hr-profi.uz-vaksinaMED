@@ -5171,7 +5171,7 @@
     "uploadFile": "Fayl yuklash",
     "replaceFile": "Faylni almashtirish",
     "media": "Video va slaydlar",
-    "mediaHint": "Havola qo'shing (YouTube, Google Slides, PDF yoki mp4). Hujjat ochilganda yon panelda ko'rinadi.",
+    "mediaHint": "Havola qo'shing (YouTube, Google Slides, PDF, mp4) yoki rasm manzili (jpg, png, webp). Rasmli slaydlar karusel bo'lib ko'rinadi. Hujjat ochilganda yon panelda chiqadi.",
     "mediaKind": {
       "video": "Video",
       "slides": "Slayd",
@@ -7906,7 +7906,10 @@
       "fill": "To'ldirish",
       "open": "Ochish",
       "emptyManage": "Hali hech narsa kiritilmagan. «To'ldirish» tugmasi orqali matn, video yoki slayd qo'shing.",
-      "emptyView": "Bu bo'lim tez orada to'ldiriladi."
+      "emptyView": "Bu bo'lim tez orada to'ldiriladi.",
+      "prev": "Oldingi slayd",
+      "next": "Keyingi slayd",
+      "slide": "{{n}}-slayd"
     }
   }
 }
