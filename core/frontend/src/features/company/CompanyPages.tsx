@@ -70,7 +70,7 @@ function Split({ entries, extra, header, numbered = false }: { entries: DocEntry
   )
 }
 
-const STRATEGY_ORDER = ['goal', 'strategies', 'mission', 'smart', 'values', 'slogan'] as const
+const STRATEGY_ORDER = ['goal', 'mission', 'strategies', 'smart', 'values', 'slogan'] as const
 
 export function StrategyPage() {
   const { t } = useTranslation()
