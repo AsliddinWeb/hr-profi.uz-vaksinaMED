@@ -19,7 +19,22 @@ export interface DocEntry {
   doc?: HrDoc
 }
 
-export function DocList({ entries, selected, onSelect, numbered = true }: { entries: DocEntry[]; selected: number | null; onSelect: (id: number) => void; numbered?: boolean }) {
+/** Panelda nima ko'rsatiladi: butun hujjat, faqat video yoki faqat slaydlar */
+export type DocView = 'all' | 'video' | 'slides'
+
+export function DocList({
+  entries,
+  selected,
+  view = 'all',
+  onSelect,
+  numbered = true,
+}: {
+  entries: DocEntry[]
+  selected: number | null
+  view?: DocView
+  onSelect: (id: number, view?: DocView) => void
+  numbered?: boolean
+}) {
   const { t } = useTranslation()
   return (
     <ol className="flex flex-col gap-2">
@@ -27,27 +42,46 @@ export function DocList({ entries, selected, onSelect, numbered = true }: { entr
         const d = e.doc
         const on = !!d && d.id === selected
         const filled = !!d && (d.has_body || d.has_file || d.media.length > 0)
+        const hasVideo = !!d && d.media.some((m) => m.kind === 'video')
+        const hasSlides = !!d && d.media.some((m) => m.kind === 'slides')
+        const mediaBtn = (kind: 'video' | 'slides') => {
+          const active = on && view === kind
+          const Icon = kind === 'video' ? Video : Presentation
+          const title = t(kind === 'video' ? 'company.panel.showVideo' : 'company.panel.showSlides')
+          return (
+            <button
+              type="button"
+              title={title}
+              aria-label={title}
+              aria-pressed={active}
+              onClick={() => d && onSelect(d.id, kind)}
+              className={cn('grid size-8 shrink-0 place-items-center rounded-control border transition', active ? 'border-primary bg-primary text-primary-fg' : 'border-border text-muted hover:border-primary hover:bg-primary/10 hover:text-primary')}
+            >
+              <Icon className="size-4" />
+            </button>
+          )
+        }
         return (
-          <li key={`${i}-${e.label}`}>
+          <li key={`${i}-${e.label}`} className={cn('flex items-center gap-2 rounded-card border bg-surface pr-2 transition', on ? 'border-primary shadow-card' : 'border-border hover:bg-surface-2', !d && 'opacity-60')}>
             <button
               type="button"
               disabled={!d}
-              onClick={() => d && onSelect(d.id)}
+              onClick={() => d && onSelect(d.id, 'all')}
               aria-current={on ? 'true' : undefined}
-              className={cn('flex w-full items-center gap-3 rounded-card border bg-surface p-3 text-left transition', on ? 'border-primary shadow-card' : 'border-border hover:bg-surface-2', !d && 'cursor-default opacity-60')}
+              className={cn('flex min-w-0 flex-1 items-center gap-3 p-3 text-left', !d && 'cursor-default')}
             >
               {numbered && <span className={cn('grid size-8 shrink-0 place-items-center rounded-full text-sm font-semibold', on ? 'bg-primary text-primary-fg' : 'bg-surface-2 text-muted')}>{i + 1}</span>}
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium">{e.label}</span>
                 <span className="mt-0.5 flex items-center gap-2 text-xs text-muted">
                   {!d || !filled ? <Badge>{t('company.panel.empty')}</Badge> : d.status === 'draft' ? <Badge>{t('hrdocs.draft')}</Badge> : <span>v{d.version}</span>}
-                  {!!d && d.media.some((m) => m.kind === 'video') && <Video className="size-3.5" />}
-                  {!!d && d.media.some((m) => m.kind === 'slides') && <Presentation className="size-3.5" />}
                   {!!d && d.needs_ack && <Badge tone="warning">{t('hrdocs.needsAck')}</Badge>}
                   {!!d && !d.needs_ack && d.ack && d.requires_ack && <Check className="size-3.5 text-success" />}
                 </span>
               </span>
             </button>
+            {hasVideo && mediaBtn('video')}
+            {hasSlides && mediaBtn('slides')}
           </li>
         )
       })}
@@ -55,7 +89,7 @@ export function DocList({ entries, selected, onSelect, numbered = true }: { entr
   )
 }
 
-export function DocPanel({ id, label }: { id: number | null; label?: string }) {
+export function DocPanel({ id, label, view = 'all', onShowAll }: { id: number | null; label?: string; view?: DocView; onShowAll?: () => void }) {
   const { t } = useTranslation()
   const can = useCan()
   const q = useQuery({ queryKey: ['hrdocs', 'one', id], queryFn: () => api<HrDoc>(`/api/v1/hrdocs/${id}`), enabled: id !== null, retry: false })
@@ -65,9 +99,12 @@ export function DocPanel({ id, label }: { id: number | null; label?: string }) {
   const manage = can('hrdocs.manage')
   const empty = !d.body?.trim() && !d.has_file && d.media.length === 0
   const isImage = (m: DocMedia) => m.kind === 'slides' && embedOf(m.url).mode === 'image'
-  const images = d.media.filter(isImage).map((m) => ({ src: m.url, title: m.title }))
+  // Video/slayd tugmasi bosilganda panelda faqat o'sha media turini ko'rsatamiz
+  const media = view === 'all' ? d.media : d.media.filter((m) => m.kind === view)
+  const focused = view !== 'all' && media.length > 0
+  const images = media.filter(isImage).map((m) => ({ src: m.url, title: m.title }))
   const rank = { slides: 0, video: 1, link: 2 }
-  const rest = d.media.filter((m) => !isImage(m)).sort((a, b) => rank[a.kind] - rank[b.kind])
+  const rest = media.filter((m) => !isImage(m)).sort((a, b) => rank[a.kind] - rank[b.kind])
   return (
     <Card className="flex flex-col gap-4 p-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -76,6 +113,11 @@ export function DocPanel({ id, label }: { id: number | null; label?: string }) {
           {d.summary && <p className="mt-0.5 text-sm text-muted">{d.summary}</p>}
         </div>
         <div className="flex gap-2">
+          {focused && onShowAll && (
+            <Button variant="outline" onClick={onShowAll}>
+              {t('company.panel.showAll')}
+            </Button>
+          )}
           {d.has_file && (
             <a href={`/api/v1/hrdocs/${d.id}/file`} download>
               <Button variant="outline">
@@ -94,7 +136,7 @@ export function DocPanel({ id, label }: { id: number | null; label?: string }) {
           )}
         </div>
       </div>
-      {d.body?.trim() && <div className="whitespace-pre-wrap text-sm leading-relaxed">{d.body}</div>}
+      {!focused && d.body?.trim() && <div className="whitespace-pre-wrap text-sm leading-relaxed">{d.body}</div>}
       {images.length > 0 && <Carousel slides={images} />}
       {rest.map((m, i) => {
         const e = embedOf(m.url)

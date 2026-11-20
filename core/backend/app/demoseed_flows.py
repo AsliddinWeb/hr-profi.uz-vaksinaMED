@@ -4,11 +4,14 @@ from datetime import date, datetime, timedelta
 
 from app.timeutil import tz
 
-SAMPLE_VIDEO = {"kind": "video", "url": "https://www.w3schools.com/html/mov_bbb.mp4", "title": "Namuna video (almashtiriladi)"}
+# CSP media-src faqat 'self' ga ruxsat beradi, shuning uchun tashqi mp4 o'ynamaydi: namuna YouTube orqali (frame-src da ruxsat bor)
+SAMPLE_VIDEO = {"kind": "video", "url": "https://www.youtube.com/watch?v=aqz-KE-bpKQ", "title": "Namuna video (almashtiriladi)"}
 SMART_VIDEO = {"kind": "video", "url": "https://www.youtube.com/watch?v=Iyl_v-O_Cds", "title": "SMART maqsadlar: qanday qo'yiladi"}
 DEMO_MEDIA = {
     "smart": [SMART_VIDEO],
-    "mission": [SAMPLE_VIDEO],
+    "mission": [{"kind": "slides", "url": f"/slides/missiya-{n}.png", "title": f"Missiya: {n}-slayd"} for n in range(1, 3)] + [SAMPLE_VIDEO],
+    "values": [{"kind": "slides", "url": f"/slides/qadriyat-{n}.png", "title": f"Qadriyatlar: {n}-slayd"} for n in range(1, 5)] + [SAMPLE_VIDEO],
+    "slogan": [{"kind": "slides", "url": "/slides/shior-1.png", "title": "Shior"}, SAMPLE_VIDEO],
     "goal": [{"kind": "slides", "url": f"/slides/oliy-maqsad-{n}.jpg", "title": f"Oliy maqsad: {n}-slayd"} for n in range(1, 6)] + [SAMPLE_VIDEO],
 }
 
