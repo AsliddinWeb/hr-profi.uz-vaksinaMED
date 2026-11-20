@@ -5310,6 +5310,7 @@
     },
     "mediaUrl": "Ссылка (https://…)",
     "mediaTitle": "Заголовок",
+    "mediaYear": "Год",
     "mediaAdd": "Добавить",
     "mediaRemove": "Удалить"
   },
@@ -8043,7 +8044,8 @@
       "slide": "Слайд {{n}}",
       "showVideo": "Смотреть видео",
       "showSlides": "Смотреть слайды",
-      "showAll": "Весь документ"
+      "showAll": "Весь документ",
+      "year": "{{year}} год"
     }
   }
 }

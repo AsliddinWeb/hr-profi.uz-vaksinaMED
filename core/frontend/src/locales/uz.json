@@ -5311,6 +5311,7 @@
     },
     "mediaUrl": "Havola (https://…)",
     "mediaTitle": "Sarlavha",
+    "mediaYear": "Yil",
     "mediaAdd": "Qo'shish",
     "mediaRemove": "O'chirish"
   },
@@ -8044,7 +8045,8 @@
       "slide": "{{n}}-slayd",
       "showVideo": "Videoni ko'rish",
       "showSlides": "Slaydlarni ko'rish",
-      "showAll": "To'liq hujjat"
+      "showAll": "To'liq hujjat",
+      "year": "{{year}}-yil"
     }
   }
 }

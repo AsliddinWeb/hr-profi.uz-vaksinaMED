@@ -249,7 +249,7 @@ function DocForm({ doc }: { doc: HrDoc | null }) {
   const [error, setError] = useState<string | null>(null)
   const save = useMutation({
     mutationFn: () => {
-      const payload = { category, title, summary: summary || null, body: body || null, requires_ack: ack, roles: picked, media: media.filter((m) => m.url.trim()).map((m) => ({ ...m, url: m.url.trim(), title: m.title?.trim() || null })), sort_order: 0 }
+      const payload = { category, title, summary: summary || null, body: body || null, requires_ack: ack, roles: picked, media: media.filter((m) => m.url.trim()).map((m) => ({ ...m, url: m.url.trim(), title: m.title?.trim() || null, year: m.year || null })), sort_order: 0 }
       return doc ? send<HrDoc>('PUT', `/api/v1/hrdocs/${doc.id}`, payload) : send<HrDoc>('POST', '/api/v1/hrdocs', payload)
     },
     onSuccess: (r) => {
@@ -309,7 +309,7 @@ function DocForm({ doc }: { doc: HrDoc | null }) {
         </FormSection>
         <FormSection title={t('hrdocs.media')} description={t('hrdocs.mediaHint')}>
           {media.map((m, i) => (
-            <div key={i} className="grid gap-2 sm:grid-cols-[8rem_1fr_1fr_auto]">
+            <div key={i} className="grid gap-2 sm:grid-cols-[8rem_1fr_1fr_6rem_auto]">
               <Select aria-label={t('hrdocs.mediaKind.video')} value={m.kind} onChange={(e) => setMedia(media.map((x, j) => (j === i ? { ...x, kind: e.target.value as DocMedia['kind'] } : x)))}>
                 {(['video', 'slides', 'link'] as const).map((k) => (
                   <option key={k} value={k}>
@@ -319,6 +319,7 @@ function DocForm({ doc }: { doc: HrDoc | null }) {
               </Select>
               <Input aria-label={t('hrdocs.mediaUrl')} placeholder={t('hrdocs.mediaUrl')} value={m.url} onChange={(e) => setMedia(media.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} maxLength={500} inputMode="url" />
               <Input aria-label={t('hrdocs.mediaTitle')} placeholder={t('hrdocs.mediaTitle')} value={m.title ?? ''} onChange={(e) => setMedia(media.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} maxLength={120} />
+              <Input type="number" aria-label={t('hrdocs.mediaYear')} placeholder={t('hrdocs.mediaYear')} value={m.year ?? ''} min={2000} max={2100} onChange={(e) => setMedia(media.map((x, j) => (j === i ? { ...x, year: e.target.value ? Number(e.target.value) : null } : x)))} />
               <Button type="button" variant="ghost" className="text-danger" aria-label={t('hrdocs.mediaRemove')} onClick={() => setMedia(media.filter((_, j) => j !== i))}>
                 <Trash2 className="size-4" />
               </Button>

@@ -104,7 +104,8 @@ export function DocPanel({ id, label, view = 'all', onShowAll }: { id: number | 
   const focused = view !== 'all' && media.length > 0
   const images = media.filter(isImage).map((m) => ({ src: m.url, title: m.title }))
   const rank = { slides: 0, video: 1, link: 2 }
-  const rest = media.filter((m) => !isImage(m)).sort((a, b) => rank[a.kind] - rank[b.kind])
+  // Yillik yozuvlar: eng yangi yil yuqorida, yilsizlari oxirida
+  const rest = media.filter((m) => !isImage(m)).sort((a, b) => rank[a.kind] - rank[b.kind] || (b.year ?? 0) - (a.year ?? 0))
   return (
     <Card className="flex flex-col gap-4 p-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -142,7 +143,12 @@ export function DocPanel({ id, label, view = 'all', onShowAll }: { id: number | 
         const e = embedOf(m.url)
         return (
           <figure key={`${m.url}-${i}`} className="flex flex-col gap-1.5">
-            {m.title && <figcaption className="text-sm font-medium">{m.title}</figcaption>}
+            {(m.title || m.year) && (
+              <figcaption className="flex items-center gap-2 text-sm font-medium">
+                {m.year && <Badge tone="info">{t('company.panel.year', { year: m.year })}</Badge>}
+                {m.title}
+              </figcaption>
+            )}
             {e.mode === 'iframe' && <iframe src={e.src} title={m.title ?? d.title} loading="lazy" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" className="aspect-video w-full rounded-control border border-border bg-surface-2" />}
             {e.mode === 'video' && <video src={e.src} controls preload="metadata" className="aspect-video w-full rounded-control bg-black" />}
             {e.mode === 'image' && <img src={e.src} alt={m.title ?? d.title} loading="lazy" className="w-full rounded-control border border-border" />}

@@ -8,7 +8,11 @@ from app.timeutil import tz
 SAMPLE_VIDEO = {"kind": "video", "url": "https://www.youtube.com/watch?v=aqz-KE-bpKQ", "title": "Namuna video (almashtiriladi)"}
 SMART_VIDEO = {"kind": "video", "url": "https://www.youtube.com/watch?v=Iyl_v-O_Cds", "title": "SMART maqsadlar: qanday qo'yiladi"}
 DEMO_MEDIA = {
-    "smart": [SMART_VIDEO],
+    # Strategiya va SMART: yil boshidagi sessiya yozuvi yil bilan saqlanadi, yangi xodimlar oldingi yillarni ham ko'radi
+    "strategies": [{"kind": "slides", "url": f"/slides/strategiya-{n}.png", "title": f"Strategiya: {n}-slayd"} for n in range(1, 4)]
+    + [{**SAMPLE_VIDEO, "title": "Yillik strategiya sessiyasi (namuna)", "year": 2026}],
+    "smart": [{"kind": "slides", "url": f"/slides/smart-{n}.png", "title": f"SMART: {n}-slayd"} for n in range(1, 3)]
+    + [{**SAMPLE_VIDEO, "title": "Yillik SMART maqsadlar sessiyasi (namuna)", "year": 2026}, SMART_VIDEO],
     "mission": [{"kind": "slides", "url": f"/slides/missiya-{n}.png", "title": f"Missiya: {n}-slayd"} for n in range(1, 3)] + [SAMPLE_VIDEO],
     "values": [{"kind": "slides", "url": f"/slides/qadriyat-{n}.png", "title": f"Qadriyatlar: {n}-slayd"} for n in range(1, 5)] + [SAMPLE_VIDEO],
     "slogan": [{"kind": "slides", "url": "/slides/shior-1.png", "title": "Shior"}, SAMPLE_VIDEO],

@@ -26,6 +26,7 @@ class MediaIn(BaseModel):
     kind: str = Field(pattern="^(video|slides|link)$")
     url: str = Field(min_length=8, max_length=500, pattern=r"^(https://\S+|/[^/\s]\S*)$")
     title: str | None = Field(default=None, max_length=120)
+    year: int | None = Field(default=None, ge=2000, le=2100)  # yil boshidagi strategiya/SMART yozuvlari yillar bo'yicha saqlanadi
 
 
 class DocIn(BaseModel):

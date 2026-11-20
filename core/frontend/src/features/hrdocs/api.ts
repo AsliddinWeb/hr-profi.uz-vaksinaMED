@@ -5,6 +5,8 @@ export interface DocMedia {
   kind: 'video' | 'slides' | 'link'
   url: string
   title: string | null
+  /** Yozuv qaysi yilga tegishli (yil boshidagi strategiya/SMART sessiyasi) */
+  year?: number | null
 }
 
 export interface HrDoc {
