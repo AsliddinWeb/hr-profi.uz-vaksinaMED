@@ -28,7 +28,6 @@ const baseNav: NavItem[] = [
   { id: 'strategy', group: 'hr', label: { uz: 'Strategiya va maqsadlar', ru: 'Стратегия и цели' }, to: '/strategy', icon: Target, anyPermission: ['hrdocs.read', 'hrdocs.manage'], module: 'employees' },
   { id: 'hr-rules', group: 'hr', label: { uz: 'Nizom va qoidalar', ru: 'Устав и правила' }, to: '/hr/rules', icon: Scale, anyPermission: ['hrdocs.read', 'hrdocs.manage'], module: 'employees' },
   { id: 'hr-duties', group: 'hr', label: { uz: 'Lavozim majburiyatlari', ru: 'Обязанности должностей' }, to: '/hr/duties', icon: ClipboardList, anyPermission: ['hrdocs.read', 'hrdocs.manage'], module: 'employees' },
-  { id: 'hr-library', group: 'hr', sub: 'kadrdocs', label: { uz: 'Hujjatlar kutubxonasi', ru: 'Библиотека документов' }, to: '/hr/library', icon: BookOpen, permission: 'hrdocs.read', module: 'employees' },
   { id: 'hr-documents', group: 'hr', sub: 'kadrdocs', label: { uz: 'Ariza va buyruqlar', ru: 'Заявления и приказы' }, to: '/hr/documents', icon: FileStack, anyPermission: ['staffdocs.apply', 'staffdocs.read', 'staffdocs.manage'], module: 'employees' },
   { id: 'hr-references', group: 'hr', sub: 'kadrdocs', label: { uz: "Ma'lumotnomalar", ru: 'Справки' }, to: '/hr/references', icon: FileCheck2, permission: 'staffdocs.manage', module: 'employees' },
   { id: 'kadr', group: 'hr', sub: 'kadrdocs', label: { uz: 'Kadrovik', ru: 'Кадровик' }, to: '/kadr', icon: FileCheck2, permission: 'employees.documents', module: 'employees' },
