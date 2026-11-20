@@ -101,7 +101,7 @@ export function DocPanel({ id, label }: { id: number | null; label?: string }) {
         return (
           <figure key={`${m.url}-${i}`} className="flex flex-col gap-1.5">
             {m.title && <figcaption className="text-sm font-medium">{m.title}</figcaption>}
-            {e.mode === 'iframe' && <iframe src={e.src} title={m.title ?? d.title} loading="lazy" allowFullScreen className="aspect-video w-full rounded-control border border-border bg-surface-2" />}
+            {e.mode === 'iframe' && <iframe src={e.src} title={m.title ?? d.title} loading="lazy" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" className="aspect-video w-full rounded-control border border-border bg-surface-2" />}
             {e.mode === 'video' && <video src={e.src} controls preload="metadata" className="aspect-video w-full rounded-control bg-black" />}
             {e.mode === 'image' && <img src={e.src} alt={m.title ?? d.title} loading="lazy" className="w-full rounded-control border border-border" />}
             {e.mode === 'link' && (

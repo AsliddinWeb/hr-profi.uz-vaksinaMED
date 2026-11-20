@@ -52,7 +52,7 @@ function Split({ entries, extra, header, numbered = false }: { entries: DocEntry
   const selected = picked !== null && entries.some((e) => e.doc?.id === picked) ? picked : (entries.find((e) => e.doc)?.doc?.id ?? null)
   const label = entries.find((e) => e.doc?.id === selected)?.label
   return (
-    <div className="grid items-start gap-5 lg:grid-cols-[22rem_minmax(0,1fr)]">
+    <div className="grid items-start gap-5 lg:grid-cols-[15rem_minmax(0,1fr)]">
       <div className="flex flex-col gap-4">
         {header}
         <DocList entries={entries} selected={selected} onSelect={setPicked} numbered={numbered} />
@@ -73,7 +73,7 @@ export function StrategyPage() {
   const { loading, byKey } = useDocs()
   const entries: DocEntry[] = STRATEGY_ORDER.map((k) => ({ label: t(`company.strategy.items.${k}`), doc: byKey.get(k) }))
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-5">
+    <div className="mx-auto flex max-w-7xl flex-col gap-5">
       <PageHeader title={t('company.strategy.title')} subtitle={t('company.strategy.subtitle')} />
       {loading ? (
         <Skeleton className="h-96" />
