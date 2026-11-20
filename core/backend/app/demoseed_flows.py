@@ -5,7 +5,9 @@ from datetime import date, datetime, timedelta
 from app.timeutil import tz
 
 SAMPLE_VIDEO = {"kind": "video", "url": "https://www.w3schools.com/html/mov_bbb.mp4", "title": "Namuna video (almashtiriladi)"}
+SMART_VIDEO = {"kind": "video", "url": "https://www.youtube.com/watch?v=Iyl_v-O_Cds", "title": "SMART maqsadlar: qanday qo'yiladi"}
 DEMO_MEDIA = {
+    "smart": [SMART_VIDEO],
     "mission": [SAMPLE_VIDEO],
     "goal": [{"kind": "slides", "url": f"/slides/oliy-maqsad-{n}.jpg", "title": f"Oliy maqsad: {n}-slayd"} for n in range(1, 6)] + [SAMPLE_VIDEO],
 }
