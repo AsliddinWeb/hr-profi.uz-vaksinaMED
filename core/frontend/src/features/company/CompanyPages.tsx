@@ -11,6 +11,7 @@ import { api } from '../../lib/api'
 import { useCan } from '../auth/useAuth'
 import type { HrDoc } from '../hrdocs/api'
 import { DocList, DocPanel, type DocEntry, type DocView } from './DocPanel'
+import { SmartCriteria, SmartSummary, StrategySteps, SwotBoard } from './StrategyExtras'
 
 function useDocs() {
   const q = useQuery({ queryKey: ['hrdocs', 'list', ''], queryFn: () => api<{ items: HrDoc[]; pending_ack: number }>('/api/v1/hrdocs'), placeholderData: (p) => p })
@@ -47,15 +48,29 @@ function LinkCards({ cards }: { cards: LinkCard[] }) {
   )
 }
 
-function Split({ entries, extra, header, numbered = false }: { entries: DocEntry[]; extra?: React.ReactNode; header?: React.ReactNode; numbered?: boolean }) {
+function Split({
+  entries,
+  extra,
+  header,
+  numbered = false,
+  below,
+}: {
+  entries: DocEntry[]
+  extra?: React.ReactNode
+  header?: React.ReactNode
+  numbered?: boolean
+  /** Tanlangan hujjat ostida qo'shimcha bloklar (masalan strategiya uchun SWOT); faqat «To'liq hujjat» ko'rinishida */
+  below?: (key: string | null) => React.ReactNode
+}) {
   const [picked, setPicked] = useState<number | null>(null)
   const [view, setView] = useState<DocView>('all')
   const selected = picked !== null && entries.some((e) => e.doc?.id === picked) ? picked : (entries.find((e) => e.doc)?.doc?.id ?? null)
-  const label = entries.find((e) => e.doc?.id === selected)?.label
+  const entry = entries.find((e) => e.doc?.id === selected)
   const select = (id: number, v: DocView = 'all') => {
     setPicked(id)
     setView(v)
   }
+  const more = view === 'all' && below ? below(entry?.doc?.key ?? null) : null
   return (
     <div className="grid items-start gap-5 lg:grid-cols-[17rem_minmax(0,1fr)]">
       <div className="flex flex-col gap-4">
@@ -63,8 +78,9 @@ function Split({ entries, extra, header, numbered = false }: { entries: DocEntry
         <DocList entries={entries} selected={selected} view={view} onSelect={select} numbered={numbered} />
         {extra}
       </div>
-      <div className="lg:sticky lg:top-4">
-        <DocPanel id={selected} label={label} view={view} onShowAll={() => setView('all')} />
+      <div className={more ? 'flex min-w-0 flex-col gap-5' : 'lg:sticky lg:top-4'}>
+        <DocPanel id={selected} label={entry?.label} view={view} onShowAll={() => setView('all')} />
+        {more}
       </div>
     </div>
   )
@@ -87,6 +103,19 @@ export function StrategyPage() {
           numbered
           entries={entries}
           extra={<LinkCards cards={[{ to: '/org/goals', title: t('company.strategy.smartTitle'), hint: t('company.strategy.smartHint'), icon: Target, show: can('org.read') || can('goals.manage') }]} />}
+          below={(key) =>
+            key === 'strategies' ? (
+              <>
+                <StrategySteps />
+                <SwotBoard />
+              </>
+            ) : key === 'smart' ? (
+              <>
+                <SmartCriteria />
+                <SmartSummary />
+              </>
+            ) : null
+          }
         />
       )}
     </div>

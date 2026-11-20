@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db import get_session
 from app.deps import AuthContext, error, get_auth
 from app.models.auth import User
-from app.models.goals import Goal, GoalChange, GoalPlan
+from app.models.goals import CompanyStrategy, Goal, GoalChange, GoalPlan, GoalTask
 from app.models.org import Department
 from app.services.answers import users_with_permission
 from app.services.audit import audit
@@ -58,6 +58,29 @@ class ProgressIn(BaseModel):
     current: float | None
 
 
+class TaskIn(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    owner_user_id: int | None = None
+    due_date: date | None = None
+    progress: int = Field(default=0, ge=0, le=100)
+    note: str | None = Field(default=None, max_length=2000)
+    sort_order: int = 0
+
+
+class TaskProgressIn(BaseModel):
+    progress: int = Field(ge=0, le=100)
+
+
+SWOT_KEYS = ("strengths", "weaknesses", "opportunities", "threats")
+
+
+class SwotIn(BaseModel):
+    strengths: list[str] = Field(default_factory=list, max_length=30)
+    weaknesses: list[str] = Field(default_factory=list, max_length=30)
+    opportunities: list[str] = Field(default_factory=list, max_length=30)
+    threats: list[str] = Field(default_factory=list, max_length=30)
+
+
 class NoteIn(BaseModel):
     note: str = Field(min_length=1, max_length=2000)
 
@@ -78,6 +101,31 @@ def progress(g: Goal) -> int | None:
     if g.target == base:
         return 100 if g.current >= g.target else 0
     return max(0, min(999, round((g.current - base) / (g.target - base) * 100)))
+
+
+def task_progress(tasks: list[GoalTask]) -> int | None:
+    return round(sum(t.progress for t in tasks) / len(tasks)) if tasks else None
+
+
+def effective_progress(g: Goal, tasks: list[GoalTask]) -> int | None:
+    """Reyting uchun: o'lchov kiritilgan bo'lsa o'shani, aks holda vazifalar o'rtacha progressini olamiz."""
+    p = progress(g)
+    return p if p is not None else task_progress(tasks)
+
+
+async def _tasks_by_goal(db: AsyncSession, goal_ids: list[int]) -> dict[int, list[GoalTask]]:
+    out: dict[int, list[GoalTask]] = {}
+    if goal_ids:
+        for t in (await db.scalars(select(GoalTask).where(GoalTask.goal_id.in_(goal_ids)).order_by(GoalTask.sort_order, GoalTask.id))).all():
+            out.setdefault(t.goal_id, []).append(t)
+    return out
+
+
+def _task_out(t: GoalTask, names: dict[int, str]) -> dict[str, Any]:
+    return {
+        "id": t.id, "goal_id": t.goal_id, "title": t.title, "owner_user_id": t.owner_user_id, "owner": names.get(t.owner_user_id) if t.owner_user_id else None,  # type: ignore[arg-type]
+        "due_date": t.due_date, "progress": t.progress, "note": t.note, "sort_order": t.sort_order,
+    }  # fmt: skip
 
 
 async def _dept(db: AsyncSession, dept_id: int) -> Department:
@@ -146,8 +194,12 @@ async def _names(db: AsyncSession, ids: set[int | None]) -> dict[int, str]:
     return dict((await db.execute(select(User.id, User.full_name).where(User.id.in_(ids)))).all())  # type: ignore[arg-type]
 
 
-def _goal_out(g: Goal, names: dict[int, str]) -> dict[str, Any]:
-    return {"id": g.id, **_snapshot(g), "current": g.current, "progress": progress(g), "owner": names.get(g.owner_user_id) if g.owner_user_id else None}  # type: ignore[arg-type]
+def _goal_out(g: Goal, names: dict[int, str], tasks: list[GoalTask] | None = None) -> dict[str, Any]:
+    tasks = tasks or []
+    return {
+        "id": g.id, **_snapshot(g), "current": g.current, "progress": progress(g), "owner": names.get(g.owner_user_id) if g.owner_user_id else None,  # type: ignore[arg-type]
+        "tasks": [_task_out(t, names) for t in tasks], "task_progress": task_progress(tasks), "effective_progress": effective_progress(g, tasks),
+    }  # fmt: skip
 
 
 async def _approvers(db: AsyncSession, exclude: int) -> list[int]:
@@ -164,13 +216,15 @@ async def overview(year: int | None = Query(default=None, ge=2000, le=2100), db:
     for g in (await db.scalars(select(Goal).where(Goal.plan_id.in_([p.id for p in plans.values()]), Goal.removed_at.is_(None)))).all() if plans else []:
         goals.setdefault(g.plan_id, []).append(g)
     pending = dict((await db.execute(select(GoalChange.plan_id, func.count()).where(GoalChange.status == "pending").group_by(GoalChange.plan_id))).all())
+    tasks = await _tasks_by_goal(db, [g.id for gs in goals.values() for g in gs])
     rows = []
     for d in depts:
         p = plans.get(d.id)
         gs = goals.get(p.id, []) if p else []
-        pr = [x for x in (progress(g) for g in gs) if x is not None]
+        pr = [x for x in (effective_progress(g, tasks.get(g.id, [])) for g in gs) if x is not None]
         rows.append({
             "id": d.id, "name": d.name, "parent_id": d.parent_id, "status": p.status if p else None, "goals": len(gs),
+            "tasks": sum(len(tasks.get(g.id, [])) for g in gs),
             "progress": round(sum(min(x, 100) for x in pr) / len(pr)) if pr else None, "pending_changes": pending.get(p.id, 0) if p else 0,
         })  # fmt: skip
     return {"year": y, "departments": rows, "can_approve": auth.can("goals.approve")}
@@ -184,7 +238,8 @@ async def department_goals(dept_id: int, year: int | None = Query(default=None, 
     plan = await _plan(db, dept_id, y)
     goals = (await db.scalars(select(Goal).where(Goal.plan_id == plan.id, Goal.removed_at.is_(None)).order_by(Goal.sort_order, Goal.id))).all() if plan else []
     changes = (await db.scalars(select(GoalChange).where(GoalChange.plan_id == plan.id).order_by(GoalChange.id.desc()))).all() if plan else []
-    names = await _names(db, {g.owner_user_id for g in goals} | {c.requested_by for c in changes} | {c.decided_by for c in changes} | ({plan.approved_by, plan.submitted_by} if plan else set()))
+    tasks = await _tasks_by_goal(db, [g.id for g in goals])
+    names = await _names(db, {g.owner_user_id for g in goals} | {t.owner_user_id for ts in tasks.values() for t in ts} | {c.requested_by for c in changes} | {c.decided_by for c in changes} | ({plan.approved_by, plan.submitted_by} if plan else set()))
     return {
         "year": y,
         "department": {"id": dept.id, "name": dept.name, "yqm": dept.yqm, "head_user_id": dept.head_user_id},
@@ -192,7 +247,7 @@ async def department_goals(dept_id: int, year: int | None = Query(default=None, 
             "status": plan.status, "note": plan.note, "submitted_at": plan.submitted_at, "submitted_by": names.get(plan.submitted_by),  # type: ignore[arg-type]
             "approved_at": plan.approved_at, "approved_by": names.get(plan.approved_by),  # type: ignore[arg-type]
         } if plan else None,
-        "goals": [_goal_out(g, names) for g in goals],
+        "goals": [_goal_out(g, names, tasks.get(g.id)) for g in goals],
         "changes": [{
             "id": c.id, "goal_id": c.goal_id, "action": c.action, "before": c.before, "after": c.after, "reason": c.reason, "status": c.status,
             "requested_by": names.get(c.requested_by), "created_at": c.created_at,  # type: ignore[arg-type]
@@ -251,6 +306,98 @@ async def set_progress(gid: int, body: ProgressIn, db: AsyncSession = Depends(ge
     g.current = body.current
     await db.commit()
     return {"current": g.current, "progress": progress(g)}
+
+
+# --- Haftalik vazifalar: maqsad kichik qadamlarga bo'linadi; reja tasdiqlangandan keyin ham yuritiladi ---
+
+
+async def _task(db: AsyncSession, tid: int) -> tuple[GoalTask, Goal, Department]:
+    t = await db.get(GoalTask, tid)
+    if not t:
+        raise error(404, "not_found")
+    g, _plan_, dept = await _goal(db, t.goal_id)
+    return t, g, dept
+
+
+def _need_task_edit(auth: AuthContext, g: Goal, dept: Department) -> None:
+    if not (_can_edit(auth, dept) or g.owner_user_id == auth.user.id):
+        raise error(403, "forbidden")
+
+
+@router.post("/items/{gid}/tasks", status_code=201)
+async def add_task(gid: int, body: TaskIn, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
+    g, _plan_, dept = await _goal(db, gid)
+    _need_task_edit(auth, g, dept)
+    if body.owner_user_id and not await db.get(User, body.owner_user_id):
+        raise error(422, "owner_not_found")
+    t = GoalTask(goal_id=g.id, **body.model_dump())
+    db.add(t)
+    await db.commit()
+    return {"id": t.id}
+
+
+@router.put("/tasks/{tid}")
+async def update_task(tid: int, body: TaskIn, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
+    t, g, dept = await _task(db, tid)
+    _need_task_edit(auth, g, dept)
+    if body.owner_user_id and not await db.get(User, body.owner_user_id):
+        raise error(422, "owner_not_found")
+    for k, v in body.model_dump().items():
+        setattr(t, k, v)
+    await db.commit()
+    return {"id": t.id}
+
+
+@router.put("/tasks/{tid}/progress")
+async def set_task_progress(tid: int, body: TaskProgressIn, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
+    t, g, dept = await _task(db, tid)
+    if not (_can_edit(auth, dept) or g.owner_user_id == auth.user.id or t.owner_user_id == auth.user.id):
+        raise error(403, "forbidden")
+    t.progress = body.progress
+    await db.commit()
+    return {"progress": t.progress}
+
+
+@router.delete("/tasks/{tid}", status_code=204)
+async def delete_task(tid: int, db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
+    t, g, dept = await _task(db, tid)
+    _need_task_edit(auth, g, dept)
+    await db.delete(t)
+    await db.commit()
+
+
+# --- Yillik kompaniya strategiyasi: SWOT tahlil ---
+
+
+def _swot_out(s: CompanyStrategy | None, y: int, auth: AuthContext) -> dict[str, Any]:
+    data = (s.swot if s else None) or {}
+    return {"year": y, **{k: list(data.get(k) or []) for k in SWOT_KEYS}, "updated_at": s.updated_at if s else None, "can_edit": auth.can("goals.manage") or auth.can("hrdocs.manage")}
+
+
+@router.get("/strategy")
+async def get_strategy(year: int | None = Query(default=None, ge=2000, le=2100), db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
+    if not (auth.can("hrdocs.read") or auth.can("org.read") or auth.can("goals.manage")):
+        raise error(403, "forbidden")
+    y = _year(year)
+    s = await db.scalar(select(CompanyStrategy).where(CompanyStrategy.year == y))
+    return _swot_out(s, y, auth)
+
+
+@router.put("/strategy")
+async def put_strategy(body: SwotIn, request: Request, year: int | None = Query(default=None, ge=2000, le=2100), db: AsyncSession = Depends(get_session), auth: AuthContext = Depends(get_auth)):
+    if not (auth.can("goals.manage") or auth.can("hrdocs.manage")):
+        raise error(403, "forbidden")
+    y = _year(year)
+    s = await db.scalar(select(CompanyStrategy).where(CompanyStrategy.year == y))
+    if not s:
+        s = CompanyStrategy(year=y)
+        db.add(s)
+    s.swot = {k: [x.strip()[:300] for x in getattr(body, k) if x.strip()] for k in SWOT_KEYS}
+    s.updated_by = auth.user.id
+    await audit(db, request, "strategy.swot", actor=auth.user, entity="company_strategy", entity_id=y, data={"year": y})
+    await db.commit()
+    await db.refresh(s)
+    return _swot_out(s, y, auth)
 
 
 async def _decide_notify(db: AsyncSession, plan: GoalPlan, dept: Department, auth: AuthContext, result: str) -> list:

@@ -8048,5 +8048,100 @@
       "showAll": "To'liq hujjat",
       "year": "{{year}}-yil"
     }
+  },
+  "stratx": {
+    "steps": {
+      "title": "Strategiya tuzish bosqichlari",
+      "subtitle": "Strategiya — bu har hafta yangilanadigan ish rejasi.",
+      "vision": {
+        "t": "Vizyon va Missiya",
+        "d": "Qayerga boramiz va nima uchun ishlaymiz — bir gapda aniqlang."
+      },
+      "swot": {
+        "t": "Tahlil (SWOT)",
+        "d": "Kuchli va zaif tomonlar, imkoniyat va xavflarni ochiq yozing."
+      },
+      "smart": {
+        "t": "SMART maqsadlar",
+        "d": "Har bir maqsad aniq, o'lchanadigan, erishiladigan va muddatli bo'lsin."
+      },
+      "kpi": {
+        "t": "Bo'limlarga bo'lish (KPI)",
+        "d": "Maqsadni bo'lim, mas'ul va o'lchovga aylantiring."
+      },
+      "weekly": {
+        "t": "Haftalik nazorat",
+        "d": "Har hafta progress, to'siq va keyingi qadamni ko'rib chiqing."
+      },
+      "monthly": {
+        "t": "Oylik reyting",
+        "d": "Reyting asosida ustuvorlikni yangilang, samarasiz ishni to'xtating."
+      }
+    },
+    "swot": {
+      "title": "SWOT tahlil · {{year}}",
+      "hint": "Kompaniyaning ichki va tashqi holati. Har yil boshida yangilanadi.",
+      "strengths": "Kuchli tomonlar",
+      "weaknesses": "Zaif tomonlar",
+      "opportunities": "Imkoniyatlar",
+      "threats": "Xavflar",
+      "placeholder": "Yangi band…",
+      "add": "Qo'shish",
+      "remove": "Olib tashlash",
+      "empty": "Hali kiritilmagan",
+      "saved": "SWOT saqlandi"
+    },
+    "smart": {
+      "title": "SMART mezonlari",
+      "subtitle": "Har bir maqsad besh mezonga javob berishi kerak.",
+      "s": {
+        "t": "Specific — Aniq",
+        "d": "Nima qilinadi va kim uchun — aniq yozilgan."
+      },
+      "m": {
+        "t": "Measurable — O'lchanadigan",
+        "d": "Natija raqam yoki foiz bilan o'lchanadi."
+      },
+      "a": {
+        "t": "Achievable — Erishiladigan",
+        "d": "Mavjud resurs va imkoniyatlar bilan bajarsa bo'ladi."
+      },
+      "r": {
+        "t": "Relevant — Dolzarb",
+        "d": "Kompaniya strategiyasiga bevosita hissa qo'shadi."
+      },
+      "tb": {
+        "t": "Time-bound — Muddatli",
+        "d": "Aniq deadline va bitta mas'ul bor."
+      }
+    },
+    "summary": {
+      "title": "{{year}}-yil SMART maqsadlari",
+      "total": "Umumiy progress",
+      "goals": "{{n}} ta maqsad",
+      "depts": "{{n}} ta bo'lim",
+      "open": "Bo'limlar bo'yicha ochish",
+      "empty": "Bu yil uchun hali maqsad kiritilmagan."
+    },
+    "ranking": {
+      "title": "Bo'limlar reytingi",
+      "hint": "Bajarilish % bo'yicha avtomatik saralanadi: yuqori natija yashil, o'rtacha sariq, past natija qizil.",
+      "leader": "Yetakchi bo'lim",
+      "noData": "Hali progress kiritilmagan",
+      "tasks": "Vazifalar"
+    },
+    "tasks": {
+      "title": "Haftalik vazifalar",
+      "hint": "Maqsadni kichik qadamlarga bo'ling va progressni har hafta yangilang.",
+      "add": "Vazifa qo'shish",
+      "titlePh": "Vazifa nomi",
+      "due": "Muddat",
+      "owner": "Mas'ul",
+      "empty": "Hali vazifa yo'q",
+      "inc": "Progressni oshirish",
+      "dec": "Progressni kamaytirish",
+      "delete": "Vazifani o'chirish",
+      "avg": "Vazifalar bo'yicha: {{p}}%"
+    }
   }
 }

@@ -18,10 +18,11 @@ import { useToast } from '../../components/ui/toastContext'
 import { api, send } from '../../lib/api'
 import { NotFound } from '../../pages/NotFound'
 import { errorText } from '../auth/errorText'
+import { DeptRanking, GoalTasks, type Task } from './GoalExtras'
 
 type Status = 'draft' | 'pending' | 'approved'
 type GoalValues = { title: string; specific: string | null; metric: string; unit: string | null; baseline: number | null; target: number; achievable: string | null; relevant: string | null; deadline: string; owner_user_id: number | null; sort_order: number }
-type GoalRow = GoalValues & { id: number; current: number | null; progress: number | null; owner: string | null }
+type GoalRow = GoalValues & { id: number; current: number | null; progress: number | null; owner: string | null; tasks: Task[]; task_progress: number | null }
 type Change = { id: number; goal_id: number | null; action: 'add' | 'update' | 'remove'; before: GoalValues | null; after: GoalValues | null; reason: string; status: 'pending' | 'approved' | 'rejected'; requested_by: string | null; created_at: string; decided_by: string | null; decision_note: string | null }
 type DeptGoals = {
   year: number
@@ -32,7 +33,7 @@ type DeptGoals = {
   can_edit: boolean
   can_approve: boolean
 }
-type Overview = { year: number; can_approve: boolean; departments: { id: number; name: string; status: Status | null; goals: number; progress: number | null; pending_changes: number }[] }
+type Overview = { year: number; can_approve: boolean; departments: { id: number; name: string; status: Status | null; goals: number; tasks: number; progress: number | null; pending_changes: number }[] }
 
 const BASE = '/api/v1/org/goals'
 const TONE = { draft: 'neutral', pending: 'warning', approved: 'success' } as const
@@ -88,6 +89,7 @@ export function GoalsOverview() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-5">
       <PageHeader title={t('goals.title')} subtitle={t('goals.overviewSubtitle', { year, approved, total: rows.length })} icon={Target} actions={<YearSelect year={year} onChange={setYear} />} />
+      {q.data && <DeptRanking rows={rows} year={year} />}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -96,6 +98,7 @@ export function GoalsOverview() {
                 <th className="px-5 py-2.5 font-medium">{t('org.department')}</th>
                 <th className="px-5 py-2.5 font-medium">{t('goals.statusLabel')}</th>
                 <th className="px-5 py-2.5 font-medium">{t('goals.count')}</th>
+                <th className="px-5 py-2.5 font-medium">{t('stratx.ranking.tasks')}</th>
                 <th className="w-48 px-5 py-2.5 font-medium">{t('goals.progress')}</th>
                 <th className="px-5 py-2.5 font-medium">{t('goals.pendingChanges')}</th>
               </tr>
@@ -103,7 +106,7 @@ export function GoalsOverview() {
             <tbody className="divide-y divide-border">
               {q.isLoading && (
                 <tr>
-                  <td colSpan={5} className="px-5 py-2.5">
+                  <td colSpan={6} className="px-5 py-2.5">
                     <Skeleton className="h-24" />
                   </td>
                 </tr>
@@ -119,6 +122,7 @@ export function GoalsOverview() {
                     <StatusBadge status={r.status} />
                   </td>
                   <td className="px-5 py-2.5 tabular-nums">{r.goals}</td>
+                  <td className="px-5 py-2.5 tabular-nums">{r.tasks}</td>
                   <td className="px-5 py-2.5">
                     <ProgressBar value={r.progress} />
                   </td>
@@ -305,6 +309,7 @@ export function DepartmentGoalsPage() {
             </>
           }
           progressEditor={canEdit && status === 'approved' ? <ProgressEditor g={g} onSave={(v) => run(() => send('PUT', `${BASE}/items/${g.id}/progress`, { current: v }), t('common.saved'))} busy={busy} /> : null}
+          tasks={<GoalTasks goalId={g.id} tasks={g.tasks} canEdit={canEdit} />}
         />
       ))}
 
@@ -320,7 +325,7 @@ export function DepartmentGoalsPage() {
   )
 }
 
-function GoalCard({ n, g, actions, progressEditor }: { n: number; g: GoalRow; actions: ReactNode; progressEditor: ReactNode }) {
+function GoalCard({ n, g, actions, progressEditor, tasks }: { n: number; g: GoalRow; actions: ReactNode; progressEditor: ReactNode; tasks?: ReactNode }) {
   const { t } = useTranslation()
   const row = (k: string, v: ReactNode) =>
     v ? (
@@ -352,9 +357,11 @@ function GoalCard({ n, g, actions, progressEditor }: { n: number; g: GoalRow; ac
               <ProgressBar value={g.progress} />
             </div>
           </div>
+          {g.task_progress !== null && <span className="text-xs text-muted">{t('stratx.tasks.avg', { p: g.task_progress })}</span>}
           {progressEditor}
         </div>
       </div>
+      {tasks}
     </Card>
   )
 }

@@ -71,3 +71,30 @@ class GoalChange(Base):
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     decision_note: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class GoalTask(Base, TimestampMixin):
+    """Maqsad bo'yicha haftalik vazifa: bo'lim maqsadni kichik qadamlarga bo'ladi va progressni har hafta yangilaydi."""
+
+    __tablename__ = "goal_tasks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    goal_id: Mapped[int] = mapped_column(ForeignKey("goals.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    owner_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    due_date: Mapped[date | None] = mapped_column(Date)
+    progress: Mapped[int] = mapped_column(Integer, default=0)  # 0..100
+    note: Mapped[str | None] = mapped_column(Text)  # to'siq / keyingi qadam
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class CompanyStrategy(Base, TimestampMixin):
+    """Yillik kompaniya strategiyasi: SWOT tahlil (kuchli/zaif tomonlar, imkoniyat/xavflar)."""
+
+    __tablename__ = "company_strategy"
+    __table_args__ = (UniqueConstraint("year", name="uq_company_strategy_year"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    year: Mapped[int] = mapped_column(Integer)
+    swot: Mapped[dict] = mapped_column(JSONB, default=dict, server_default="{}")
+    updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))

@@ -83,3 +83,45 @@ async def test_submit_requires_goals(new_client):
     assert (await hr.delete(f"{R}/items/{gid}")).status_code == 204
     assert (await hr.post(f"{R}/departments/{dept}/submit?year={Y}")).json()["detail"]["code"] == "no_goals"
     assert (await hr.put(f"{R}/items/{gid}/progress", json={"current": 1})).status_code == 404
+
+
+async def test_goal_tasks_and_ranking(new_client):
+    boss, _ = await as_user(new_client, "boss2", "tasischi")
+    head, head_uid = await as_user(new_client, "head2", "farmasevt")
+    other, _ = await as_user(new_client, "other2", "farmasevt")
+    async with SessionLocal() as s:
+        d = Department(name="Marketing", head_user_id=head_uid)
+        s.add(d)
+        await s.commit()
+        dept = d.id
+    gid = (await head.post(f"{R}/departments/{dept}?year={Y}", json=goal())).json()["id"]
+
+    assert (await other.post(f"{R}/items/{gid}/tasks", json={"title": "Kontent reja"})).status_code == 403
+    t1 = (await head.post(f"{R}/items/{gid}/tasks", json={"title": "Kontent reja", "due_date": f"{Y}-03-01"})).json()["id"]
+    t2 = (await head.post(f"{R}/items/{gid}/tasks", json={"title": "Hamkorlar bilan uchrashuv", "owner_user_id": head_uid})).json()["id"]
+    assert (await head.put(f"{R}/tasks/{t1}/progress", json={"progress": 80})).json()["progress"] == 80
+    assert (await head.put(f"{R}/tasks/{t2}/progress", json={"progress": 40})).status_code == 200
+    assert (await head.put(f"{R}/tasks/{t2}/progress", json={"progress": 140})).status_code == 422
+
+    g = (await boss.get(f"{R}/departments/{dept}?year={Y}")).json()["goals"][0]
+    assert [t["title"] for t in g["tasks"]] == ["Kontent reja", "Hamkorlar bilan uchrashuv"]
+    assert g["task_progress"] == 60 and g["progress"] is None and g["effective_progress"] == 60
+    row = next(r for r in (await boss.get(f"{R}?year={Y}")).json()["departments"] if r["id"] == dept)
+    assert row["progress"] == 60 and row["tasks"] == 2
+
+    assert (await other.delete(f"{R}/tasks/{t2}")).status_code == 403
+    assert (await head.delete(f"{R}/tasks/{t2}")).status_code == 204
+    assert (await boss.get(f"{R}/departments/{dept}?year={Y}")).json()["goals"][0]["task_progress"] == 80
+
+
+async def test_strategy_swot(new_client):
+    boss, _ = await as_user(new_client, "boss3", "tasischi")
+    emp, _ = await as_user(new_client, "emp3", "farmasevt")
+    empty = (await boss.get(f"{R}/strategy?year={Y}")).json()
+    assert empty["strengths"] == [] and empty["can_edit"]
+    body = {"strengths": ["Kuchli brend", "  "], "weaknesses": ["Kam filial"], "opportunities": [], "threats": ["Raqobat"]}
+    assert (await emp.put(f"{R}/strategy?year={Y}", json=body)).status_code == 403
+    saved = (await boss.put(f"{R}/strategy?year={Y}", json=body)).json()
+    assert saved["strengths"] == ["Kuchli brend"] and saved["threats"] == ["Raqobat"]
+    assert (await boss.put(f"{R}/strategy?year={Y}", json={**body, "opportunities": ["Yangi hudud"]})).json()["opportunities"] == ["Yangi hudud"]
+    assert (await boss.get(f"{R}/strategy?year={Y + 1}")).json()["weaknesses"] == []
