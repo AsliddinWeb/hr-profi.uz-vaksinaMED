@@ -48,7 +48,13 @@ else
 fi
 
 echo "3/3 Docker ishga tushirilmoqda (birinchi marta bir necha daqiqa)..."
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --remove-orphans
+DC="docker compose -f docker-compose.yml -f docker-compose.dev.yml"
+# Kompyuter qayta yonganda API birinchi marta sekin ko'tariladi (migratsiya + reload): health kutish vaqti tugasa, kutib qayta urinamiz
+if ! $DC up -d --build --remove-orphans; then
+  echo "API sekin ko'tarilyapti, kutilmoqda..."
+  for i in $(seq 1 60); do [ "$(docker inspect -f '{{.State.Health.Status}}' vaksinahr-api-1 2>/dev/null)" = healthy ] && break; sleep 5; done
+  $DC up -d
+fi
 PORT=$(grep '^GATEWAY_PORT=' .env | cut -d= -f2- | tr -d '\r')
 URL="http://localhost:${PORT:-6790}"
 for i in $(seq 1 30); do curl -s -o /dev/null "$URL" && break; sleep 2; done
