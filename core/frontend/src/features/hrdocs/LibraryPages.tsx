@@ -19,6 +19,7 @@ import { NotFound } from '../../pages/NotFound'
 import { errorText } from '../auth/errorText'
 import { useCan } from '../auth/useAuth'
 import { CATEGORIES, type Category, type DocMedia, type HrDoc } from './api'
+import { MediaEditor } from './MediaEditor'
 
 const area = 'w-full rounded-control border border-border bg-surface px-3 py-2 text-sm'
 const LIST = '/hr/library'
@@ -308,29 +309,7 @@ function DocForm({ doc }: { doc: HrDoc | null }) {
           <Field label={t('hrdocs.body')}>{(fid) => <textarea id={fid} value={body} onChange={(e) => setBody(e.target.value)} rows={14} className={area} />}</Field>
         </FormSection>
         <FormSection title={t('hrdocs.media')} description={t('hrdocs.mediaHint')}>
-          {media.map((m, i) => (
-            <div key={i} className="grid gap-2 sm:grid-cols-[8rem_1fr_1fr_6rem_auto]">
-              <Select aria-label={t('hrdocs.mediaKind.video')} value={m.kind} onChange={(e) => setMedia(media.map((x, j) => (j === i ? { ...x, kind: e.target.value as DocMedia['kind'] } : x)))}>
-                {(['video', 'slides', 'link'] as const).map((k) => (
-                  <option key={k} value={k}>
-                    {t(`hrdocs.mediaKind.${k}`)}
-                  </option>
-                ))}
-              </Select>
-              <Input aria-label={t('hrdocs.mediaUrl')} placeholder={t('hrdocs.mediaUrl')} value={m.url} onChange={(e) => setMedia(media.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} maxLength={500} inputMode="url" />
-              <Input aria-label={t('hrdocs.mediaTitle')} placeholder={t('hrdocs.mediaTitle')} value={m.title ?? ''} onChange={(e) => setMedia(media.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} maxLength={120} />
-              <Input type="number" aria-label={t('hrdocs.mediaYear')} placeholder={t('hrdocs.mediaYear')} value={m.year ?? ''} min={2000} max={2100} onChange={(e) => setMedia(media.map((x, j) => (j === i ? { ...x, year: e.target.value ? Number(e.target.value) : null } : x)))} />
-              <Button type="button" variant="ghost" className="text-danger" aria-label={t('hrdocs.mediaRemove')} onClick={() => setMedia(media.filter((_, j) => j !== i))}>
-                <Trash2 className="size-4" />
-              </Button>
-            </div>
-          ))}
-          <div>
-            <Button type="button" variant="outline" onClick={() => setMedia([...media, { kind: 'video', url: '', title: null }])}>
-              <Plus className="size-4" />
-              {t('hrdocs.mediaAdd')}
-            </Button>
-          </div>
+          <MediaEditor media={media} setMedia={setMedia} onError={(e) => setError(errorText(t, e))} />
         </FormSection>
         <FormSection title={t('hrdocs.access')} description={t('hrdocs.accessHint')}>
           <label className="flex items-center gap-2 text-sm">

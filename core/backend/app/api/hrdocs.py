@@ -1,9 +1,10 @@
 """HR hujjatlar kutubxonasi: kartochkalar, versiyalar, fayl, «tanishdim» tasdig'i."""
 
+import re
 from typing import Any
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, File, Query, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Header, Query, Request, Response, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -15,6 +16,7 @@ from app.models.auth import Role
 from app.models.hrdocs import HrDocument, HrDocumentAck, HrDocumentVersion
 from app.services import hrdocs as svc
 from app.services.audit import audit
+from app.services.media import VIDEO_MIME, slides_from_upload, video_from_upload
 from app.services.notifications import deliver, notify
 from app.services.uploads import MAX_DOC_BYTES, read_upload, storage_key
 from app.timeutil import now
@@ -105,6 +107,39 @@ async def pending_count(db: AsyncSession = Depends(get_session), auth: AuthConte
     acks = {a.document_id: a for a in (await db.scalars(select(HrDocumentAck).where(HrDocumentAck.user_id == auth.user.id))).all()}
     docs = (await db.scalars(select(HrDocument).where(HrDocument.status == "published", HrDocument.requires_ack.is_(True)))).all()
     return {"count": sum(1 for d in docs if svc.visible_to(d, auth) and svc.needs_ack(d, acks.get(d.id)))}
+
+
+_MEDIA_NAME = re.compile(r"^[0-9a-f]{32}\.(jpg|png|webp|mp4|webm)$")
+_MEDIA_MIME = {"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp", **{k: v for k, v in VIDEO_MIME.items()}}
+
+
+@router.post("/media", status_code=201)
+async def upload_media(request: Request, kind: str = Form(pattern="^(slides|video)$"), file: UploadFile = File(...), auth: AuthContext = Depends(get_auth)) -> dict[str, list[dict[str, Any]]]:
+    _need_manage(auth)
+    stored = await slides_from_upload(file) if kind == "slides" else [await video_from_upload(file)]
+    for item in stored:
+        await request.app.state.storage.put(item.key, item.data, item.mime)
+    return {"items": [{"kind": kind, "url": f"/api/v1/hrdocs/media/{item.name}", "title": None} for item in stored]}
+
+
+@router.get("/media/{name}")
+async def get_media(name: str, request: Request, range: str | None = Header(default=None), auth: AuthContext = Depends(get_auth)):
+    if not _MEDIA_NAME.match(name):
+        raise error(404, "not_found")
+    storage = request.app.state.storage
+    key = f"hrdocs/media/{name}"
+    headers = {"X-Content-Type-Options": "nosniff", "Cache-Control": "private, max-age=86400", "Accept-Ranges": "bytes"}
+    mime = _MEDIA_MIME[name.rsplit(".", 1)[-1]]
+    span = re.fullmatch(r"bytes=(\d*)-(\d*)", range or "")
+    if not span or not any(span.groups()):
+        return StreamingResponse(storage.stream(key), media_type=mime, headers=headers)
+    total = await storage.size(key)
+    first, last = span.groups()
+    start, end = (total - int(last), total - 1) if not first else (int(first), min(int(last or total - 1), total - 1))
+    if start > end or start >= total:
+        return Response(status_code=416, headers={"Content-Range": f"bytes */{total}"})
+    headers |= {"Content-Range": f"bytes {start}-{end}/{total}", "Content-Length": str(end - start + 1)}
+    return StreamingResponse(storage.stream(key, start, end - start + 1), status_code=206, media_type=mime, headers=headers)
 
 
 @router.post("", status_code=201)
