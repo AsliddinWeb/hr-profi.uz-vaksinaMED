@@ -15,7 +15,8 @@ CHUNK = 64 * 1024
 
 class Storage(Protocol):
     async def put(self, key: str, data: bytes, content_type: str) -> None: ...
-    def stream(self, key: str) -> AsyncIterator[bytes]: ...
+    def stream(self, key: str, start: int = 0, length: int = 0) -> AsyncIterator[bytes]: ...
+    async def size(self, key: str) -> int: ...
     async def delete(self, key: str) -> None: ...
 
 
@@ -41,8 +42,12 @@ class MinioStorage:
 
         await asyncio.to_thread(run)
 
-    async def stream(self, key: str) -> AsyncIterator[bytes]:
-        response = await asyncio.to_thread(self._client.get_object, self._bucket, key)
+    async def size(self, key: str) -> int:
+        stat = await asyncio.to_thread(self._client.stat_object, self._bucket, key)
+        return stat.size or 0
+
+    async def stream(self, key: str, start: int = 0, length: int = 0) -> AsyncIterator[bytes]:
+        response = await asyncio.to_thread(self._client.get_object, self._bucket, key, offset=start, length=length)
         iterator: Iterator[bytes] = response.stream(CHUNK)
         try:
             while True:

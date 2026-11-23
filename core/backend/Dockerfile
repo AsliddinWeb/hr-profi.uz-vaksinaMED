@@ -6,6 +6,7 @@ RUN useradd --create-home --uid 1000 app
 COPY scripts/fetch_models.py /tmp/fetch_models.py
 RUN python /tmp/fetch_models.py /opt/models
 ENV FACE_MODEL_DIR=/opt/models
+RUN apt-get update && apt-get install -y --no-install-recommends libreoffice-impress fonts-dejavu-core fonts-liberation && rm -rf /var/lib/apt/lists/*
 
 FROM base AS dev
 ENV RUFF_CACHE_DIR=/tmp/.ruff_cache PYTEST_ADDOPTS="-p no:cacheprovider"
