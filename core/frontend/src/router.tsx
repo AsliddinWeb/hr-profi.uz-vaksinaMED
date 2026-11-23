@@ -3172,7 +3172,7 @@ export function createRouter() {
                   ),
                 },
                 {
-                  path: "strategy",
+                  path: "strategy/:key?",
                   element: (
                     <RequirePerm perm="hrdocs.read">
                       <StrategyPage />

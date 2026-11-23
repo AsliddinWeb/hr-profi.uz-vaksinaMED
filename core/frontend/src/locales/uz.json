@@ -117,6 +117,7 @@
       "recruit": "Rekruting",
       "structure": "Tuzilma",
       "kadrdocs": "Kadr hujjatlari",
+      "strategy": "Strategiya va maqsadlar",
       "growth": "Rivojlanish"
     }
   },
@@ -6411,6 +6412,7 @@
     "subHint": {
       "structure": "Kompaniya tuzilmasi: bo'limlar, lavozimlar, filiallar va o'tkazishlar",
       "kadrdocs": "Kadrlar hujjatlari: kutubxona, ariza va buyruqlar, kadrovik ishi",
+      "strategy": "Kompaniya strategiyasi: oliy maqsad, missiya, strategiya, SMART maqsad, qadriyat va shior",
       "growth": "Xodimni rivojlantirish, baholash, ushlab qolish va ishdan ketish"
     }
   },
