@@ -1,45 +1,70 @@
 import { useMutation } from '@tanstack/react-query'
 import { Link2, Loader2, Presentation, Trash2, Upload, Video } from 'lucide-react'
-import { useRef, useState, type Dispatch, type SetStateAction } from 'react'
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
+import { useConfirm } from '../../components/ui/confirmContext'
 import { upload } from '../../lib/api'
 import { embedOf } from '../company/embed'
 import type { DocMedia } from './api'
 
 type Kind = 'slides' | 'video'
+type Mode = 'append' | 'replace'
 
 export function MediaEditor({ media, setMedia, onError }: { media: DocMedia[]; setMedia: Dispatch<SetStateAction<DocMedia[]>>; onError: (e: unknown) => void }) {
   const { t } = useTranslation()
   const slideInput = useRef<HTMLInputElement>(null)
   const videoInput = useRef<HTMLInputElement>(null)
+  const dialog = useRef<HTMLDialogElement>(null)
+  const confirm = useConfirm()
   const [link, setLink] = useState('')
+  const [queued, setQueued] = useState<File[] | null>(null)
   const send = useMutation({
-    mutationFn: async ({ kind, files }: { kind: Kind; files: File[] }) => {
+    mutationFn: async ({ kind, files, mode }: { kind: Kind; files: File[]; mode: Mode }) => {
+      const added: DocMedia[] = []
       for (const file of files) {
         const fd = new FormData()
         fd.append('kind', kind)
         fd.append('file', file)
         const r = await upload<{ items: DocMedia[] }>('POST', '/api/v1/hrdocs/media', fd)
-        setMedia((m) => [...m, ...r.items])
+        if (mode === 'append') setMedia((m) => [...m, ...r.items])
+        else added.push(...r.items)
       }
+      if (mode === 'replace') setMedia((m) => [...m.filter((x) => x.kind !== 'slides'), ...added])
     },
     onError,
   })
+  const slides = media.map((m, i) => ({ m, i })).filter(({ m }) => m.kind === 'slides')
+  const hasSlides = slides.length > 0
   const busy = (kind: Kind) => send.isPending && send.variables?.kind === kind
   const pick = (kind: Kind, input: HTMLInputElement) => {
-    if (input.files?.length) send.mutate({ kind, files: [...input.files] })
+    const files = input.files?.length ? [...input.files] : null
     input.value = ''
+    if (!files) return
+    if (kind === 'slides' && hasSlides) setQueued(files)
+    else send.mutate({ kind, files, mode: 'append' })
   }
+  const choose = (mode: Mode | null) => {
+    const files = queued
+    setQueued(null)
+    if (files && mode) send.mutate({ kind: 'slides', files, mode })
+  }
+  const clearSlides = async () => {
+    const ok = await confirm({ title: t('hrdocs.mediaClearTitle'), body: t('hrdocs.mediaClearBody'), confirmLabel: t('hrdocs.mediaClearConfirm'), danger: true })
+    if (ok) setMedia((m) => m.filter((x) => x.kind !== 'slides'))
+  }
+  useEffect(() => {
+    if (queued && dialog.current && !dialog.current.open) dialog.current.showModal()
+    if (!queued && dialog.current?.open) dialog.current.close()
+  }, [queued])
   const remove = (i: number) => setMedia((m) => m.filter((_, j) => j !== i))
   const addLink = () => {
     if (!/^https:\/\/\S+$/.test(link.trim())) return
     setMedia((m) => [...m, { kind: 'video', url: link.trim(), title: null }])
     setLink('')
   }
-  const slides = media.map((m, i) => ({ m, i })).filter(({ m }) => m.kind === 'slides')
   const videos = media.map((m, i) => ({ m, i })).filter(({ m }) => m.kind !== 'slides')
   return (
     <div className="flex flex-col gap-6">
@@ -47,10 +72,18 @@ export function MediaEditor({ media, setMedia, onError }: { media: DocMedia[]; s
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-semibold">{t('hrdocs.mediaSlides')}</h3>
           <input ref={slideInput} type="file" multiple hidden accept="image/jpeg,image/png,image/webp,.pdf,.pptx" onChange={(e) => pick('slides', e.currentTarget)} />
-          <Button type="button" variant="outline" disabled={send.isPending} onClick={() => slideInput.current?.click()}>
-            {busy('slides') ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-            {busy('slides') ? t('hrdocs.mediaConverting') : t('hrdocs.mediaUploadSlides')}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {hasSlides && (
+              <Button type="button" variant="ghost" className="text-danger" disabled={send.isPending} onClick={() => void clearSlides()}>
+                <Trash2 className="size-4" />
+                {t('hrdocs.mediaClearAll')}
+              </Button>
+            )}
+            <Button type="button" variant="outline" disabled={send.isPending} onClick={() => slideInput.current?.click()}>
+              {busy('slides') ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+              {busy('slides') ? t('hrdocs.mediaConverting') : t('hrdocs.mediaUploadSlides')}
+            </Button>
+          </div>
         </div>
         <p className="text-xs text-muted">{t('hrdocs.mediaSlidesHint')}</p>
         {slides.length > 0 && (
@@ -125,6 +158,30 @@ export function MediaEditor({ media, setMedia, onError }: { media: DocMedia[]; s
           </Button>
         </div>
       </section>
+      <dialog
+        ref={dialog}
+        onCancel={(e) => {
+          e.preventDefault()
+          choose(null)
+        }}
+        className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-card bg-surface p-0 text-text shadow-pop backdrop:bg-black/40 backdrop:backdrop-blur-[2px]"
+      >
+        <div className="p-6">
+          <h2 className="text-base font-medium tracking-tight">{t('hrdocs.mediaAskTitle')}</h2>
+          <p className="mt-2 text-sm text-muted">{t('hrdocs.mediaAskBody')}</p>
+          <div className="mt-6 flex flex-col gap-2">
+            <Button type="button" autoFocus onClick={() => choose('append')}>
+              {t('hrdocs.mediaAppend')}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => choose('replace')}>
+              {t('hrdocs.mediaReplace')}
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => choose(null)}>
+              {t('common.cancel')}
+            </Button>
+          </div>
+        </div>
+      </dialog>
     </div>
   )
 }

@@ -5316,7 +5316,15 @@
     "mediaLink": "Ссылка YouTube (https://…)",
     "mediaYear": "Год",
     "mediaAdd": "Добавить",
-    "mediaRemove": "Удалить"
+    "mediaRemove": "Удалить",
+    "mediaClearAll": "Удалить все",
+    "mediaClearTitle": "Удалить все слайды?",
+    "mediaClearBody": "Вы уверены? Все слайды будут убраны из списка.",
+    "mediaClearConfirm": "Да, удалить",
+    "mediaAskTitle": "Слайды уже есть",
+    "mediaAskBody": "Как добавить новый файл?",
+    "mediaAppend": "Добавить в конец текущих слайдов",
+    "mediaReplace": "Новые слайды (старые удалятся)"
   },
   "references": {
     "title": "Справки с места работы",

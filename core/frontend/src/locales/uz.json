@@ -5317,7 +5317,15 @@
     "mediaLink": "YouTube havolasi (https://…)",
     "mediaYear": "Yil",
     "mediaAdd": "Qo'shish",
-    "mediaRemove": "O'chirish"
+    "mediaRemove": "O'chirish",
+    "mediaClearAll": "Hammasini o'chirish",
+    "mediaClearTitle": "Barcha slaydlar o'chirilsinmi?",
+    "mediaClearBody": "Ishonchingiz komilmi? Hamma slaydlar ro'yxatdan olib tashlanadi.",
+    "mediaClearConfirm": "Ha, o'chirish",
+    "mediaAskTitle": "Slaydlar allaqachon bor",
+    "mediaAskBody": "Yangi fayl qanday qo'shilsin?",
+    "mediaAppend": "Hozirgi slaydlarning davomiga qo'shish",
+    "mediaReplace": "Yangi slayd (eskilari o'chadi)"
   },
   "references": {
     "title": "Ish joyi ma'lumotnomalari",
