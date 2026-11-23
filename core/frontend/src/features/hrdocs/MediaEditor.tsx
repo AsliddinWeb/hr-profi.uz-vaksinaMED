@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
-import { Link2, Loader2, Presentation, Trash2, Upload, Video } from 'lucide-react'
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
+import { GripVertical, Link2, Loader2, Presentation, Trash2, Upload, Video } from 'lucide-react'
+import { useEffect, useRef, useState, type DragEvent, type Dispatch, type SetStateAction } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../components/ui/Button'
@@ -59,6 +59,42 @@ export function MediaEditor({ media, setMedia, onError }: { media: DocMedia[]; s
     if (queued && dialog.current && !dialog.current.open) dialog.current.showModal()
     if (!queued && dialog.current?.open) dialog.current.close()
   }, [queued])
+  const [drag, setDrag] = useState<number | null>(null)
+  const [over, setOver] = useState<number | null>(null)
+  const isSlide = (i: number) => media[i]?.kind === 'slides'
+  const drop = (to: number) => {
+    const from = drag
+    setDrag(null)
+    setOver(null)
+    if (from === null || from === to || isSlide(from) !== isSlide(to)) return
+    setMedia((m) => {
+      const a = [...m]
+      const [x] = a.splice(from, 1)
+      a.splice(to, 0, x)
+      return a
+    })
+  }
+  const dnd = (i: number) => ({
+    draggable: true,
+    onDragStart: (e: DragEvent<HTMLLIElement>) => {
+      e.dataTransfer.effectAllowed = 'move'
+      setDrag(i)
+    },
+    onDragOver: (e: DragEvent<HTMLLIElement>) => {
+      if (drag === null || isSlide(drag) !== isSlide(i)) return
+      e.preventDefault()
+      setOver(i)
+    },
+    onDrop: (e: DragEvent<HTMLLIElement>) => {
+      e.preventDefault()
+      drop(i)
+    },
+    onDragEnd: () => {
+      setDrag(null)
+      setOver(null)
+    },
+  })
+  const dndClass = (i: number) => `${drag === i ? 'opacity-40' : ''} ${over === i && drag !== i ? 'ring-2 ring-primary/50' : ''}`
   const remove = (i: number) => setMedia((m) => m.filter((_, j) => j !== i))
   const addLink = () => {
     if (!/^https:\/\/\S+$/.test(link.trim())) return
@@ -89,7 +125,7 @@ export function MediaEditor({ media, setMedia, onError }: { media: DocMedia[]; s
         {slides.length > 0 && (
           <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
             {slides.map(({ m, i }, n) => (
-              <li key={`${m.url}-${i}`} className="relative overflow-hidden rounded-control border border-border bg-surface-2">
+              <li key={`${m.url}-${i}`} {...dnd(i)} className={`relative cursor-grab overflow-hidden rounded-control border border-border bg-surface-2 ${dndClass(i)}`}>
                 {embedOf(m.url).mode === 'image' ? (
                   <img src={m.url} alt="" className="aspect-video w-full object-cover" />
                 ) : (
@@ -98,6 +134,9 @@ export function MediaEditor({ media, setMedia, onError }: { media: DocMedia[]; s
                   </div>
                 )}
                 <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 text-xs text-white">{n + 1}</span>
+                <span className="absolute left-1 top-1 grid size-7 place-items-center rounded-full bg-surface/90 text-muted shadow-card">
+                  <GripVertical className="size-3.5" />
+                </span>
                 <button type="button" aria-label={t('hrdocs.mediaRemove')} onClick={() => remove(i)} className="absolute right-1 top-1 grid size-7 place-items-center rounded-full bg-surface/90 text-danger shadow-card hover:bg-surface">
                   <Trash2 className="size-3.5" />
                 </button>
@@ -112,7 +151,8 @@ export function MediaEditor({ media, setMedia, onError }: { media: DocMedia[]; s
         {videos.length > 0 && (
           <ul className="flex flex-col gap-2">
             {videos.map(({ m, i }) => (
-              <li key={`${m.url}-${i}`} className="flex items-center gap-2 rounded-control border border-border px-3 py-2">
+              <li key={`${m.url}-${i}`} {...dnd(i)} className={`flex items-center gap-2 rounded-control border border-border px-3 py-2 ${dndClass(i)}`}>
+                <GripVertical className="size-4 shrink-0 cursor-grab text-muted" />
                 {m.url.startsWith('/api/') ? <Video className="size-4 shrink-0 text-muted" /> : <Link2 className="size-4 shrink-0 text-muted" />}
                 <span className="min-w-0 flex-1 truncate text-sm">{m.url.startsWith('/api/') ? t('hrdocs.mediaUploaded') : m.url}</span>
                 <Input
