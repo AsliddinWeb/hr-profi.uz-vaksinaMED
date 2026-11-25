@@ -184,7 +184,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
                 <div className="mb-1 truncate px-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted">{t(`nav.group.${s.group}`)}</div>
                 <div className="flex flex-col gap-0.5">
                   {chunks(s.items).map((c) =>
-                    !c.sub ? (
+                    !c.sub || c.items.length === 1 ? (
                       c.items.map((it) => link(it, false))
                     ) : (
                       (() => {
