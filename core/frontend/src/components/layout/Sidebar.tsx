@@ -1,7 +1,7 @@
-import { ChevronRight, FolderOpen, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react'
+import { ChevronRight, FolderOpen, PanelLeftClose, PanelLeftOpen, Search, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 
 import { BrandLogo } from './BrandLogo'
 import { getExtensionNavItems, type NavItem } from '../../extensions/registry'
@@ -56,7 +56,6 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
   const { t, i18n } = useTranslation()
   const lang = i18n.language === 'ru' ? 'ru' : 'uz'
   const { pathname } = useLocation()
-  const navigate = useNavigate()
   const { data: meta } = useMeta()
   const can = useCan()
   const inbox = useInboxCount()
@@ -64,6 +63,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
   const taskCount = useTaskCount()
   const needCount = useNeedCount()
   const pendingPenalties = usePendingPenalties()
+  const [query, setQuery] = useState('')
   const [rail, setRail] = useState<boolean>(() => load(RAIL_KEY, false))
   const [subOpen, setSubOpen] = useState<Record<string, boolean>>(() => load(SUB_KEY, {}))
   const toggleSub = (k: string, cur: boolean) =>
@@ -146,6 +146,8 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
   }
 
   const compact = rail
+  const needle = query.trim().toLowerCase()
+  const found = needle ? allItems.filter((it) => it.id !== 'home' && (it.label.uz.toLowerCase().includes(needle) || it.label.ru.toLowerCase().includes(needle))) : []
   return (
     <>
       <div className={cn('fixed inset-0 z-30 bg-black/40 backdrop-blur-[2px] lg:hidden', open ? 'block' : 'hidden')} onClick={onClose} aria-hidden />
@@ -169,9 +171,24 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
           </button>
         </div>
 
+        {!compact && (
+          <div className="relative px-1.5 pb-2">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-3.5 -translate-y-[60%] text-muted" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Escape' && setQuery('')}
+              placeholder={t('app.menuSearch')}
+              aria-label={t('app.menuSearch')}
+              className="h-9 w-full rounded-[10px] bg-surface-2 pl-8 pr-2 text-[13px] outline-none placeholder:text-muted focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
+        )}
+
         <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden pb-2">
-          <div className="flex flex-col gap-0.5 pb-1">{main.map((it) => link(it, compact))}</div>
-          {sections.map((s) => {
+          {needle && !compact && (found.length ? found.map((it) => link(it, false)) : <p className="px-2.5 py-6 text-center text-[13px] text-muted">{t('app.menuNone')}</p>)}
+          {(!needle || compact) && <div className="flex flex-col gap-0.5 pb-1">{main.map((it) => link(it, compact))}</div>}
+          {(!needle || compact) && sections.map((s) => {
             if (compact) {
               return (
                 <div key={s.group} className="mt-1.5 flex flex-col gap-0.5 border-t border-border pt-1.5">
@@ -196,11 +213,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
                           <div key={key}>
                             <button
                               type="button"
-                              onClick={() => {
-                                if (!isOpen || pathname === `/hub/${c.sub}`) toggleSub(key, isOpen)
-                                navigate(`/hub/${c.sub}`)
-                                onClose()
-                              }}
+                              onClick={() => toggleSub(key, isOpen)}
                               aria-expanded={isOpen}
                               style={colorVars(groupColor(s.group as NavItem['group']))}
                               className={cn('flex h-10 w-full items-center gap-3 rounded-[10px] px-1.5 text-sm font-medium text-text transition-colors hover:bg-surface-2', hasActive && !isOpen && 'bg-[color-mix(in_oklab,var(--gc)_10%,transparent)]')}

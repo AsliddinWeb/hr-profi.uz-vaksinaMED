@@ -78,7 +78,9 @@
   "app": {
     "loading": "Yuklanmoqda…",
     "menu": "Menyu",
-    "search": "Qidirish…"
+    "search": "Qidirish…",
+    "menuSearch": "Menyudan qidirish",
+    "menuNone": "Hech narsa topilmadi"
   },
   "nav": {
     "system": "Tizim holati",
@@ -107,12 +109,14 @@
       "ai": "AI yordamchi",
       "reports": "Hisobotlar",
       "migration": "Migratsiya",
+      "more": "Qo'shimcha",
       "org": "Tashkiliy tuzilma",
       "hr": "HR bo'limi",
       "main": "Asosiy",
       "revision": "Reviziya"
     },
     "sub": {
+      "extra": "Qo'shimcha vositalar",
       "preboarding": "Prebording",
       "recruit": "Rekruting",
       "structure": "Tuzilma",
@@ -6424,6 +6428,7 @@
     "sectionsTitle": "Bo'limlar va ular nima qiladi",
     "noAccess": "Bu papkada sizga ochiq bo'lim yo'q",
     "subHint": {
+      "extra": "Migratsiya, hisobotlar markazi, AI foydalanish va qo'ng'iroqlar",
       "structure": "Kompaniya tuzilmasi: bo'limlar, lavozimlar, filiallar va o'tkazishlar",
       "kadrdocs": "Kadrlar hujjatlari: kutubxona, ariza va buyruqlar, kadrovik ishi",
       "strategy": "Kompaniya strategiyasi: oliy maqsad, missiya, strategiya, SMART maqsad, qadriyat va shior",
@@ -7065,6 +7070,7 @@
     "subtitle": "Hamma soha bo'yicha ishingiz va umumiy nazorat bitta joyda",
     "mine": "Mening ishim",
     "all": "Umumiy nazorat",
+    "empty": "Hozircha kutayotgan ish yo'q",
     "guests_inside": "Hozir binoda",
     "guests_expected": "Bugun kutilmoqda",
     "guests_today": "Bugun kelgan mehmon",
