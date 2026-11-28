@@ -32,6 +32,7 @@ const COLORS: Record<GroupKey, string> = {
   ai: 'violet',
   reports: 'blue',
   migration: 'amber',
+  more: 'slate',
   pharmacy: 'green',
   admin: 'slate',
   system: 'slate',

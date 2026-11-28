@@ -69,7 +69,7 @@ async function toError(res: Response): Promise<ApiError> {
   } catch {
     /* JSON emas */
   }
-  return new ApiError(res.status, 'unknown')
+  return new ApiError(res.status, res.status === 413 ? 'file_too_large' : 'unknown')
 }
 
 /** JSON so'rov. `okStatuses` — xato hisoblanmaydigan qo'shimcha kodlar (masalan 503 readiness). */

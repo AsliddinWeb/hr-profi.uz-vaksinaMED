@@ -23,7 +23,10 @@ export function DeskPanel() {
   const block = (title: string, cards: DeskCard[]) =>
     cards.length > 0 && (
       <section className="flex flex-col gap-2.5">
-        <h2 className="text-[13px] font-semibold uppercase tracking-wider text-muted">{title}</h2>
+        <div className="flex flex-wrap items-baseline gap-x-3">
+          <h2 className="text-[13px] font-semibold uppercase tracking-wider text-muted">{title}</h2>
+          {cards.every((c) => !c.value) && <span className="text-xs text-muted">{t('desk.empty')}</span>}
+        </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {cards.map((c) => (
             <Link key={c.key} to={c.to}>

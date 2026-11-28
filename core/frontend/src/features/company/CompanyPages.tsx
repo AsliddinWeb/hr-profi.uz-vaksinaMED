@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
-import { ArrowRight, ClipboardList, FileCheck2, Gavel, Scale, Target, type LucideIcon } from 'lucide-react'
+import { ArrowRight, ClipboardList, FileCheck2, Gavel, Scale, type LucideIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Skeleton } from '../../components/ui/Skeleton'
@@ -54,6 +54,9 @@ function Split({
   header,
   numbered = false,
   below,
+  selectedKey,
+  onPick,
+  hideList = false,
 }: {
   entries: DocEntry[]
   extra?: React.ReactNode
@@ -61,23 +64,32 @@ function Split({
   numbered?: boolean
   /** Tanlangan hujjat ostida qo'shimcha bloklar (masalan strategiya uchun SWOT); faqat «To'liq hujjat» ko'rinishida */
   below?: (key: string | null) => React.ReactNode
+  selectedKey?: string
+  onPick?: (key: string) => void
+  hideList?: boolean
 }) {
   const [picked, setPicked] = useState<number | null>(null)
   const [view, setView] = useState<DocView>('all')
-  const selected = picked !== null && entries.some((e) => e.doc?.id === picked) ? picked : (entries.find((e) => e.doc)?.doc?.id ?? null)
+  const fromKey = selectedKey ? entries.find((e) => e.doc?.key === selectedKey)?.doc?.id : undefined
+  const current = fromKey ?? picked
+  const selected = current !== null && entries.some((e) => e.doc?.id === current) ? current : (entries.find((e) => e.doc)?.doc?.id ?? null)
   const entry = entries.find((e) => e.doc?.id === selected)
   const select = (id: number, v: DocView = 'all') => {
     setPicked(id)
     setView(v)
+    const key = entries.find((e) => e.doc?.id === id)?.doc?.key
+    if (key) onPick?.(key)
   }
   const more = view === 'all' && below ? below(entry?.doc?.key ?? null) : null
   return (
-    <div className="grid items-start gap-5 lg:grid-cols-[17rem_minmax(0,1fr)]">
-      <div className="flex flex-col gap-4">
-        {header}
-        <DocList entries={entries} selected={selected} view={view} onSelect={select} numbered={numbered} />
-        {extra}
-      </div>
+    <div className={hideList ? 'grid items-start gap-5' : 'grid items-start gap-5 lg:grid-cols-[17rem_minmax(0,1fr)]'}>
+      {!hideList && (
+        <div className="flex flex-col gap-4">
+          {header}
+          <DocList entries={entries} selected={selected} view={view} onSelect={select} numbered={numbered} />
+          {extra}
+        </div>
+      )}
       <div className={more ? 'flex min-w-0 flex-col gap-5' : 'lg:sticky lg:top-4'}>
         <DocPanel id={selected} label={entry?.label} view={view} onShowAll={() => setView('all')} />
         {more}
@@ -86,11 +98,12 @@ function Split({
   )
 }
 
+const STRATEGY_PATH: Record<string, string> = { goal: 'goal', mission: 'mission', strategies: 'strategies', smart: 'smart', values: 'values', slogan: 'slogan' }
 const STRATEGY_ORDER = ['goal', 'mission', 'strategies', 'smart', 'values', 'slogan'] as const
 
 export function StrategyPage() {
   const { t } = useTranslation()
-  const can = useCan()
+  const { key } = useParams()
   const { loading, byKey } = useDocs()
   const entries: DocEntry[] = STRATEGY_ORDER.map((k) => ({ label: t(`company.strategy.items.${k}`), doc: byKey.get(k) }))
   return (
@@ -100,9 +113,9 @@ export function StrategyPage() {
         <Skeleton className="h-96" />
       ) : (
         <Split
-          numbered
+          hideList
           entries={entries}
-          extra={<LinkCards cards={[{ to: '/org/goals', title: t('company.strategy.smartTitle'), hint: t('company.strategy.smartHint'), icon: Target, show: can('org.read') || can('goals.manage') }]} />}
+          selectedKey={STRATEGY_PATH[key ?? 'goal']}
           below={(key) =>
             key === 'strategies' ? (
               <>
